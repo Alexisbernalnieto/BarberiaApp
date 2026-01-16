@@ -13,8 +13,11 @@ const COLORS = {
   accent: '#ff4444'
 };
 
-export default function AdminDashboard({ appointments, onLogout, onAddAppointment }) {
-  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard', 'queue', 'finance', 'walkin'
+export default function AdminDashboard({ appointments, onLogout, onAddAppointment, role = 'admin' }) {
+  const [viewMode, setViewMode] = useState('dashboard');
+
+  const totalToday = appointments.reduce((acc, app) => acc + (app.price || 0), 0);
+  const totalWalkins = appointments.filter(app => app.type === 'Walk-in').length;
 
   const handleWalkIn = (data) => {
     // Sobrescribir datos para Walk-in
@@ -33,25 +36,43 @@ export default function AdminDashboard({ appointments, onLogout, onAddAppointmen
   const renderDashboard = () => (
     <>
       <View style={styles.header}>
-        <Text style={styles.title}>Panel Admin</Text>
+        <View>
+          <Text style={styles.title}>Barbería</Text>
+          <Text style={styles.subtitleHeader}>
+            {role === 'reception' ? 'Panel recepción' : 'Panel administrador'}
+          </Text>
+        </View>
         <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
           <Text style={styles.logoutText}>Salir</Text>
         </TouchableOpacity>
       </View>
 
+      <View style={styles.metricRow}>
+        <View style={styles.metricCard}>
+          <Text style={styles.metricLabel}>Ingresos estimados hoy</Text>
+          <Text style={styles.metricValue}>${totalToday}</Text>
+        </View>
+        <View style={styles.metricCard}>
+          <Text style={styles.metricLabel}>Clientes walk-in</Text>
+          <Text style={styles.metricValue}>{totalWalkins}</Text>
+        </View>
+      </View>
+
       <View style={styles.actionGrid}>
-        <TouchableOpacity style={styles.actionCard} onPress={() => setViewMode('walkin')}>
+        <TouchableOpacity style={[styles.actionCard, role === 'reception' && styles.actionCardWide]} onPress={() => setViewMode('walkin')}>
             <Text style={styles.actionIcon}>🚶</Text>
             <Text style={styles.actionText}>Nuevo Cliente (Walk-in)</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionCard} onPress={() => setViewMode('queue')}>
+        <TouchableOpacity style={[styles.actionCard, role === 'reception' && styles.actionCardWide]} onPress={() => setViewMode('queue')}>
             <Text style={styles.actionIcon}>📺</Text>
             <Text style={styles.actionText}>Pantalla Turnos</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionCard} onPress={() => setViewMode('finance')}>
-            <Text style={styles.actionIcon}>💰</Text>
-            <Text style={styles.actionText}>Finanzas</Text>
-        </TouchableOpacity>
+        {role === 'admin' && (
+          <TouchableOpacity style={styles.actionCard} onPress={() => setViewMode('finance')}>
+              <Text style={styles.actionIcon}>💰</Text>
+              <Text style={styles.actionText}>Finanzas</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <Text style={styles.subtitle}>Agenda Global</Text>
@@ -88,7 +109,7 @@ export default function AdminDashboard({ appointments, onLogout, onAddAppointmen
 
       <Modal visible={viewMode === 'walkin'} animationType="slide">
         <BookingWizard 
-            user={{ email: 'admin', name: 'Admin' }}
+            user={{ email: role, name: role === 'reception' ? 'Recepción' : 'Admin' }}
             existingAppointments={appointments}
             onConfirm={handleWalkIn}
             onCancel={() => setViewMode('dashboard')}
@@ -112,9 +133,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     color: COLORS.primary,
     fontWeight: 'bold',
+  },
+  subtitleHeader: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
   },
   logoutBtn: {
     padding: 8,
@@ -123,6 +149,30 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: COLORS.text,
+  },
+  metricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    gap: 10,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  metricLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  metricValue: {
+    color: COLORS.primary,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   actionGrid: {
     flexDirection: 'row',
@@ -191,5 +241,8 @@ const styles = StyleSheet.create({
     marginTop: 5,
     alignSelf: 'flex-end',
     textTransform: 'uppercase',
+  },
+  actionCardWide: {
+    width: '48%',
   }
 });

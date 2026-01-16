@@ -13,7 +13,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { auth, db } from './src/firebaseClient';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 
 import UserDashboard from './src/components/UserDashboard';
@@ -50,6 +50,8 @@ export default function App() {
   const [registerPassword, setRegisterPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState(null);
+
   // Estados de Error Visual
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -61,24 +63,43 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Usuario logueado en Firebase, buscar sus datos extras (rol, nombre) en Firestore
+        const emailLower = (user.email || '').toLowerCase();
+        let baseRole = 'user';
+        if (emailLower === 'admin@barberia.com') {
+          baseRole = 'admin';
+        } else if (emailLower === 'recepcion@barberia.com') {
+          baseRole = 'reception';
+        }
+
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
           
           if (userDoc.exists()) {
-            setCurrentUser({ ...userDoc.data(), uid: user.uid });
+            const data = userDoc.data();
+            setCurrentUser({ 
+              ...data, 
+              uid: user.uid,
+              role: data.role || baseRole 
+            });
           } else {
             // Si no existe doc (raro), usar datos básicos
             setCurrentUser({ 
               email: user.email, 
               uid: user.uid, 
               name: user.displayName || 'Usuario', 
-              role: 'user' 
+              role: baseRole 
             });
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
+          // Fallback: si Firestore falla por permisos, usar solo los datos de Auth
+          setCurrentUser({
+            email: user.email,
+            uid: user.uid,
+            name: user.displayName || 'Usuario',
+            role: baseRole,
+          });
         }
       } else {
         setCurrentUser(null);
@@ -168,8 +189,23 @@ export default function App() {
     if (!isValid) return;
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // El onAuthStateChanged se encargará de actualizar el estado
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        try {
+          await sendEmailVerification(user);
+        } catch (e) {
+          console.error('Error re-sending verification email:', e);
+        }
+
+        Alert.alert(
+          'Verifica tu correo',
+          'Tu cuenta aún no está verificada. Te enviamos un enlace de verificación a tu correo. Revísalo, verifica tu cuenta e inicia sesión de nuevo.'
+        );
+        await signOut(auth);
+        return;
+      }
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
@@ -211,13 +247,16 @@ export default function App() {
     if (!isValid) return;
 
     try {
-      // 1. Crear usuario en Auth
       const userCredential = await createUserWithEmailAndPassword(auth, registerEmail, registerPassword);
       const user = userCredential.user;
 
-      // 2. Guardar datos adicionales en Firestore (users collection)
-      // TRAMPA TEMPORAL: Si el email es admin@barberia.com, hacerlo admin
-      const role = registerEmail.toLowerCase() === 'admin@barberia.com' ? 'admin' : 'user';
+      const emailLower = registerEmail.toLowerCase();
+      let role = 'user';
+      if (emailLower === 'admin@barberia.com') {
+        role = 'admin';
+      } else if (emailLower === 'recepcion@barberia.com') {
+        role = 'reception';
+      }
 
       await setDoc(doc(db, 'users', user.uid), {
         email: registerEmail,
@@ -226,12 +265,30 @@ export default function App() {
         createdAt: new Date().toISOString()
       });
 
-      Alert.alert('Éxito', 'Cuenta creada correctamente');
-      // No hace falta redirigir manual, el listener lo hará
+      try {
+        await sendEmailVerification(user);
+      } catch (e) {
+        console.error('Error sending verification email:', e);
+      }
+
+      Alert.alert('Revisa tu correo', 'Hemos creado tu cuenta y te enviamos un enlace de verificación.');
+
+      await signOut(auth);
+      setEmail(registerEmail);
+      setPassword('');
+      setRegisterEmail('');
+      setRegisterPassword('');
+      setConfirmPassword('');
+      setName('');
+      setPendingVerificationEmail(registerEmail);
+      if (!isLoginView) {
+        toggleSwitch();
+      }
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/email-already-in-use') {
         setRegisterEmailError('Este correo ya está registrado');
+        Alert.alert('Error', 'Este correo ya está registrado. Intenta iniciar sesión.');
       } else {
         Alert.alert('Error', 'No se pudo registrar: ' + error.message);
       }
@@ -243,6 +300,18 @@ export default function App() {
       await signOut(auth);
       setEmail('');
       setPassword('');
+      setRegisterEmail('');
+      setRegisterPassword('');
+      setConfirmPassword('');
+      setName('');
+      setPendingVerificationEmail(null);
+      setEmailError('');
+      setPasswordError('');
+      setRegisterEmailError('');
+      setRegisterPasswordError('');
+      setConfirmPasswordError('');
+      slideAnim.setValue(0);
+      setIsLoginView(true);
     } catch (error) {
       console.error("Error logging out: ", error);
     }
@@ -267,14 +336,14 @@ export default function App() {
     );
   }
 
-  // --- Renderizado Condicional ---
-
   if (currentUser) {
-    if (currentUser.role === 'admin') {
+    if (currentUser.role === 'admin' || currentUser.role === 'reception') {
       return (
         <AdminDashboard 
+          role={currentUser.role}
           appointments={appointments} 
           onLogout={handleLogout} 
+          onAddAppointment={handleAddAppointment}
         />
       );
     } else {
@@ -289,7 +358,6 @@ export default function App() {
     }
   }
 
-  // --- Vista de Auth (Login/Register) ---
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -417,6 +485,26 @@ export default function App() {
             </View>
           </View>
         </Animated.View>
+
+        {pendingVerificationEmail && (
+          <View style={styles.verificationOverlay}>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Verifica tu correo</Text>
+              <Text style={styles.cardSubtitle}>Te enviamos un enlace de verificación a:</Text>
+              <Text style={styles.verificationEmail}>{pendingVerificationEmail}</Text>
+              <Text style={styles.verificationHint}>
+                Abre tu correo, haz clic en el enlace y luego inicia sesión con tus datos.
+              </Text>
+
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => setPendingVerificationEmail(null)}
+              >
+                <Text style={styles.buttonText}>IR A INICIAR SESIÓN</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -470,6 +558,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 60,
+  },
+  verificationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  verificationEmail: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
+    marginTop: 5,
+  },
+  verificationHint: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   formWrapper: {
     width: width,

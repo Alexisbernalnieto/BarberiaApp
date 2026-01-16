@@ -1,36 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, FlatList, Dimensions, Platform } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, Dimensions, Animated, Platform } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { BARBERS, SERVICES, TIME_SLOTS } from '../../data/mockData';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
-const isWeb = Platform.OS === 'web';
 
 const COLORS = {
   primary: '#d4af37',
   background: '#1a1a1a',
   surface: '#252525',
-  surfaceLight: '#333333',
+  surfaceHighlight: '#333333',
   text: '#ffffff',
   textSecondary: '#aaaaaa',
   success: '#2ecc71',
-  error: '#e74c3c'
+  error: '#e74c3c',
+  disabled: '#444444'
 };
 
-export default function BookingWizard({ user, existingAppointments, onConfirm }) {
+const STEPS = [
+  { id: 1, title: 'Servicio', icon: 'cut-outline' },
+  { id: 2, title: 'Barbero', icon: 'person-outline' },
+  { id: 3, title: 'Horario', icon: 'time-outline' },
+  { id: 4, title: 'Confirmar', icon: 'checkmark-circle-outline' }
+];
+
+export default function BookingWizard({ user, existingAppointments, onConfirm, onCancel }) {
+  // Wizard State
+  const [currentStep, setCurrentStep] = useState(1);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
   // Selection States
+  const [selectedService, setSelectedService] = useState(null);
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState(null);
-  const [selectedService, setSelectedService] = useState(null);
   
   // Payment States
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
 
-  // Auto-scroll ref (opcional para mejoras futuras)
-  const scrollViewRef = React.useRef();
+  // Helper: Transition effect
+  const goToStep = (step) => {
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true })
+    ]).start();
+    setTimeout(() => setCurrentStep(step), 150);
+  };
+
+  const handleNext = () => {
+    if (currentStep === 1 && selectedService) goToStep(2);
+    else if (currentStep === 2 && selectedBarber) goToStep(3);
+    else if (currentStep === 3 && selectedDate && selectedTime) goToStep(4);
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) goToStep(currentStep - 1);
+    else if (onCancel) onCancel(); // Opción de cancelar si se pasa prop
+  };
 
   // Helper: Check availability
   const isSlotTaken = (time) => {
@@ -43,24 +72,17 @@ export default function BookingWizard({ user, existingAppointments, onConfirm })
   };
 
   const handlePayment = () => {
-    // Validaciones finales
-    if (!selectedBarber || !selectedDate || !selectedTime || !selectedService) {
-      Alert.alert('Faltan datos', 'Por favor completa todos los campos de la reserva.');
-      return;
-    }
-
     if (cardNumber.length < 16 || !expiry || !cvc) {
       Alert.alert('Error de Pago', 'Por favor revisa los datos de tu tarjeta.');
       return;
     }
 
-    // Simular proceso de pago
     Alert.alert(
-      'Procesando Pago...',
-      'Confirmando tu estilo...',
+      '¡Reserva Exitosa!',
+      `Tu cita para ${selectedService.name} ha sido confirmada.`,
       [
         {
-          text: '¡Listo!', 
+          text: 'Entendido', 
           onPress: () => {
             const appointmentData = {
               userId: user.email,
@@ -82,203 +104,271 @@ export default function BookingWizard({ user, existingAppointments, onConfirm })
     );
   };
 
-  const SectionTitle = ({ number, title }) => (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionNumber}>
-        <Text style={styles.sectionNumberText}>{number}</Text>
+  // --- RENDER STEPS ---
+
+  const renderProgressBar = () => (
+    <View style={styles.progressContainer}>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }]} />
       </View>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.stepsRow}>
+        {STEPS.map((step, index) => {
+            const isActive = step.id === currentStep;
+            const isCompleted = step.id < currentStep;
+            return (
+                <View key={step.id} style={styles.stepWrapper}>
+                    <View style={[
+                        styles.stepCircle, 
+                        (isActive || isCompleted) && styles.stepCircleActive,
+                        isActive && styles.stepCircleCurrent
+                    ]}>
+                        <Text style={[styles.stepNumber, (isActive || isCompleted) && styles.stepNumberActive]}>
+                            {isCompleted ? '✓' : step.id}
+                        </Text>
+                    </View>
+                    <Text style={[styles.stepTitle, isActive && styles.stepTitleActive]}>{step.title}</Text>
+                </View>
+            );
+        })}
+      </View>
     </View>
+  );
+
+  const renderStep1_Services = () => (
+    <ScrollView contentContainerStyle={styles.stepContent}>
+      <Text style={styles.stepHeader}>¿Qué estilo buscas hoy?</Text>
+      <View style={styles.gridContainer}>
+        {SERVICES.map((item) => (
+          <TouchableOpacity 
+            key={item.id}
+            style={[
+              styles.serviceCard, 
+              selectedService?.id === item.id && styles.activeServiceCard
+            ]}
+            onPress={() => {
+                setSelectedService(item);
+                // Opcional: auto-avanzar después de breve delay
+                // setTimeout(() => goToStep(2), 300);
+            }}
+          >
+            <View style={styles.serviceInfo}>
+                <Text style={[styles.serviceName, selectedService?.id === item.id && styles.activeText]}>{item.name}</Text>
+                <Text style={styles.serviceDuration}>⏱ {item.duration} min</Text>
+            </View>
+            <Text style={[styles.servicePrice, selectedService?.id === item.id && styles.activeText]}>${item.price}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
+  );
+
+  const renderStep2_Barbers = () => (
+    <ScrollView contentContainerStyle={styles.stepContent}>
+      <Text style={styles.stepHeader}>Elige a tu profesional</Text>
+      <View style={styles.barbersGrid}>
+        {BARBERS.map((item) => (
+          <TouchableOpacity 
+            key={item.id}
+            style={[
+              styles.barberCard, 
+              selectedBarber?.id === item.id && styles.activeBarberCard
+            ]}
+            onPress={() => setSelectedBarber(item)}
+          >
+            <View style={[styles.avatarBig, selectedBarber?.id === item.id && styles.activeAvatarBig]}>
+              <Text style={styles.avatarTextBig}>{item.name[0]}</Text>
+            </View>
+            <Text style={[styles.barberName, selectedBarber?.id === item.id && styles.activeText]}>{item.name}</Text>
+            <View style={styles.ratingBadge}>
+                <Text style={styles.ratingText}>⭐ {item.rating}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
+  );
+
+  const renderStep3_DateTime = () => (
+    <ScrollView contentContainerStyle={styles.stepContent}>
+      <Text style={styles.stepHeader}>Fecha y Hora</Text>
+      
+      <Calendar
+        onDayPress={day => {
+            setSelectedDate(day.dateString);
+            setSelectedTime(null);
+        }}
+        markedDates={{
+          [selectedDate]: { selected: true, selectedColor: COLORS.primary }
+        }}
+        theme={{
+          backgroundColor: 'transparent',
+          calendarBackground: 'transparent',
+          textSectionTitleColor: '#666',
+          selectedDayBackgroundColor: COLORS.primary,
+          selectedDayTextColor: '#000',
+          todayTextColor: COLORS.primary,
+          dayTextColor: '#fff',
+          textDisabledColor: '#333',
+          arrowColor: COLORS.primary,
+          monthTextColor: '#fff',
+          textMonthFontWeight: 'bold',
+        }}
+        minDate={new Date().toISOString().split('T')[0]}
+        style={styles.calendar}
+      />
+
+      {selectedDate ? (
+        <View style={styles.timeSection}>
+          <Text style={styles.subLabel}>Disponibilidad para {selectedDate}</Text>
+          <View style={styles.slotsGrid}>
+            {TIME_SLOTS.map((slot) => {
+              const taken = isSlotTaken(slot);
+              return (
+                <TouchableOpacity
+                  key={slot}
+                  disabled={taken}
+                  style={[
+                    styles.timeSlot,
+                    taken && styles.disabledSlot,
+                    selectedTime === slot && styles.activeSlot
+                  ]}
+                  onPress={() => setSelectedTime(slot)}
+                >
+                  <Text style={[
+                      styles.timeText, 
+                      selectedTime === slot && { color: '#000', fontWeight: 'bold' },
+                      taken && { color: '#666' }
+                    ]}>
+                    {taken ? 'OCUPADO' : slot}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      ) : (
+        <Text style={styles.hintText}>Selecciona una fecha en el calendario</Text>
+      )}
+    </ScrollView>
+  );
+
+  const renderStep4_Confirm = () => (
+    <ScrollView contentContainerStyle={styles.stepContent}>
+      <Text style={styles.stepHeader}>Resumen y Pago</Text>
+      
+      <View style={styles.ticketCard}>
+        <View style={styles.ticketHeader}>
+            <Text style={styles.ticketTitle}>BARBERÍA</Text>
+            <Text style={styles.ticketSubtitle}>CONFIRMACIÓN DE CITA</Text>
+        </View>
+        
+        <View style={styles.ticketRow}>
+            <Text style={styles.ticketLabel}>CLIENTE</Text>
+            <Text style={styles.ticketValue}>{user.name}</Text>
+        </View>
+        <View style={styles.ticketDivider} />
+        <View style={styles.ticketRow}>
+            <Text style={styles.ticketLabel}>SERVICIO</Text>
+            <Text style={styles.ticketValue}>{selectedService?.name}</Text>
+        </View>
+        <View style={styles.ticketRow}>
+            <Text style={styles.ticketLabel}>BARBERO</Text>
+            <Text style={styles.ticketValue}>{selectedBarber?.name}</Text>
+        </View>
+        <View style={styles.ticketRow}>
+            <Text style={styles.ticketLabel}>FECHA</Text>
+            <Text style={styles.ticketValue}>{selectedDate} @ {selectedTime}</Text>
+        </View>
+        
+        <View style={styles.ticketFooter}>
+            <Text style={styles.totalLabel}>TOTAL A PAGAR</Text>
+            <Text style={styles.totalPrice}>${selectedService?.price}</Text>
+        </View>
+      </View>
+
+      <View style={styles.paymentSection}>
+        <Text style={styles.inputLabel}>Datos de Tarjeta (Simulado)</Text>
+        <TextInput 
+            style={styles.input} 
+            placeholder="0000 0000 0000 0000" 
+            placeholderTextColor="#555"
+            keyboardType="number-pad"
+            maxLength={16}
+            onChangeText={setCardNumber}
+            value={cardNumber}
+        />
+        <View style={styles.rowInput}>
+            <TextInput 
+                style={[styles.input, { flex: 1, marginRight: 10 }]} 
+                placeholder="MM/YY" 
+                placeholderTextColor="#555"
+                maxLength={5}
+                onChangeText={setExpiry}
+                value={expiry}
+            />
+            <TextInput 
+                style={[styles.input, { flex: 1 }]} 
+                placeholder="CVC" 
+                placeholderTextColor="#555"
+                keyboardType="number-pad"
+                maxLength={3}
+                onChangeText={setCvc}
+                value={cvc}
+            />
+        </View>
+      </View>
+    </ScrollView>
   );
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        ref={scrollViewRef}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <Text style={styles.mainTitle}>Nueva Reserva</Text>
-        <Text style={styles.mainSubtitle}>Arma tu estilo en simples pasos</Text>
+      <View style={styles.inner}>
+        {renderProgressBar()}
 
-        {/* 1. Barbero */}
-        <View style={styles.section}>
-          <SectionTitle number="1" title="Elige tu Barbero" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-            {BARBERS.map((item) => (
+        <Animated.View style={[styles.contentContainer, { opacity: fadeAnim }]}>
+          {currentStep === 1 && renderStep1_Services()}
+          {currentStep === 2 && renderStep2_Barbers()}
+          {currentStep === 3 && renderStep3_DateTime()}
+          {currentStep === 4 && renderStep4_Confirm()}
+        </Animated.View>
+
+        <View style={styles.footerActions}>
+          <TouchableOpacity 
+              style={[styles.actionBtn, styles.backBtn, currentStep === 1 && styles.disabledBtn]} 
+              onPress={handleBack}
+              disabled={currentStep === 1 && !onCancel}
+          >
+              <Text style={styles.backBtnText}>{currentStep === 1 ? 'Cancelar' : 'Atrás'}</Text>
+          </TouchableOpacity>
+
+          {currentStep < 4 ? (
               <TouchableOpacity 
-                key={item.id}
-                style={[
-                  styles.barberCard, 
-                  selectedBarber?.id === item.id && styles.activeCard
-                ]}
-                onPress={() => setSelectedBarber(item)}
+                  style={[
+                      styles.actionBtn, 
+                      styles.nextBtn, 
+                      ((currentStep === 1 && !selectedService) || 
+                       (currentStep === 2 && !selectedBarber) || 
+                       (currentStep === 3 && (!selectedDate || !selectedTime))) && styles.disabledBtn
+                  ]} 
+                  onPress={handleNext}
+                  disabled={
+                      (currentStep === 1 && !selectedService) || 
+                      (currentStep === 2 && !selectedBarber) || 
+                      (currentStep === 3 && (!selectedDate || !selectedTime))
+                  }
               >
-                <View style={[styles.avatarPlaceholder, selectedBarber?.id === item.id && styles.activeAvatar]}>
-                  <Text style={[styles.avatarText, selectedBarber?.id === item.id && styles.activeAvatarText]}>
-                    {item.name[0]}
-                  </Text>
-                </View>
-                <Text style={styles.cardTitle}>{item.name}</Text>
-                <Text style={styles.rating}>⭐ {item.rating}</Text>
+                  <Text style={styles.nextBtnText}>Siguiente</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* 2. Servicio */}
-        <View style={styles.section}>
-          <SectionTitle number="2" title="Servicio" />
-          <View style={styles.gridContainer}>
-            {SERVICES.map((item) => (
+          ) : (
               <TouchableOpacity 
-                key={item.id}
-                style={[
-                  styles.serviceCard, 
-                  selectedService?.id === item.id && styles.activeCard
-                ]}
-                onPress={() => setSelectedService(item)}
+                  style={[styles.actionBtn, styles.confirmBtn]} 
+                  onPress={handlePayment}
               >
-                <Text style={styles.serviceName}>{item.name}</Text>
-                <Text style={styles.serviceDuration}>{item.duration} min</Text>
-                <Text style={styles.servicePrice}>${item.price}</Text>
+                  <Text style={styles.confirmBtnText}>Confirmar y Pagar</Text>
               </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* 3. Fecha y Hora */}
-        <View style={styles.section}>
-          <SectionTitle number="3" title="Fecha y Hora" />
-          <View style={styles.calendarContainer}>
-            <Calendar
-              onDayPress={day => {
-                  setSelectedDate(day.dateString);
-                  setSelectedTime(null);
-              }}
-              markedDates={{
-                [selectedDate]: { selected: true, selectedColor: COLORS.primary }
-              }}
-              theme={{
-                backgroundColor: 'transparent',
-                calendarBackground: 'transparent',
-                textSectionTitleColor: '#b6c1cd',
-                selectedDayBackgroundColor: COLORS.primary,
-                selectedDayTextColor: '#000',
-                todayTextColor: COLORS.primary,
-                dayTextColor: '#fff',
-                textDisabledColor: '#444',
-                arrowColor: COLORS.primary,
-                monthTextColor: COLORS.text,
-              }}
-              minDate={new Date().toISOString().split('T')[0]}
-            />
-          </View>
-
-          {selectedDate && (
-            <View style={styles.timeSection}>
-              <Text style={styles.subLabel}>Horarios para {selectedDate}</Text>
-              <View style={styles.slotsContainer}>
-                {TIME_SLOTS.map((slot) => {
-                  const taken = isSlotTaken(slot);
-                  return (
-                    <TouchableOpacity
-                      key={slot}
-                      disabled={taken || !selectedBarber} // Deshabilitar si no hay barbero seleccionado
-                      style={[
-                        styles.timeSlot,
-                        taken && styles.disabledSlot,
-                        selectedTime === slot && styles.activeSlot
-                      ]}
-                      onPress={() => setSelectedTime(slot)}
-                    >
-                      <Text style={[styles.timeText, selectedTime === slot && { color: '#000', fontWeight: 'bold' }]}>
-                        {taken ? 'OCUPADO' : slot}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-              {!selectedBarber && (
-                <Text style={styles.warningText}>* Selecciona un barbero para ver disponibilidad real</Text>
-              )}
-            </View>
           )}
         </View>
-
-        {/* 4. Pago y Resumen */}
-        <View style={styles.section}>
-          <SectionTitle number="4" title="Confirmar y Pagar" />
-          
-          <View style={styles.paymentContainer}>
-            <View style={styles.summaryCard}>
-               <Text style={styles.summaryHeader}>RESUMEN</Text>
-               <View style={styles.summaryRow}>
-                 <Text style={styles.summaryLabel}>Barbero:</Text>
-                 <Text style={styles.summaryValue}>{selectedBarber?.name || '-'}</Text>
-               </View>
-               <View style={styles.summaryRow}>
-                 <Text style={styles.summaryLabel}>Servicio:</Text>
-                 <Text style={styles.summaryValue}>{selectedService?.name || '-'}</Text>
-               </View>
-               <View style={styles.summaryRow}>
-                 <Text style={styles.summaryLabel}>Fecha:</Text>
-                 <Text style={styles.summaryValue}>{selectedDate || '-'} {selectedTime ? `@ ${selectedTime}` : ''}</Text>
-               </View>
-               <View style={styles.totalRow}>
-                 <Text style={styles.totalLabel}>Total:</Text>
-                 <Text style={styles.totalValue}>${selectedService?.price || '0'}</Text>
-               </View>
-            </View>
-
-            <Text style={styles.inputLabel}>Datos de Tarjeta</Text>
-            <TextInput 
-                style={styles.input} 
-                placeholder="0000 0000 0000 0000" 
-                placeholderTextColor="#666"
-                keyboardType="number-pad"
-                maxLength={16}
-                onChangeText={setCardNumber}
-            />
-            <View style={styles.rowInput}>
-                <View style={{flex: 1, marginRight: 10}}>
-                    <TextInput 
-                        style={styles.input} 
-                        placeholder="MM/YY" 
-                        placeholderTextColor="#666"
-                        maxLength={5}
-                        onChangeText={setExpiry}
-                    />
-                </View>
-                <View style={{flex: 1}}>
-                    <TextInput 
-                        style={styles.input} 
-                        placeholder="CVC" 
-                        placeholderTextColor="#666"
-                        keyboardType="number-pad"
-                        maxLength={3}
-                        onChangeText={setCvc}
-                    />
-                </View>
-            </View>
-
-            <TouchableOpacity 
-              style={[
-                styles.payBtn, 
-                (!selectedBarber || !selectedService || !selectedDate || !selectedTime) && styles.disabledBtn
-              ]} 
-              onPress={handlePayment}
-              disabled={!selectedBarber || !selectedService || !selectedDate || !selectedTime}
-            >
-              <Text style={styles.payBtnText}>
-                {selectedService ? `PAGAR $${selectedService.price} Y RESERVAR` : 'COMPLETAR DATOS PARA RESERVAR'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        <View style={{height: 100}} /> 
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -288,154 +378,215 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  scrollContent: {
-    padding: 20,
+  inner: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
   },
-  mainTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginBottom: 5,
+  // Progress Bar
+  progressContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.surface,
   },
-  mainSubtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 25,
+  progressTrack: {
+    height: 4,
+    backgroundColor: '#444',
+    borderRadius: 2,
+    position: 'absolute',
+    top: 35,
+    left: 40,
+    right: 40,
+    zIndex: 0,
   },
-  section: {
-    marginBottom: 30,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  sectionNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  progressFill: {
+    height: '100%',
     backgroundColor: COLORS.primary,
+    borderRadius: 2,
+  },
+  stepsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 1,
+  },
+  stepWrapper: {
+    alignItems: 'center',
+    width: 60,
+  },
+  stepCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#444',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginBottom: 5,
+    borderWidth: 2,
+    borderColor: COLORS.background,
   },
-  sectionNumberText: {
-    color: '#000',
+  stepCircleActive: {
+    backgroundColor: COLORS.primary,
+  },
+  stepCircleCurrent: {
+    borderWidth: 2,
+    borderColor: '#fff',
+    transform: [{ scale: 1.1 }]
+  },
+  stepNumber: {
+    color: '#aaa',
     fontWeight: 'bold',
     fontSize: 14,
   },
-  sectionTitle: {
+  stepNumberActive: {
+    color: '#000',
+  },
+  stepTitle: {
+    color: '#666',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  stepTitleActive: {
+    color: '#fff',
+  },
+
+  // Content
+  contentContainer: {
+    flex: 1,
+  },
+  stepContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  stepHeader: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+
+  // Step 1: Services
+  gridContainer: {
+    gap: 15,
+  },
+  serviceCard: {
+    backgroundColor: COLORS.surface,
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  activeServiceCard: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+  },
+  serviceInfo: {
+    flex: 1,
+  },
+  serviceName: {
+    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text,
+    marginBottom: 4,
   },
-  // Barbers
-  horizontalScroll: {
-    paddingBottom: 10,
+  serviceDuration: {
+    color: '#888',
+    fontSize: 14,
+  },
+  servicePrice: {
+    color: COLORS.primary,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  activeText: {
+    color: COLORS.primary,
+  },
+
+  // Step 2: Barbers
+  barbersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 15,
   },
   barberCard: {
+    width: '47%',
     backgroundColor: COLORS.surface,
-    padding: 15,
-    borderRadius: 15,
-    marginRight: 15,
-    width: 120,
+    padding: 20,
+    borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#333',
   },
-  activeCard: {
+  activeBarberCard: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.surfaceLight,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
   },
-  avatarPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  avatarBig: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#444',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
-  activeAvatar: {
+  activeAvatarBig: {
     backgroundColor: COLORS.primary,
   },
-  avatarText: {
-    color: COLORS.primary,
-    fontSize: 24,
+  avatarTextBig: {
+    fontSize: 28,
     fontWeight: 'bold',
-  },
-  activeAvatarText: {
-    color: '#000',
-  },
-  cardTitle: {
     color: '#fff',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 2,
   },
-  rating: {
+  barberName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  ratingBadge: {
+    backgroundColor: '#333',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  ratingText: {
     color: '#FFD700',
     fontSize: 12,
   },
-  // Services
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  serviceCard: {
-    width: isWeb ? '30%' : '48%',
-    backgroundColor: COLORS.surface,
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  serviceName: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 5,
-  },
-  serviceDuration: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
-    marginBottom: 5,
-  },
-  servicePrice: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  // Calendar & Time
-  calendarContainer: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 15,
-    padding: 10,
+
+  // Step 3: Date & Time
+  calendar: {
     marginBottom: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+    paddingBottom: 10,
   },
   timeSection: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 15,
-    padding: 15,
+    marginTop: 10,
   },
   subLabel: {
-    color: COLORS.textSecondary,
+    color: '#aaa',
     marginBottom: 15,
     fontSize: 14,
   },
-  slotsContainer: {
+  slotsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 10,
   },
   timeSlot: {
     width: '30%',
-    backgroundColor: '#333',
-    paddingVertical: 10,
+    paddingVertical: 12,
+    backgroundColor: COLORS.surface,
     borderRadius: 8,
-    marginBottom: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#444',
@@ -450,103 +601,159 @@ const styles = StyleSheet.create({
   },
   timeText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 14,
   },
-  warningText: {
-    color: '#e74c3c',
-    fontSize: 12,
-    marginTop: 10,
+  hintText: {
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 20,
     fontStyle: 'italic',
   },
-  // Payment
-  paymentContainer: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 15,
+
+  // Step 4: Confirmation
+  ticketCard: {
+    backgroundColor: '#fff',
+    borderRadius: 0,
     padding: 20,
+    marginHorizontal: 10,
+    marginBottom: 30,
+    // Ticket effect (simple borders for now)
+    borderTopWidth: 8,
+    borderTopColor: COLORS.primary,
   },
-  summaryCard: {
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    borderRadius: 10,
-    padding: 15,
+  ticketHeader: {
+    alignItems: 'center',
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 15,
   },
-  summaryHeader: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  ticketTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: 2,
+    color: '#000',
+  },
+  ticketSubtitle: {
     fontSize: 12,
-    letterSpacing: 1,
+    color: '#666',
+    marginTop: 5,
   },
-  summaryRow: {
+  ticketRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    marginBottom: 12,
   },
-  summaryLabel: {
-    color: '#aaa',
-  },
-  summaryValue: {
-    color: '#fff',
+  ticketLabel: {
+    color: '#888',
+    fontSize: 12,
     fontWeight: 'bold',
   },
-  totalRow: {
+  ticketValue: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  ticketDivider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 10,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#eee', 
+  },
+  ticketFooter: {
+    marginTop: 10,
+    paddingTop: 15,
+    borderTopWidth: 2,
+    borderTopColor: '#000',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
   },
   totalLabel: {
-    color: '#fff',
-    fontWeight: 'bold',
     fontSize: 16,
-  },
-  totalValue: {
-    color: COLORS.primary,
     fontWeight: 'bold',
-    fontSize: 20,
+    color: '#000',
+  },
+  totalPrice: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  
+  paymentSection: {
+    backgroundColor: COLORS.surface,
+    padding: 20,
+    borderRadius: 12,
   },
   inputLabel: {
-    color: '#fff',
+    color: '#aaa',
     marginBottom: 10,
-    fontWeight: 'bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#111',
     color: '#fff',
     padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: '#333',
+    marginBottom: 15,
   },
   rowInput: {
     flexDirection: 'row',
   },
-  payBtn: {
-    backgroundColor: COLORS.success,
-    paddingVertical: 18,
+
+  // Footer Actions
+  footerActions: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.surface,
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+  },
+  actionBtn: {
+    paddingVertical: 15,
+    paddingHorizontal: 25,
     borderRadius: 30,
+    minWidth: 120,
     alignItems: 'center',
-    marginTop: 10,
-    shadowColor: COLORS.success,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
+    justifyContent: 'center',
   },
-  disabledBtn: {
-    backgroundColor: '#444',
-    shadowOpacity: 0,
-    elevation: 0,
+  backBtn: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#444',
   },
-  payBtnText: {
+  backBtnText: {
     color: '#fff',
+    fontWeight: '600',
+  },
+  nextBtn: {
+    backgroundColor: COLORS.primary,
+  },
+  nextBtnText: {
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  confirmBtn: {
+    backgroundColor: COLORS.primary,
+    width: '100%',
+  },
+  confirmBtnText: {
+    color: '#000',
     fontWeight: 'bold',
     fontSize: 16,
-    letterSpacing: 0.5,
+  },
+  disabledBtn: {
+    opacity: 0.5,
   },
 });

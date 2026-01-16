@@ -17,6 +17,7 @@ export default function UserDashboard({ user, appointments, onLogout, onAddAppoi
   
   // Filtrar solo las citas de este usuario
   const myAppointments = appointments.filter(app => app.userId === user.email);
+  const nextAppointment = myAppointments.length > 0 ? myAppointments[0] : null;
 
   const handleNewBooking = (data) => {
     onAddAppointment(data);
@@ -86,7 +87,6 @@ export default function UserDashboard({ user, appointments, onLogout, onAddAppoi
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Hola,</Text>
@@ -97,21 +97,49 @@ export default function UserDashboard({ user, appointments, onLogout, onAddAppoi
           </TouchableOpacity>
         </View>
 
-        {/* Custom Tabs */}
-        <View style={styles.tabContainer}>
-            <TabButton 
-                title="Nueva Reserva" 
-                isActive={activeTab === 'book'} 
-                onPress={() => setActiveTab('book')} 
-            />
-            <TabButton 
-                title={`Mis Citas (${myAppointments.length})`} 
-                isActive={activeTab === 'appointments'} 
-                onPress={() => setActiveTab('appointments')} 
-            />
+        <View style={styles.summarySection}>
+          <View style={styles.nextCard}>
+            <Text style={styles.nextTitle}>Tu próxima cita</Text>
+            {nextAppointment ? (
+              <View style={styles.nextContent}>
+                <View style={styles.nextMainRow}>
+                  <Text style={styles.nextService}>{nextAppointment.serviceName}</Text>
+                  <Text style={styles.nextPrice}>${nextAppointment.price}</Text>
+                </View>
+                <Text style={styles.nextBarber}>Con {nextAppointment.barberName}</Text>
+                <View style={styles.nextInfoRow}>
+                  <Text style={styles.nextInfoText}>{nextAppointment.date}</Text>
+                  <Text style={styles.nextInfoDot}>•</Text>
+                  <Text style={styles.nextInfoText}>{nextAppointment.time}</Text>
+                  <Text style={styles.nextInfoDot}>•</Text>
+                  <Text style={styles.nextStatus}>{nextAppointment.status}</Text>
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.nextEmptyText}>Aún no tienes ninguna reserva activa.</Text>
+            )}
+          </View>
+
+          <View style={styles.quickActions}>
+            <TouchableOpacity 
+              style={[styles.quickActionBtn, activeTab === 'book' && styles.quickActionActive]} 
+              onPress={() => setActiveTab('book')}
+            >
+              <Text style={[styles.quickActionText, activeTab === 'book' && styles.quickActionTextActive]}>
+                Nueva reserva
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.quickActionBtn, activeTab === 'appointments' && styles.quickActionActive]} 
+              onPress={() => setActiveTab('appointments')}
+            >
+              <Text style={[styles.quickActionText, activeTab === 'appointments' && styles.quickActionTextActive]}>
+                Mis citas ({myAppointments.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Content Area */}
         <View style={styles.mainContent}>
             {activeTab === 'book' ? (
                 <BookingWizard 
@@ -165,29 +193,95 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  tabContainer: {
-    flexDirection: 'row',
+  summarySection: {
     paddingHorizontal: 20,
-    marginBottom: 10,
+    paddingBottom: 10,
   },
-  tabButton: {
+  nextCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  nextTitle: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  nextContent: {
+    gap: 4,
+  },
+  nextMainRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  nextService: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  nextPrice: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  nextBarber: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+  },
+  nextInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  nextInfoText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+  },
+  nextInfoDot: {
+    color: COLORS.textSecondary,
+    marginHorizontal: 4,
+  },
+  nextStatus: {
+    color: '#2ecc71',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  nextEmptyText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  quickActionBtn: {
     flex: 1,
-    paddingVertical: 12,
-    backgroundColor: COLORS.inactiveTabBg,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#444',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    marginHorizontal: 5,
+    backgroundColor: 'transparent',
   },
-  activeTabButton: {
-    backgroundColor: COLORS.activeTabBg,
+  quickActionActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
-  tabText: {
-    color: '#aaa',
-    fontWeight: 'bold',
-    fontSize: 14,
+  quickActionText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
   },
-  activeTabText: {
+  quickActionTextActive: {
     color: '#000',
   },
   mainContent: {
