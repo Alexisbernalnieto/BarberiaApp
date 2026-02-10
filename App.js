@@ -18,7 +18,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BARBERS as INITIAL_BARBERS } from './src/data/mockData';
 import { auth, db } from './src/firebaseClient';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, onSnapshot, query, addDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, onSnapshot, query, addDoc, where } from 'firebase/firestore';
 
 import UserDashboard from './src/components/UserDashboard';
 import AdminDashboard from './src/components/AdminDashboard';
@@ -75,34 +75,37 @@ export default function App() {
   // --- Efecto: Escuchar cambios de sesión ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const emailLower = (user.email || '').toLowerCase();
-        let baseRole = 'user';
-        if (emailLower === 'admin@barberia.com') {
-          baseRole = 'admin';
-        } else if (emailLower === 'recepcion@barberia.com') {
-          baseRole = 'reception';
-        }
-
+           if (user) {
+        // --- CÓDIGO NUEVO DE AUTENTICACIÓN ---
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
           
           if (userDoc.exists()) {
             const data = userDoc.data();
-            const finalRole = (baseRole !== 'user') ? baseRole : (data.role || 'user');
             
+            // Función traductora: Convierte números a roles de texto que la App entiende
+            const mapRole = (r) => {
+               if (r === 0) return 'admin';
+               if (r === 2) return 'reception';
+               return 'user'; // El 1 y cualquier otro valor es 'user'
+            };
+            
+            // Si el rol es numérico lo traduce, si ya era texto (legacy) lo deja pasar
+            const finalRole = typeof data.role === 'number' ? mapRole(data.role) : (data.role || 'user');
+
             setCurrentUser({ 
               ...data, 
               uid: user.uid,
               role: finalRole 
             });
           } else {
+            // Usuario autenticado pero sin documento en BD (Raro, pero posible)
             setCurrentUser({ 
               email: user.email, 
               uid: user.uid, 
               name: user.displayName || 'Usuario', 
-              role: baseRole 
+              role: 'user' 
             });
           }
         } catch (error) {
@@ -111,9 +114,10 @@ export default function App() {
             email: user.email,
             uid: user.uid,
             name: user.displayName || 'Usuario',
-            role: baseRole,
+            role: 'user',
           });
         }
+        // --- FIN CÓDIGO NUEVO ---
       } else {
         setCurrentUser(null);
       }
@@ -132,7 +136,15 @@ export default function App() {
       return;
     }
 
-    const q = query(collection(db, 'appointments'));
+    let q;
+    // Si es Admin (0) o Recepción (2) ve todas las citas.
+    // Si es Cliente (1 o undefined) solo ve las suyas.
+    // Nota: 'admin' y 'reception' son soporte legacy temporal.
+    if (currentUser.role === 0 || currentUser.role === 2 || currentUser.role === 'admin' || currentUser.role === 'reception') {
+      q = query(collection(db, 'appointments'));
+    } else {
+      q = query(collection(db, 'appointments'), where('userId', '==', currentUser.email));
+    }
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const apps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -191,28 +203,14 @@ export default function App() {
 
     if (!isValid) return;
 
-    const emailLowerPre = email.toLowerCase();
-    const isDefaultAdmin = emailLowerPre === 'admin@barberia.com' && password === 'Admin123!';
-    const isDefaultReception = emailLowerPre === 'recepcion@barberia.com' && password === 'Recepcion123!';
-    const isDefaultClient = password === 'Cliente123!';
+    // --- CÓDIGO LIMPIO: SOLO FIREBASE ---
+    // Ya no existen las cuentas locales "hardcoded"
     
-    if (isDefaultAdmin || isDefaultReception || isDefaultClient) {
-      let role = 'user';
-      let name = 'Cliente';
-      if (isDefaultAdmin) { role = 'admin'; name = 'Administrador'; }
-      else if (isDefaultReception) { role = 'reception'; name = 'Recepción'; }
-      setCurrentUser({
-        email,
-        uid: 'DEFAULT_' + role.toUpperCase(),
-        name,
-        role,
-      });
-      return;
-    }
-
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      
+      // Permitir acceso a cuentas del sistema sin verificar email, o exigir verificación a usuarios normales
       const isSystemAccount = user.email.endsWith('@barberia.com');
 
       if (!user.emailVerified && !isSystemAccount) {
@@ -229,6 +227,7 @@ export default function App() {
         await signOut(auth);
         return;
       }
+      // Si todo sale bien, el useEffect detectará el cambio de auth y actualizará el estado
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
@@ -286,15 +285,14 @@ export default function App() {
       const userCredential = await createUserWithEmailAndPassword(auth, registerEmail, registerPassword);
       const user = userCredential.user;
 
-      const emailLower = registerEmail.toLowerCase();
-      let role = 'user';
-      if (emailLower === 'admin@barberia.com') role = 'admin';
-      else if (emailLower === 'recepcion@barberia.com') role = 'reception';
+      // --- CÓDIGO NUEVO DE REGISTRO ---
+      // Todos los usuarios nuevos nacen como Clientes (Rol 1)
+      const defaultRole = 1;
 
       await setDoc(doc(db, 'users', user.uid), {
         email: registerEmail,
         name: name,
-        role: role, 
+        role: defaultRole, // Guardamos el número 1
         createdAt: new Date().toISOString()
       });
 
