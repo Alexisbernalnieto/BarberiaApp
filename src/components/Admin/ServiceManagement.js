@@ -88,13 +88,6 @@ export default function ServiceManagement({ onClose, COLORS }) {
           {editingService.id ? 'Editar Servicio' : 'Nuevo Servicio'}
         </Text>
 
-        <Text style={styles.label}>Nombre del Servicio</Text>
-        <TextInput 
-          style={styles.input}
-          value={editingService.name}
-          onChangeText={t => setEditingService({...editingService, name: t})}
-        />
-
         <Text style={styles.label}>Sucursal Disponible</Text>
         <View style={styles.rowInputs}>
           {['Ambas', 'Centro', 'Lomas'].map(opt => (
@@ -107,6 +100,13 @@ export default function ServiceManagement({ onClose, COLORS }) {
               </TouchableOpacity>
           ))}
         </View>
+
+        <Text style={styles.label}>Nombre del Servicio</Text>
+        <TextInput 
+          style={styles.input}
+          value={editingService.name}
+          onChangeText={t => setEditingService({...editingService, name: t})}
+        />
 
         <View style={styles.rowInputs}>
           <View style={{flex: 1}}>
