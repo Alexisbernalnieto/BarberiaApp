@@ -7,6 +7,7 @@ import QueueDisplay from './Admin/QueueDisplay';
 import FinancialReport from './Admin/FinancialReport';
 import BarberManagement from './Admin/BarberManagement';
 import ServiceManagement from './Admin/ServiceManagement';
+import UserManagement from './Admin/UserManagement';
 import BookingWizard from './Booking/BookingWizard';
 
 export default function AdminDashboard({ appointments, onLogout, onAddAppointment, role = 'admin', COLORS, toggleTheme, isDarkMode, barbers, setBarbers }) {
@@ -204,6 +205,40 @@ export default function AdminDashboard({ appointments, onLogout, onAddAppointmen
               <MaterialCommunityIcons name="logout" size={20} color={COLORS.error} style={{marginRight: 8}} />
               <Text style={styles.logoutText}>Salir</Text>
             </TouchableOpacity>
+            <TouchableOpacity 
+              style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: viewMode === 'users' ? COLORS.primary : COLORS.surface,
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: COLORS.primary,
+                  shadowColor: COLORS.primary,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 4,
+                  elevation: 3,
+                  marginLeft: 10
+              }} 
+              onPress={() => setViewMode('users')}
+          >
+              <MaterialCommunityIcons 
+                  name="account-group" 
+                  size={22} 
+                  color={viewMode === 'users' ? COLORS.white : COLORS.primary} 
+                  style={{marginRight: 8}}
+              />
+              <Text style={{
+                  color: viewMode === 'users' ? COLORS.white : COLORS.primary, 
+                  fontWeight: 'bold', 
+                  fontSize: 14,
+                  textTransform: 'uppercase'
+              }}>
+                  Usuarios
+              </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -298,6 +333,21 @@ export default function AdminDashboard({ appointments, onLogout, onAddAppointmen
     <View style={styles.container}>
       {viewMode === 'dashboard' && renderDashboard()}
       
+     
+      {viewMode === 'users' && (
+        <View style={{flex:1, backgroundColor: COLORS.background}}>
+            <View style={{padding: 20, paddingBottom: 0}}>
+                <TouchableOpacity onPress={() => setViewMode('dashboard')} style={{flexDirection: 'row', alignItems: 'center'}}>
+                    <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.primary} />
+                    <Text style={{color: COLORS.primary, marginLeft: 5, fontSize: 16}}>Volver al Panel</Text>
+                </TouchableOpacity>
+            </View>
+            <View style={{flex: 1, padding: 20}}>
+                <UserManagement COLORS={COLORS} />
+            </View>
+        </View>
+      )}
+
       {/* Modals for Reception */}
       <Modal visible={viewMode === 'queue'} animationType="slide">
         <QueueDisplay appointments={appointments} onClose={() => setViewMode('dashboard')} COLORS={COLORS} />
