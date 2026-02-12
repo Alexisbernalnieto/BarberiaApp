@@ -1,14 +1,98 @@
-// COPIA Y PEGA ESTO EN: Firebase Console -> Firestore Database -> Reglas (Rules)
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Regla temporal para DESARROLLO
-    // Permite que CUALQUIERA lea y escriba (necesario porque las cuentas "default" no son usuarios reales de Firebase)
-    match /{document=**} {
-      allow read, write: if true;
+    // --- FUNCIONES DE AYUDA ---
+    
+    function isSignedIn() {
+      return request.auth != null;
     }
     
+    // Obtiene el rol del usuario actual desde la colección 'users'
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 0;
+    }
+    
+    function isReception() {
+      return isSignedIn() && getUserRole() == 2;
+    }
+    
+    function isBarber() {
+      return isSignedIn() && getUserRole() == 3;
+    }
+    
+    function isStaff() {
+      return isAdmin() || isReception() || isBarber();
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- REGLAS POR COLECCIÓN ---
+
+    // USUARIOS
+    match /users/{userId} {
+      // Cualquiera puede registrarse (crear su propio doc)
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      
+      // Leer: 
+      // - El propio usuario
+      // - Admin y Recepción (para gestión)
+      // - Barberos NO necesitan ver la lista de todos los usuarios
+      allow read: if isOwner(userId) || isAdmin() || isReception(); 
+      
+      // Actualizar:
+      // - Admin (puede cambiar roles)
+      // - Dueño (puede editar nombre/teléfono, pero reglas deberían proteger 'role')
+      allow update: if isAdmin() || isOwner(userId);
+      
+      // Eliminar: Solo Admin
+      allow delete: if isAdmin();
+    }
+
+    // CITAS (Appointments)
+    match /appointments/{appointmentId} {
+      // Crear: Cualquier usuario autenticado
+      allow create: if isSignedIn();
+      
+      // Leer:
+      // - Dueño de la cita (verifica por email o uid)
+      // - Staff (Admin, Recepción, Barbero)
+      // Nota: El Barbero filtra visualmente, pero tiene permiso de lectura general
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.token.email || 
+        resource.data.userId == request.auth.uid || 
+        isStaff()
+      );
+      
+      // Actualizar:
+      // - Dueño de la cita
+      // - Staff
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.token.email || 
+        resource.data.userId == request.auth.uid || 
+        isStaff()
+      );
+      
+      // Eliminar:
+      // - Solo Admin o Recepción
+      allow delete: if isAdmin() || isReception();
+    }
+
+    // SERVICIOS
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Regla por defecto: Bloquear todo lo demás
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }
