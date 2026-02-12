@@ -124,6 +124,7 @@ export default function UserManagement({ COLORS }) {
     if (role === 0) return 'ADMIN';
     if (role === 1) return 'CLIENTE';
     if (role === 2) return 'RECEPCIÓN';
+    if (role === 3) return 'BARBERO';
     return role; // Fallback por si hay roles antiguos en texto
   };
 
@@ -156,6 +157,13 @@ export default function UserManagement({ COLORS }) {
           onPress={() => changeRole(item.id, 2, 'RECEPCIÓN')}
         >
           <Text style={styles.btnText}>Recep</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.btn, { backgroundColor: item.role === 3 ? '#8B5CF6' : COLORS.border }]}
+          onPress={() => changeRole(item.id, 3, 'BARBERO')}
+        >
+          <Text style={styles.btnText}>Barbero</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
