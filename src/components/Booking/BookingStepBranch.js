@@ -1,19 +1,22 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { ScrollView, View, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BRANCHES } from '../../data/mockData';
 
-export default function BookingStepBranch({
+export function BookingStepBranch({
   styles,
   COLORS,
   selectedBranch,
   setSelectedBranch,
 }) {
   return (
-    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      contentContainerStyle={styles.stepContent}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.stepHeader}>SELECCIONA TU SUCURSAL</Text>
       <View style={styles.gridContainer}>
-        {BRANCHES.map(branch => (
+        {BRANCHES.map((branch) => (
           <TouchableOpacity
             key={branch.id}
             style={[
@@ -31,7 +34,11 @@ export default function BookingStepBranch({
               <MaterialCommunityIcons
                 name="office-building"
                 size={40}
-                color={selectedBranch === branch.name ? COLORS.primary : COLORS.textSecondary}
+                color={
+                  selectedBranch === branch.name
+                    ? COLORS.primary
+                    : COLORS.textSecondary
+                }
               />
             </View>
             <Text
