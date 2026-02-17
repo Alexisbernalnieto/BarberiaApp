@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, ScrollView, useWindowDimensions, Alert, CheckBox } from 'react-native';
-import { SERVICES as INITIAL_SERVICES, BARBERS } from '../../data/mockData';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
+import { SERVICES as INITIAL_SERVICES } from '../../data/mockData';
+import ServiceList from './ServiceList';
+import ServiceForm from './ServiceForm';
 
 export default function ServiceManagement({ onClose, COLORS }) {
   const { width } = useWindowDimensions();
@@ -44,22 +45,18 @@ export default function ServiceManagement({ onClose, COLORS }) {
   };
 
   const getFilteredServices = () => {
-    return services
-      .filter(service => {
-        // Filtro por búsqueda
-        if (searchText && !service.name.toLowerCase().includes(searchText.toLowerCase())) {
-          return false;
-        }
-        // Filtro por sucursal
-        if (filterBranch !== 'Todas' && service.branch !== filterBranch) {
-          return false;
-        }
-        // Filtro por precio
-        if (service.price < priceRange.min || service.price > priceRange.max) {
-          return false;
-        }
-        return true;
-      });
+    return services.filter(service => {
+      if (searchText && !service.name.toLowerCase().includes(searchText.toLowerCase())) {
+        return false;
+      }
+      if (filterBranch !== 'Todas' && service.branch !== filterBranch) {
+        return false;
+      }
+      if (service.price < priceRange.min || service.price > priceRange.max) {
+        return false;
+      }
+      return true;
+    });
   };
 
   const getServicesByCategory = (filteredServices) => {
@@ -98,188 +95,17 @@ export default function ServiceManagement({ onClose, COLORS }) {
     }
 
     if (editingService.id) {
-        // Edit existing
-        setServices(services.map(s => s.id === editingService.id ? editingService : s));
-        Alert.alert('Éxito', 'Servicio actualizado correctamente');
+      setServices(services.map(s => (s.id === editingService.id ? editingService : s)));
+      Alert.alert('Éxito', 'Servicio actualizado correctamente');
     } else {
-        // Add new
-        const newService = { 
-            ...editingService, 
-            id: Math.max(...services.map(s => s.id), 0) + 1
-        };
-        setServices([...services, newService]);
-        Alert.alert('Éxito', 'Servicio creado correctamente');
+      const newService = {
+        ...editingService,
+        id: Math.max(...services.map(s => s.id), 0) + 1,
+      };
+      setServices([...services, newService]);
+      Alert.alert('Éxito', 'Servicio creado correctamente');
     }
     setViewMode('list');
-  };
-
-  const renderList = () => {
-    const filteredServices = getFilteredServices();
-    const servicesByCategory = getServicesByCategory(filteredServices);
-
-    return (
-    <View style={styles.content}>
-      {/* Panel de Filtros */}
-      <View style={styles.filterPanel}>
-        {/* Búsqueda */}
-        <View style={styles.searchContainer}>
-          <MaterialCommunityIcons name="magnify" size={20} color={COLORS.primary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar servicio..."
-            placeholderTextColor="#888"
-            value={searchText}
-            onChangeText={setSearchText}
-          />
-          {searchText && (
-            <TouchableOpacity onPress={() => setSearchText('')}>
-              <MaterialCommunityIcons name="close" size={18} color={COLORS.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Filtro de Sucursal */}
-        <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Sucursal:</Text>
-          <View style={styles.filterOptions}>
-            {['Todas', 'Ambas', 'Centro', 'Lomas'].map(branch => (
-              <TouchableOpacity
-                key={branch}
-                style={[styles.filterBadge, filterBranch === branch && styles.filterBadgeActive]}
-                onPress={() => setFilterBranch(branch)}
-              >
-                <Text style={[styles.filterBadgeText, filterBranch === branch && styles.filterBadgeTextActive]}>
-                  {branch}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Filtro de Precio */}
-        <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Precio:</Text>
-          <View style={styles.priceFilterContainer}>
-            <View style={styles.priceInput}>
-              <Text style={styles.pricePrefix}>$</Text>
-              <TextInput
-                style={styles.priceField}
-                placeholder="Mín"
-                placeholderTextColor="#888"
-                keyboardType="numeric"
-                value={String(priceRange.min)}
-                onChangeText={(val) => setPriceRange({...priceRange, min: Number(val) || 0})}
-              />
-              <Text style={styles.priceSeparator}>-</Text>
-              <TextInput
-                style={styles.priceField}
-                placeholder="Máx"
-                placeholderTextColor="#888"
-                keyboardType="numeric"
-                value={String(priceRange.max)}
-                onChangeText={(val) => setPriceRange({...priceRange, max: Number(val) || 1000})}
-              />
-              <Text style={styles.pricePrefix}>$</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.resetPriceButton}
-              onPress={() => setPriceRange({min: 0, max: 1000})}
-            >
-              <Text style={styles.resetPriceText}>Restablecer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Resumen */}
-        <View style={styles.filterSummary}>
-          <Text style={styles.filterSummaryText}>
-            {filteredServices.length} servicio{filteredServices.length !== 1 ? 's' : ''} encontrado{filteredServices.length !== 1 ? 's' : ''}
-          </Text>
-        </View>
-      </View>
-
-      {/* Botón Crear */}
-      <TouchableOpacity 
-        style={styles.addButton} 
-        onPress={() => {
-            setEditingService({ 
-              name: '', 
-              price: '', 
-              duration: '', 
-              branch: 'Ambas',
-              assignedBarbers: []
-            });
-            setViewMode('edit');
-        }}
-      >
-        <Text style={styles.addButtonText}>+ Crear Nuevo Servicio</Text>
-      </TouchableOpacity>
-
-      {/* Servicios por Categoría */}
-      {filteredServices.length === 0 ? (
-        <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="magnify" size={40} color={COLORS.primary} opacity={0.5} />
-          <Text style={styles.emptyStateText}>No hay servicios que coincidan con tu búsqueda</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={Object.keys(servicesByCategory).sort()}
-          keyExtractor={(category) => category}
-          contentContainerStyle={{ paddingBottom: 30 }}
-          renderItem={({ item: category }) => (
-            <View style={styles.categorySection}>
-              <TouchableOpacity
-                style={styles.categoryHeader}
-                onPress={() => setExpandedCategory(expandedCategory === category ? null : category)}
-              >
-                <View style={styles.categoryTitleContainer}>
-                  <MaterialCommunityIcons
-                    name={expandedCategory === category ? 'chevron-down' : 'chevron-right'}
-                    size={20}
-                    color={COLORS.primary}
-                  />
-                  <Text style={styles.categoryTitle}>{category}</Text>
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryBadgeText}>{servicesByCategory[category].length}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-
-              {expandedCategory === category && (
-                <View style={styles.categoryServices}>
-                  {servicesByCategory[category].map((service, idx) => (
-                    <TouchableOpacity
-                      key={service.id}
-                      style={[styles.card, idx === servicesByCategory[category].length - 1 && styles.cardLast]}
-                      onPress={() => {
-                          setEditingService({
-                              ...service,
-                              assignedBarbers: service.assignedTo === 'Todos' ? [] : (service.assignedTo?.split(', ') || [])
-                          });
-                          setViewMode('edit');
-                      }}
-                    >
-                      <View style={styles.cardRow}>
-                          <View style={styles.mainInfo}>
-                              <Text style={styles.serviceName}>{service.name}</Text>
-                              <Text style={styles.serviceDetails}>{service.duration} min • {service.assignedTo}</Text>
-                              <View style={styles.branchBadge}>
-                                  <MaterialCommunityIcons name="office-building" size={12} color={COLORS.primary} />
-                                  <Text style={styles.branchBadgeText}> {service.branch}</Text>
-                              </View>
-                          </View>
-                          <Text style={styles.priceTag}>${service.price}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
-        />
-      )}
-    </View>
-  );
   };
 
   const handleDelete = () => {
@@ -301,126 +127,64 @@ export default function ServiceManagement({ onClose, COLORS }) {
     );
   };
 
-  const renderEditForm = () => (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.formContentContainer}
-    >
-      <View style={styles.formContainer}>
-        <Text style={styles.sectionTitle}>
-          {editingService.id ? 'Editar Servicio' : 'Nuevo Servicio'}
-        </Text>
-
-        <Text style={styles.label}>Sucursal Disponible</Text>
-        <View style={styles.rowInputs}>
-          {['Ambas', 'Centro', 'Lomas'].map(opt => (
-              <TouchableOpacity 
-                  key={opt}
-                  style={[styles.branchOption, (editingService.branch || 'Ambas') === opt && styles.branchOptionActive]}
-                  onPress={() => setEditingService({...editingService, branch: opt})}
-              >
-                  <Text style={[styles.branchText, (editingService.branch || 'Ambas') === opt && styles.branchTextActive]}>{opt}</Text>
-              </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.label}>Nombre del Servicio</Text>
-        <TextInput 
-          style={styles.input}
-          placeholder="Ej. Corte Fade"
-          placeholderTextColor="#666"
-          value={editingService.name}
-          onChangeText={t => setEditingService({...editingService, name: t})}
-        />
-
-        <View style={styles.rowInputs}>
-          <View style={{flex: 1}}>
-              <Text style={styles.label}>Precio ($)</Text>
-              <TextInput 
-                  style={styles.input}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor="#666"
-                  value={String(editingService.price || '')}
-                  onChangeText={t => setEditingService({...editingService, price: Number(t) || ''})}
-              />
-          </View>
-          <View style={{flex: 1}}>
-              <Text style={styles.label}>Duración (min)</Text>
-              <TextInput 
-                  style={styles.input}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor="#666"
-                  value={String(editingService.duration || '')}
-                  onChangeText={t => setEditingService({...editingService, duration: Number(t) || ''})}
-              />
-          </View>
-        </View>
-
-        <Text style={styles.label}>Asignar a Barberos</Text>
-        <View style={styles.barberCheckboxContainer}>
-          {BARBERS.map(barber => (
-            <TouchableOpacity 
-              key={barber.id}
-              style={styles.checkboxRow}
-              onPress={() => {
-                const currentBarbers = editingService.assignedBarbers || [];
-                const isChecked = currentBarbers.includes(barber.name);
-                if (isChecked) {
-                  setEditingService({
-                    ...editingService,
-                    assignedBarbers: currentBarbers.filter(b => b !== barber.name)
-                  });
-                } else {
-                  setEditingService({
-                    ...editingService,
-                    assignedBarbers: [...currentBarbers, barber.name]
-                  });
-                }
-              }}
-            >
-              <View style={[
-                styles.checkbox,
-                (editingService.assignedBarbers || []).includes(barber.name) && styles.checkboxActive
-              ]}>
-                {(editingService.assignedBarbers || []).includes(barber.name) && (
-                  <MaterialCommunityIcons name="check" size={16} color="#000" />
-                )}
-              </View>
-              <Text style={styles.checkboxLabel}>{barber.name}</Text>
-              <Text style={styles.checkboxSpecialty}>{barber.specialty}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.formActions}>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => setViewMode('list')}>
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-          </TouchableOpacity>
-          {editingService.id && (
-              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                  <Text style={styles.deleteButtonText}>Eliminar</Text>
-              </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Guardar Cambios</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </ScrollView>
-  );
+  const filteredServices = getFilteredServices();
+  const servicesByCategory = getServicesByCategory(filteredServices);
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Gestión de Servicios</Text>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeText}>Cerrar</Text>
+          <Text style={styles.closeText}>Cerrar</Text>
         </TouchableOpacity>
       </View>
-      {viewMode === 'list' && renderList()}
-      {viewMode === 'edit' && renderEditForm()}
+      {viewMode === 'list' && (
+        <ServiceList
+          styles={styles}
+          COLORS={COLORS}
+          filteredServices={filteredServices}
+          servicesByCategory={servicesByCategory}
+          searchText={searchText}
+          setSearchText={setSearchText}
+          filterBranch={filterBranch}
+          setFilterBranch={setFilterBranch}
+          priceRange={priceRange}
+          setPriceRange={setPriceRange}
+          expandedCategory={expandedCategory}
+          setExpandedCategory={setExpandedCategory}
+          onCreateNew={() => {
+            setEditingService({
+              name: '',
+              price: '',
+              duration: '',
+              branch: 'Ambas',
+              assignedBarbers: [],
+            });
+            setViewMode('edit');
+          }}
+          onSelectService={service => {
+            setEditingService({
+              ...service,
+              assignedBarbers:
+                service.assignedTo === 'Todos'
+                  ? []
+                  : service.assignedTo?.split(', ') || [],
+            });
+            setViewMode('edit');
+          }}
+        />
+      )}
+      {viewMode === 'edit' && editingService && (
+        <ServiceForm
+          styles={styles}
+          COLORS={COLORS}
+          editingService={editingService}
+          setEditingService={setEditingService}
+          onCancel={() => setViewMode('list')}
+          onDelete={handleDelete}
+          onSave={handleSave}
+        />
+      )}
     </View>
   );
 }
