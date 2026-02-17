@@ -1,22 +1,29 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { ScrollView, View, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BARBERS } from '../../data/mockData';
 
-export default function BookingStepBarbers({
+export function BookingStepBarbers({
   styles,
   COLORS,
   selectedBranch,
   selectedBarber,
   setSelectedBarber,
 }) {
-  const filteredBarbers = BARBERS.filter(b => b.branch === selectedBranch);
+  const filteredBarbers = BARBERS.filter(
+    (b) => b.branch === selectedBranch
+  );
 
   return (
-    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
-      <Text style={styles.stepHeader}>TU EXPERTO EN {selectedBranch.toUpperCase()}</Text>
+    <ScrollView
+      contentContainerStyle={styles.stepContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.stepHeader}>
+        TU EXPERTO EN {selectedBranch.toUpperCase()}
+      </Text>
       <View style={styles.barbersGrid}>
-        {filteredBarbers.map(item => (
+        {filteredBarbers.map((item) => (
           <TouchableOpacity
             key={item.id}
             style={[
@@ -34,7 +41,9 @@ export default function BookingStepBarbers({
               <Text
                 style={[
                   styles.avatarTextBig,
-                  selectedBarber?.id === item.id && { color: COLORS.textInverse },
+                  selectedBarber?.id === item.id && {
+                    color: COLORS.textInverse,
+                  },
                 ]}
               >
                 {item.name[0]}

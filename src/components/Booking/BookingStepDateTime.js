@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { generateTimeSlots, isSlotTaken } from './BookingWizard.utils';
 
-export default function BookingStepDateTime({
+export function BookingStepDateTime({
   styles,
   COLORS,
   selectedDate,
@@ -11,22 +12,35 @@ export default function BookingStepDateTime({
   selectedTime,
   setSelectedTime,
   selectedService,
-  generateTimeSlots,
-  isSlotTaken,
+  selectedBranch,
+  selectedBarber,
+  existingAppointments,
   todayLocal,
 }) {
-  return (
-    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
-      <Text style={styles.stepHeader}>FECHA Y HORA</Text>
+  const slots = generateTimeSlots(
+    selectedDate,
+    selectedBranch,
+    selectedBarber,
+    todayLocal
+  );
 
+  return (
+    <ScrollView
+      contentContainerStyle={styles.stepContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.stepHeader}>FECHA Y HORA</Text>
       <View style={styles.calendarContainer}>
         <Calendar
-          onDayPress={day => {
+          onDayPress={(day) => {
             setSelectedDate(day.dateString);
             setSelectedTime(null);
           }}
           markedDates={{
-            [selectedDate]: { selected: true, selectedColor: COLORS.primary },
+            [selectedDate]: {
+              selected: true,
+              selectedColor: COLORS.primary,
+            },
           }}
           theme={{
             backgroundColor: 'transparent',
@@ -45,11 +59,11 @@ export default function BookingStepDateTime({
           style={styles.calendar}
         />
       </View>
-
       {selectedDate ? (
         <View style={styles.timeSection}>
-          <Text style={styles.subLabel}>Horarios Disponibles para el {selectedDate}</Text>
-
+          <Text style={styles.subLabel}>
+            Horarios Disponibles para el {selectedDate}
+          </Text>
           <View style={styles.durationBadge}>
             <MaterialCommunityIcons
               name="clock-time-four-outline"
@@ -61,11 +75,15 @@ export default function BookingStepDateTime({
               Duración estimada: {selectedService?.duration} min
             </Text>
           </View>
-
           <View style={styles.slotsGrid}>
-            {generateTimeSlots().length > 0 ? (
-              generateTimeSlots().map(slot => {
-                const taken = isSlotTaken(slot);
+            {slots.length > 0 ? (
+              slots.map((slot) => {
+                const taken = isSlotTaken(
+                  existingAppointments,
+                  selectedBarber,
+                  selectedDate,
+                  slot
+                );
                 return (
                   <TouchableOpacity
                     key={slot}
@@ -107,7 +125,9 @@ export default function BookingStepDateTime({
           </View>
         </View>
       ) : (
-        <Text style={styles.hintText}>Selecciona una fecha en el calendario</Text>
+        <Text style={styles.hintText}>
+          Selecciona una fecha en el calendario
+        </Text>
       )}
     </ScrollView>
   );
