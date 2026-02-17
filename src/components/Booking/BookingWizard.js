@@ -156,73 +156,301 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
     }
   };
 
+  // --- RENDER STEPS ---
+
+  const renderProgressBar = () => (
+    <View style={styles.progressContainer}>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }]} />
+      </View>
+      <View style={styles.stepsRow}>
+        {STEPS.map((step) => {
+            const isActive = step.id === currentStep;
+            const isCompleted = step.id < currentStep;
+            return (
+                <View key={step.id} style={styles.stepWrapper}>
+                    <View style={[
+                        styles.stepCircle, 
+                        (isActive || isCompleted) && styles.stepCircleActive,
+                        isActive && styles.stepCircleCurrent
+                    ]}>
+                        <MaterialCommunityIcons 
+                            name={isCompleted ? "check" : step.icon} 
+                            size={isMobile ? 16 : 20} 
+                            color={isActive || isCompleted ? COLORS.textInverse : COLORS.textSecondary} 
+                        />
+                    </View>
+                    {!isMobile && (
+                        <Text style={[styles.stepTitle, isActive && styles.stepTitleActive]}>{step.title}</Text>
+                    )}
+                </View>
+            );
+        })}
+      </View>
+    </View>
+  );
+
+  const renderStep1_Branch = () => (
+    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+      <Text style={styles.stepHeader}>SELECCIONA TU SUCURSAL</Text>
+      <View style={styles.gridContainer}>
+        {BRANCHES.map((branch) => (
+          <TouchableOpacity 
+            key={branch.id}
+            style={[
+              styles.branchCard, 
+              selectedBranch === branch.name && styles.activeBranchCard
+            ]}
+            onPress={() => setSelectedBranch(branch.name)}
+          >
+            <View style={[styles.branchIcon, selectedBranch === branch.name && styles.activeIconBg]}>
+                <MaterialCommunityIcons 
+                    name="office-building" 
+                    size={40} 
+                    color={selectedBranch === branch.name ? COLORS.primary : COLORS.textSecondary} 
+                />
+            </View>
+            <Text style={[styles.branchName, selectedBranch === branch.name && styles.activeText]}>{branch.name}</Text>
+            <Text style={styles.branchAddress}>{branch.address}</Text>
+            {selectedBranch === branch.name && (
+                <View style={styles.checkBadge}>
+                    <MaterialCommunityIcons name="check" size={16} color={COLORS.textInverse} />
+                </View>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
+  );
+
+  const renderStep2_Services = () => {
+    const filteredServices = SERVICES.filter(s => 
+        !s.branch || s.branch === 'Ambas' || s.branch === selectedBranch
+    );
+
+    return (
+    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+      <Text style={styles.stepHeader}>SERVICIOS DISPONIBLES</Text>
+      <View style={styles.gridContainer}>
+        {filteredServices.map((item) => (
+          <TouchableOpacity 
+            key={item.id}
+            style={[
+              styles.serviceCard, 
+              selectedService?.id === item.id && styles.activeServiceCard
+            ]}
+            onPress={() => setSelectedService(item)}
+          >
+            <View style={styles.serviceRow}>
+                <View style={styles.serviceInfo}>
+                    <Text style={[styles.serviceName, selectedService?.id === item.id && styles.activeText]}>{item.name}</Text>
+                    <View style={styles.rowCenter}>
+                        <MaterialCommunityIcons name="clock-outline" size={14} color={COLORS.textSecondary} style={{marginRight: 4}} />
+                        <Text style={styles.serviceDuration}>{item.duration} min</Text>
+                    </View>
+                </View>
+                <Text style={[styles.servicePrice, selectedService?.id === item.id && styles.activeText]}>${item.price}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
+    );
+  };
+
+  const renderStep3_Barbers = () => {
+    const filteredBarbers = BARBERS.filter(b => b.branch === selectedBranch);
+
+    return (
+      <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.stepHeader}>TU EXPERTO EN {selectedBranch.toUpperCase()}</Text>
+        <View style={styles.barbersGrid}>
+          {filteredBarbers.map((item) => (
+            <TouchableOpacity 
+              key={item.id}
+              style={[
+                styles.barberCard, 
+                selectedBarber?.id === item.id && styles.activeBarberCard
+              ]}
+              onPress={() => setSelectedBarber(item)}
+            >
+              <View style={[styles.avatarBig, selectedBarber?.id === item.id && styles.activeAvatarBig]}>
+                <Text style={[styles.avatarTextBig, selectedBarber?.id === item.id && { color: COLORS.textInverse }]}>
+                    {item.name[0]}
+                </Text>
+              </View>
+              <Text style={[styles.barberName, selectedBarber?.id === item.id && styles.activeText]}>{item.name}</Text>
+              <View style={styles.ratingBadge}>
+                  <MaterialCommunityIcons name="star" size={12} color={COLORS.primary} style={{marginRight: 2}} />
+                  <Text style={styles.ratingText}>{item.rating}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const renderStep4_DateTime = () => (
+    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+      <Text style={styles.stepHeader}>FECHA Y HORA</Text>
+      
+      <View style={styles.calendarContainer}>
+        <Calendar
+            onDayPress={day => {
+                setSelectedDate(day.dateString);
+                setSelectedTime(null);
+            }}
+            markedDates={{
+            [selectedDate]: { selected: true, selectedColor: COLORS.primary }
+            }}
+            theme={{
+            backgroundColor: 'transparent',
+            calendarBackground: 'transparent',
+            textSectionTitleColor: COLORS.textSecondary,
+            selectedDayBackgroundColor: COLORS.primary,
+            selectedDayTextColor: COLORS.textInverse,
+            todayTextColor: COLORS.primary,
+            dayTextColor: COLORS.text,
+            textDisabledColor: COLORS.disabled,
+            arrowColor: COLORS.primary,
+            monthTextColor: COLORS.text,
+            textMonthFontWeight: 'bold',
+            }}
+            minDate={todayLocal}
+            style={styles.calendar}
+        />
+      </View>
+
+      {selectedDate ? (
+        <View style={styles.timeSection}>
+          <Text style={styles.subLabel}>Horarios Disponibles para el {selectedDate}</Text>
+          
+          <View style={styles.durationBadge}>
+            <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textSecondary} style={{marginRight: 6}} />
+            <Text style={styles.durationText}>Duración estimada: {selectedService?.duration} min</Text>
+          </View>
+
+          <View style={styles.slotsGrid}>
+            {generateTimeSlots().length > 0 ? (
+                generateTimeSlots().map((slot) => {
+                const taken = isSlotTaken(slot);
+                return (
+                    <TouchableOpacity
+                    key={slot}
+                    disabled={taken}
+                    style={[
+                        styles.timeSlot,
+                        taken && styles.disabledSlot,
+                        selectedTime === slot && styles.activeSlot
+                    ]}
+                    onPress={() => setSelectedTime(slot)}
+                    >
+                    <Text style={[
+                        styles.timeText, 
+                        selectedTime === slot && { color: COLORS.textInverse, fontWeight: 'bold' },
+                        taken && { color: COLORS.textSecondary }
+                        ]}>
+                        {taken ? 'OCUPADO' : slot}
+                    </Text>
+                    </TouchableOpacity>
+                );
+                })
+            ) : (
+                <View style={styles.noSlotsContainer}>
+                    <MaterialCommunityIcons name="emoticon-sad-outline" size={40} color={COLORS.textSecondary} />
+                    <Text style={styles.noSlotsText}>
+                        No hay horarios disponibles para este día.
+                    </Text>
+                </View>
+            )}
+          </View>
+        </View>
+      ) : (
+        <Text style={styles.hintText}>Selecciona una fecha en el calendario</Text>
+      )}
+    </ScrollView>
+  );
+
+  const renderStep5_Confirm = () => (
+    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+      <Text style={styles.stepHeader}>CONFIRMACIÓN</Text>
+      
+      <View style={styles.ticketCard}>
+        <View style={styles.ticketHeader}>
+            <MaterialCommunityIcons name="mustache" size={40} color={COLORS.primary} style={{marginBottom: 8}} />
+            <Text style={styles.ticketTitle}>EL CORONEL</Text>
+            <Text style={styles.ticketSubtitle}>BARBER SHOP</Text>
+        </View>
+        
+        <View style={styles.ticketContent}>
+            <View style={styles.ticketRow}>
+                <Text style={styles.ticketLabel}>CLIENTE</Text>
+                {isWalkIn ? (
+                    <TextInput 
+                        style={[styles.input, { flex: 1, marginLeft: 10, textAlign: 'right', color: COLORS.text }]}
+                        placeholder="Nombre del Cliente"
+                        placeholderTextColor={COLORS.textSecondary}
+                        value={guestName}
+                        onChangeText={setGuestName}
+                    />
+                ) : (
+                    <Text style={styles.ticketValue}>{user.name}</Text>
+                )}
+            </View>
+
+            <View style={styles.dashedDivider} />
+
+            <View style={styles.ticketRow}>
+                <Text style={styles.ticketLabel}>SUCURSAL</Text>
+                <Text style={styles.ticketValue}>{selectedBranch}</Text>
+            </View>
+            <View style={styles.ticketRow}>
+                <Text style={styles.ticketLabel}>SERVICIO</Text>
+                <Text style={styles.ticketValue}>{selectedService?.name}</Text>
+            </View>
+            <View style={styles.ticketRow}>
+                <Text style={styles.ticketLabel}>BARBERO</Text>
+                <Text style={styles.ticketValue}>{selectedBarber?.name}</Text>
+            </View>
+            <View style={styles.ticketRow}>
+                <Text style={styles.ticketLabel}>FECHA</Text>
+                <Text style={styles.ticketValue}>{selectedDate}</Text>
+            </View>
+            <View style={styles.ticketRow}>
+                <Text style={styles.ticketLabel}>HORA</Text>
+                <Text style={styles.ticketValue}>{selectedTime}</Text>
+            </View>
+            
+            <View style={styles.dashedDivider} />
+
+            <View style={styles.ticketFooter}>
+                <Text style={styles.totalLabel}>TOTAL A PAGAR</Text>
+                <Text style={styles.totalPrice}>${selectedService?.price}</Text>
+            </View>
+        </View>
+        
+        {/* Ticket holes effect */}
+        <View style={[styles.ticketHole, {left: -10, top: '50%', marginTop: -10}]} />
+        <View style={[styles.ticketHole, {right: -10, top: '50%', marginTop: -10}]} />
+      </View>
+      
+      <Text style={styles.paymentNote}>* El pago se realizará en el establecimiento.</Text>
+
+    </ScrollView>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.inner}>
-        <BookingProgressBar
-          styles={styles}
-          COLORS={COLORS}
-          currentStep={currentStep}
-          steps={STEPS}
-          isMobile={isMobile}
-        />
+        {renderProgressBar()}
 
         <Animated.View style={[styles.contentContainer, { opacity: fadeAnim }]}>
-          {currentStep === 1 && (
-            <BookingStepBranch
-              styles={styles}
-              COLORS={COLORS}
-              selectedBranch={selectedBranch}
-              setSelectedBranch={setSelectedBranch}
-            />
-          )}
-          {currentStep === 2 && (
-            <BookingStepServices
-              styles={styles}
-              COLORS={COLORS}
-              selectedBranch={selectedBranch}
-              selectedService={selectedService}
-              setSelectedService={setSelectedService}
-            />
-          )}
-          {currentStep === 3 && (
-            <BookingStepBarbers
-              styles={styles}
-              COLORS={COLORS}
-              selectedBranch={selectedBranch}
-              selectedBarber={selectedBarber}
-              setSelectedBarber={setSelectedBarber}
-            />
-          )}
-          {currentStep === 4 && (
-            <BookingStepDateTime
-              styles={styles}
-              COLORS={COLORS}
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-              selectedTime={selectedTime}
-              setSelectedTime={setSelectedTime}
-              selectedService={selectedService}
-              generateTimeSlots={generateTimeSlots}
-              isSlotTaken={isSlotTaken}
-              todayLocal={todayLocal}
-            />
-          )}
-          {currentStep === 5 && (
-            <BookingStepConfirm
-              styles={styles}
-              COLORS={COLORS}
-              user={user}
-              isWalkIn={isWalkIn}
-              guestName={guestName}
-              setGuestName={setGuestName}
-              selectedBranch={selectedBranch}
-              selectedService={selectedService}
-              selectedBarber={selectedBarber}
-              selectedDate={selectedDate}
-              selectedTime={selectedTime}
-            />
-          )}
+          {currentStep === 1 && renderStep1_Branch()}
+          {currentStep === 2 && renderStep2_Services()}
+          {currentStep === 3 && renderStep3_Barbers()}
+          {currentStep === 4 && renderStep4_DateTime()}
+          {currentStep === 5 && renderStep5_Confirm()}
         </Animated.View>
 
         <BookingFooter
