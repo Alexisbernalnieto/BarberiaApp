@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, ScrollView, useWindowDimensions, Alert } from 'react-native';
-import { SERVICES } from '../../data/mockData';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
+import BarberList from './BarberList';
+import BarberForm from './BarberForm';
+import BarberDetails from './BarberDetails';
 
 export default function BarberManagement({ appointments, onClose, COLORS, barbers, setBarbers }) {
   const { width } = useWindowDimensions();
@@ -87,358 +89,92 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
   };
 
   const toggleServiceSelection = (serviceName) => {
-      const currentServices = editingBarber.services || [];
-      if (currentServices.includes(serviceName)) {
-          setEditingBarber({
-              ...editingBarber,
-              services: currentServices.filter(s => s !== serviceName)
-          });
-      } else {
-          setEditingBarber({
-              ...editingBarber,
-              services: [...currentServices, serviceName]
-          });
-      }
+    const currentServices = editingBarber.services || [];
+    if (currentServices.includes(serviceName)) {
+      setEditingBarber({
+        ...editingBarber,
+        services: currentServices.filter(s => s !== serviceName),
+      });
+    } else {
+      setEditingBarber({
+        ...editingBarber,
+        services: [...currentServices, serviceName],
+      });
+    }
   };
 
-  const renderList = () => {
-    const filteredBarbers = barbers.filter(b => 
-        selectedBranchFilter === 'Todos' || (b.branch || 'Centro') === selectedBranchFilter
-    );
-
-    return (
-    <View style={styles.content}>
-      <View style={styles.filterContainer}>
-        {['Todos', 'Centro', 'Lomas'].map(filter => (
-            <TouchableOpacity 
-                key={filter}
-                style={[styles.filterButton, selectedBranchFilter === filter && styles.filterButtonActive]}
-                onPress={() => setSelectedBranchFilter(filter)}
-            >
-                <Text style={[styles.filterText, selectedBranchFilter === filter && styles.filterTextActive]}>{filter}</Text>
-            </TouchableOpacity>
-        ))}
-      </View>
-
-      <TouchableOpacity 
-        style={styles.addButton} 
-        onPress={() => {
-            setEditingBarber({ name: '', role: '', services: [], branch: 'Centro' });
-            setViewMode('form');
-        }}
-      >
-        <Text style={styles.addButtonText}>+ REGISTRAR NUEVO BARBERO</Text>
-      </TouchableOpacity>
-      
-      <FlatList
-        key={`grid-${numColumns}`}
-        data={filteredBarbers}
-        numColumns={numColumns}
-        keyExtractor={item => item.id.toString()}
-        contentContainerStyle={{ gap: 20, paddingBottom: 20 }}
-        columnWrapperStyle={numColumns > 1 ? { gap: 20 } : undefined}
-        renderItem={({ item }) => {
-          const stats = getBarberStats(item.name);
-          return (
-            <TouchableOpacity 
-              style={[styles.card, { width: itemWidth, marginBottom: 0 }]} 
-              onPress={() => {
-                setSelectedBarber({ ...item, ...stats });
-                setViewMode('details');
-              }}
-            >
-              <View style={styles.cardHeader}>
-                <View style={styles.avatarContainer}>
-                    <Text style={styles.avatarText}>{item.name[0]}</Text>
-                </View>
-                <View style={{flex: 1}}>
-                    <Text style={styles.cardTitle}>{item.name}</Text>
-                    <Text style={styles.cardSubtitle}>{item.role}</Text>
-                    <Text style={styles.branchTag}>{item.branch || 'Centro'}</Text>
-                </View>
-                <View style={[styles.statusBadge, item.active ? styles.activeBadge : styles.inactiveBadge]}>
-                    <Text style={styles.statusText}>{item.active ? 'ACTIVO' : 'INACTIVO'}</Text>
-                </View>
-              </View>
-              
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                    <Text style={styles.statValue}>{stats.totalServices}</Text>
-                    <Text style={styles.statLabel}>SERVICIOS</Text>
-                </View>
-                <View style={styles.statItem}>
-                    <Text style={styles.statValue}>${stats.totalEarnings}</Text>
-                    <Text style={styles.statLabel}>GENERADO</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
-        }}
-      />
-    </View>
-  );
-  };
-
-    const updateSchedule = (dayIndex, field, value) => {
-        const currentSchedule = editingBarber.schedule || DEFAULT_SCHEDULE;
-        setEditingBarber({
-            ...editingBarber,
-            schedule: {
-                ...currentSchedule,
-                [dayIndex]: {
-                    ...currentSchedule[dayIndex],
-                    [field]: value
-                }
-            }
-        });
-    };
-
-    const renderForm = () => {
-    const availableServices = SERVICES.filter(s => 
-        !s.branch || s.branch === 'Ambas' || s.branch === editingBarber.branch
-    );
-
+  const updateSchedule = (dayIndex, field, value) => {
     const currentSchedule = editingBarber.schedule || DEFAULT_SCHEDULE;
-    const daySchedule = currentSchedule[selectedDay];
-
-    return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.formContentContainer}
-    >
-      <View style={styles.formContainer}>
-        <Text style={styles.sectionTitle}>{editingBarber.id ? 'Editar Barbero' : 'Registrar Barbero'}</Text>
-        
-        <Text style={styles.label}>Nombre</Text>
-        <TextInput 
-          style={styles.input} 
-          value={editingBarber.name}
-          onChangeText={t => setEditingBarber({...editingBarber, name: t})}
-          placeholder="Ej. Juan Pérez"
-          placeholderTextColor="#666"
-        />
-
-        <Text style={styles.label}>Rol</Text>
-        <TextInput 
-          style={styles.input} 
-          value={editingBarber.role}
-          onChangeText={t => setEditingBarber({...editingBarber, role: t})}
-          placeholder="Ej. Master Barber"
-          placeholderTextColor="#666"
-        />
-
-        <Text style={styles.label}>Sucursal</Text>
-        <View style={styles.rowInputs}>
-          <TouchableOpacity 
-              style={[styles.branchOption, editingBarber.branch === 'Centro' && styles.branchOptionActive]}
-              onPress={() => setEditingBarber({...editingBarber, branch: 'Centro'})}
-          >
-              <Text style={[styles.branchText, editingBarber.branch === 'Centro' && styles.branchTextActive]}>Centro</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-              style={[styles.branchOption, editingBarber.branch === 'Lomas' && styles.branchOptionActive]}
-              onPress={() => setEditingBarber({...editingBarber, branch: 'Lomas'})}
-          >
-              <Text style={[styles.branchText, editingBarber.branch === 'Lomas' && styles.branchTextActive]}>Lomas</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.sectionTitle}>Horarios de Atención</Text>
-        <View style={styles.scheduleContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.daysScroll}>
-                {DAYS.map((day, index) => (
-                    <TouchableOpacity 
-                        key={index}
-                        style={[styles.dayTab, selectedDay === index && styles.dayTabActive]}
-                        onPress={() => setSelectedDay(index)}
-                    >
-                        <Text style={[styles.dayTabText, selectedDay === index && styles.dayTabTextActive]}>
-                            {day.slice(0, 3)}
-                        </Text>
-                        <View style={[
-                            styles.dayIndicator, 
-                            currentSchedule[index]?.active ? styles.dayIndicatorActive : styles.dayIndicatorInactive
-                        ]} />
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
-
-            <View style={styles.scheduleEditor}>
-                <View style={styles.scheduleHeader}>
-                    <Text style={styles.selectedDayTitle}>{DAYS[selectedDay]}</Text>
-                    <TouchableOpacity 
-                        style={[styles.activeToggle, daySchedule.active ? styles.activeToggleOn : styles.activeToggleOff]}
-                        onPress={() => updateSchedule(selectedDay, 'active', !daySchedule.active)}
-                    >
-                        <Text style={[styles.activeToggleText, daySchedule.active ? styles.activeToggleTextOn : styles.activeToggleTextOff]}>
-                            {daySchedule.active ? 'LABORABLE' : 'NO LABORABLE'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
-                {daySchedule.active && (
-                    <View style={styles.timeInputsRow}>
-                        <View style={{flex: 1}}>
-                            <Text style={styles.label}>Entrada</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={daySchedule.start}
-                                onChangeText={t => updateSchedule(selectedDay, 'start', t)}
-                                placeholder="HH:MM"
-                                placeholderTextColor="#666"
-                                maxLength={5}
-                            />
-                        </View>
-                        <Text style={styles.timeSeparator}>-</Text>
-                        <View style={{flex: 1}}>
-                            <Text style={styles.label}>Salida</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={daySchedule.end}
-                                onChangeText={t => updateSchedule(selectedDay, 'end', t)}
-                                placeholder="HH:MM"
-                                placeholderTextColor="#666"
-                                maxLength={5}
-                            />
-                        </View>
-                    </View>
-                )}
-            </View>
-        </View>
-
-        <Text style={styles.label}>Servicios Habilitados ({editingBarber.services?.length || 0})</Text>
-        <View style={styles.servicesGrid}>
-            {availableServices.map(service => {
-                const isSelected = editingBarber.services?.includes(service.name);
-                return (
-                    <TouchableOpacity 
-                        key={service.id}
-                        style={[styles.serviceChip, isSelected && styles.serviceChipActive]}
-                        onPress={() => toggleServiceSelection(service.name)}
-                    >
-                        <Text style={[styles.serviceChipText, isSelected && styles.serviceChipTextActive]}>
-                            {service.name}
-                        </Text>
-                    </TouchableOpacity>
-                );
-            })}
-        </View>
-
-        <View style={styles.formActions}>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => setViewMode('list')}>
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Guardar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </ScrollView>
-    );
+    setEditingBarber({
+      ...editingBarber,
+      schedule: {
+        ...currentSchedule,
+        [dayIndex]: {
+          ...currentSchedule[dayIndex],
+          [field]: value,
+        },
+      },
+    });
   };
-
-  const renderDetails = () => (
-    <View style={styles.content}>
-      <View style={styles.detailsHeader}>
-        <TouchableOpacity onPress={() => setViewMode('list')} style={styles.backButton}>
-            <Text style={styles.backText}>← Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.detailsTitle}>{selectedBarber.name}</Text>
-      </View>
-
-      <View style={styles.detailCard}>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-            <View>
-                <Text style={styles.detailLabel}>Rol:</Text>
-                <Text style={styles.detailValue}>{selectedBarber.role}</Text>
-                <Text style={[styles.detailLabel, {marginTop: 5}]}>Sucursal:</Text>
-                <Text style={styles.detailValue}>{selectedBarber.branch || 'Centro'}</Text>
-            </View>
-            <View style={styles.detailsActions}>
-                <TouchableOpacity 
-                    style={styles.editButton}
-                    onPress={() => {
-                        setEditingBarber({...selectedBarber});
-                        setViewMode('form');
-                    }}
-                >
-                    <Text style={styles.editButtonText}>EDITAR</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(selectedBarber.id)}
-                >
-                    <Text style={styles.deleteButtonText}>ELIMINAR</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-        
-        <Text style={[styles.detailLabel, {marginTop: 10}]}>Servicios Habilitados:</Text>
-        <View style={styles.tagsContainer}>
-            {selectedBarber.services.map((s, i) => (
-                <View key={i} style={styles.tag}>
-                    <Text style={styles.tagText}>{s}</Text>
-                </View>
-            ))}
-        </View>
-
-        <Text style={[styles.detailLabel, {marginTop: 15}]}>Horario Semanal:</Text>
-        <View style={styles.scheduleSummary}>
-            {DAYS.map((day, index) => {
-                const schedule = selectedBarber.schedule ? selectedBarber.schedule[index] : DEFAULT_SCHEDULE[index];
-                return (
-                    <View key={index} style={styles.scheduleRow}>
-                        <Text style={styles.scheduleDay}>{day}</Text>
-                        <Text style={[
-                            styles.scheduleTime, 
-                            !schedule?.active && styles.scheduleTimeInactive
-                        ]}>
-                            {schedule?.active ? `${schedule.start} - ${schedule.end}` : 'Descanso'}
-                        </Text>
-                    </View>
-                );
-            })}
-        </View>
-      </View>
-
-      <Text style={styles.sectionTitle}>Rendimiento Histórico</Text>
-      <View style={styles.statsGrid}>
-        <View style={styles.bigStatBox}>
-            <Text style={styles.bigStatValue}>${selectedBarber.totalEarnings}</Text>
-            <Text style={styles.bigStatLabel}>Ingresos Totales</Text>
-        </View>
-        <View style={styles.bigStatBox}>
-            <Text style={styles.bigStatValue}>{selectedBarber.totalServices}</Text>
-            <Text style={styles.bigStatLabel}>Cortes Realizados</Text>
-        </View>
-      </View>
-
-      <Text style={styles.sectionTitle}>Historial de Citas</Text>
-      <FlatList
-        data={selectedBarber.history}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-            <View style={styles.historyRow}>
-                <Text style={styles.historyDate}>{item.date} {item.time}</Text>
-                <Text style={styles.historyService}>{item.serviceName}</Text>
-                <Text style={styles.historyPrice}>+${item.price}</Text>
-            </View>
-        )}
-      />
-    </View>
-  );
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Gestión de Barberos</Text>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeText}>Cerrar</Text>
+          <Text style={styles.closeText}>Cerrar</Text>
         </TouchableOpacity>
       </View>
-      {viewMode === 'list' && renderList()}
-      {viewMode === 'form' && renderForm()}
-      {viewMode === 'details' && renderDetails()}
+      {viewMode === 'list' && (
+        <BarberList
+          styles={styles}
+          barbers={barbers}
+          numColumns={numColumns}
+          itemWidth={itemWidth}
+          getBarberStats={getBarberStats}
+          selectedBranchFilter={selectedBranchFilter}
+          setSelectedBranchFilter={setSelectedBranchFilter}
+          onAddNew={() => {
+            setEditingBarber({ name: '', role: '', services: [], branch: 'Centro' });
+            setViewMode('form');
+          }}
+          onSelectBarber={barber => {
+            setSelectedBarber(barber);
+            setViewMode('details');
+          }}
+        />
+      )}
+      {viewMode === 'form' && editingBarber && (
+        <BarberForm
+          styles={styles}
+          DAYS={DAYS}
+          editingBarber={editingBarber}
+          setEditingBarber={setEditingBarber}
+          selectedDay={selectedDay}
+          setSelectedDay={setSelectedDay}
+          defaultSchedule={DEFAULT_SCHEDULE}
+          updateSchedule={updateSchedule}
+          toggleServiceSelection={toggleServiceSelection}
+          onCancel={() => {
+            setViewMode('list');
+          }}
+          onSave={handleSave}
+        />
+      )}
+      {viewMode === 'details' && selectedBarber && (
+        <BarberDetails
+          styles={styles}
+          DAYS={DAYS}
+          selectedBarber={selectedBarber}
+          defaultSchedule={DEFAULT_SCHEDULE}
+          onBack={() => setViewMode('list')}
+          onEdit={() => {
+            setEditingBarber({ ...selectedBarber });
+            setViewMode('form');
+          }}
+          onDelete={() => handleDelete(selectedBarber.id)}
+        />
+      )}
     </View>
   );
 }

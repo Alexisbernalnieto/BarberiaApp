@@ -15,6 +15,9 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import AuthBrandSection from '../components/Auth/AuthBrandSection';
+import AuthLoginForm from '../components/Auth/AuthLoginForm';
+import AuthRegisterForm from '../components/Auth/AuthRegisterForm';
 
 export default function AuthScreen() {
   const { width } = useWindowDimensions();
@@ -139,21 +142,7 @@ export default function AuthScreen() {
 
       {/* LEFT SIDE: Brand/Image */}
       {!isMobile && (
-        <View style={splitStyles.brandSide}>
-          {/* Background Image Placeholder or Decoration */}
-          <View style={splitStyles.brandOverlay} />
-          
-          <View style={[splitStyles.decoCircle, { borderColor: COLORS.primary }]} />
-          <View style={[splitStyles.decoCircleSmall, { backgroundColor: COLORS.primary }]} />
-
-          <View style={splitStyles.brandContent}>
-            <MaterialCommunityIcons name="content-cut" size={80} color={COLORS.primary} style={{marginBottom: 20}} />
-            <Text style={splitStyles.brandTitle}>BARBERÍA</Text>
-            <Text style={splitStyles.brandSubtitle}>Estilo & Elegancia</Text>
-            <View style={splitStyles.divider} />
-            <Text style={splitStyles.quote}>"Tu estilo es nuestra prioridad. Agenda tu cita y vive la experiencia."</Text>
-          </View>
-        </View>
+        <AuthBrandSection styles={splitStyles} COLORS={COLORS} />
       )}
 
       {/* RIGHT SIDE: Form */}
@@ -172,147 +161,37 @@ export default function AuthScreen() {
 
           <Animated.View style={{ opacity: fadeAnim, width: '100%', maxWidth: 400 }}>
             {isLogin ? (
-              // === LOGIN FORM ===
-              <View style={splitStyles.formCard}>
-                <Text style={splitStyles.formTitle}>Bienvenido</Text>
-                <Text style={splitStyles.formSubtitle}>Ingresa a tu cuenta</Text>
-                
-                {/* Email Input */}
-                <View style={splitStyles.inputGroup}>
-                   <Text style={splitStyles.label}>Email</Text>
-                   <View style={[splitStyles.inputWrapper, emailError ? {borderColor: COLORS.error} : {}]}>
-                      <MaterialCommunityIcons name="email-outline" size={20} color={COLORS.textSecondary} />
-                      <TextInput
-                        style={splitStyles.input}
-                        placeholder="ejemplo@correo.com"
-                        placeholderTextColor={COLORS.disabled}
-                        value={email}
-                        onChangeText={setEmail}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                        selectionColor={COLORS.primary}
-                      />
-                   </View>
-                   {emailError ? <Text style={splitStyles.errorText}>{emailError}</Text> : null}
-                </View>
-
-                {/* Password Input */}
-                <View style={splitStyles.inputGroup}>
-                   <Text style={splitStyles.label}>Contraseña</Text>
-                   <View style={[splitStyles.inputWrapper, passwordError ? {borderColor: COLORS.error} : {}]}>
-                      <MaterialCommunityIcons name="lock-outline" size={20} color={COLORS.textSecondary} />
-                      <TextInput
-                        style={splitStyles.input}
-                        placeholder="••••••••"
-                        placeholderTextColor={COLORS.disabled}
-                        secureTextEntry
-                        value={password}
-                        onChangeText={setPassword}
-                        selectionColor={COLORS.primary}
-                      />
-                   </View>
-                   {passwordError ? <Text style={splitStyles.errorText}>{passwordError}</Text> : null}
-                </View>
-
-                <TouchableOpacity onPress={handleForgotPassword} style={{alignSelf: 'flex-end', marginBottom: 20}}>
-                   <Text style={splitStyles.linkText}>¿Olvidaste tu contraseña?</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={splitStyles.primaryBtn} onPress={handleLogin}>
-                   <Text style={splitStyles.primaryBtnText}>INICIAR SESIÓN</Text>
-                </TouchableOpacity>
-
-                <View style={splitStyles.footerRow}>
-                   <Text style={{color: COLORS.textSecondary}}>¿No tienes cuenta? </Text>
-                   <TouchableOpacity onPress={toggleSwitch}>
-                      <Text style={[splitStyles.linkText, {fontWeight: 'bold'}]}>Regístrate</Text>
-                   </TouchableOpacity>
-                </View>
-              </View>
+              <AuthLoginForm
+                styles={splitStyles}
+                COLORS={COLORS}
+                email={email}
+                password={password}
+                emailError={emailError}
+                passwordError={passwordError}
+                onChangeEmail={setEmail}
+                onChangePassword={setPassword}
+                onForgotPassword={handleForgotPassword}
+                onSubmit={handleLogin}
+                onToggleMode={toggleSwitch}
+              />
             ) : (
-              // === REGISTER FORM ===
-              <View style={splitStyles.formCard}>
-                <Text style={splitStyles.formTitle}>Crear Cuenta</Text>
-                <Text style={splitStyles.formSubtitle}>Únete a la experiencia premium</Text>
-
-                {/* Name Input */}
-                <View style={splitStyles.inputGroup}>
-                   <Text style={splitStyles.label}>Nombre Completo</Text>
-                   <View style={splitStyles.inputWrapper}>
-                      <MaterialCommunityIcons name="account-outline" size={20} color={COLORS.textSecondary} />
-                      <TextInput
-                        style={splitStyles.input}
-                        placeholder="Tu nombre"
-                        placeholderTextColor={COLORS.disabled}
-                        value={name}
-                        onChangeText={setName}
-                      />
-                   </View>
-                </View>
-
-                {/* Email Input */}
-                <View style={splitStyles.inputGroup}>
-                   <Text style={splitStyles.label}>Email</Text>
-                   <View style={[splitStyles.inputWrapper, registerEmailError ? {borderColor: COLORS.error} : {}]}>
-                      <MaterialCommunityIcons name="email-outline" size={20} color={COLORS.textSecondary} />
-                      <TextInput
-                        style={splitStyles.input}
-                        placeholder="ejemplo@correo.com"
-                        placeholderTextColor={COLORS.disabled}
-                        value={registerEmail}
-                        onChangeText={setRegisterEmail}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                      />
-                   </View>
-                   {registerEmailError ? <Text style={splitStyles.errorText}>{registerEmailError}</Text> : null}
-                </View>
-
-                {/* Password Input */}
-                <View style={splitStyles.inputGroup}>
-                   <Text style={splitStyles.label}>Contraseña</Text>
-                   <View style={[splitStyles.inputWrapper, registerPasswordError ? {borderColor: COLORS.error} : {}]}>
-                      <MaterialCommunityIcons name="lock-outline" size={20} color={COLORS.textSecondary} />
-                      <TextInput
-                        style={splitStyles.input}
-                        placeholder="8+ caracteres"
-                        placeholderTextColor={COLORS.disabled}
-                        secureTextEntry
-                        value={registerPassword}
-                        onChangeText={setRegisterPassword}
-                      />
-                   </View>
-                   {registerPasswordError ? <Text style={splitStyles.errorText}>{registerPasswordError}</Text> : null}
-                </View>
-
-                {/* Confirm Password Input */}
-                <View style={splitStyles.inputGroup}>
-                   <Text style={splitStyles.label}>Confirmar Contraseña</Text>
-                   <View style={[splitStyles.inputWrapper, confirmPasswordError ? {borderColor: COLORS.error} : {}]}>
-                      <MaterialCommunityIcons name="lock-check-outline" size={20} color={COLORS.textSecondary} />
-                      <TextInput
-                        style={splitStyles.input}
-                        placeholder="Repite la contraseña"
-                        placeholderTextColor={COLORS.disabled}
-                        secureTextEntry
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                      />
-                   </View>
-                   {confirmPasswordError ? <Text style={splitStyles.errorText}>{confirmPasswordError}</Text> : null}
-                </View>
-
-                <TouchableOpacity style={splitStyles.primaryBtn} onPress={handleRegister}>
-                   <Text style={splitStyles.primaryBtnText}>REGISTRARSE</Text>
-                </TouchableOpacity>
-
-                <View style={splitStyles.footerRow}>
-                   <Text style={{color: COLORS.textSecondary}}>¿Ya tienes cuenta? </Text>
-                   <TouchableOpacity onPress={toggleSwitch}>
-                      <Text style={[splitStyles.linkText, {fontWeight: 'bold'}]}>Inicia Sesión</Text>
-                   </TouchableOpacity>
-                </View>
-              </View>
+              <AuthRegisterForm
+                styles={splitStyles}
+                COLORS={COLORS}
+                name={name}
+                registerEmail={registerEmail}
+                registerPassword={registerPassword}
+                confirmPassword={confirmPassword}
+                registerEmailError={registerEmailError}
+                registerPasswordError={registerPasswordError}
+                confirmPasswordError={confirmPasswordError}
+                onChangeName={setName}
+                onChangeRegisterEmail={setRegisterEmail}
+                onChangeRegisterPassword={setRegisterPassword}
+                onChangeConfirmPassword={setConfirmPassword}
+                onSubmit={handleRegister}
+                onToggleMode={toggleSwitch}
+              />
             )}
           </Animated.View>
         </ScrollView>
