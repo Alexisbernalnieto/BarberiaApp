@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+const BRANCH_FILTERS = ['Todas', 'Ambas', 'Centro', 'Lomas'];
+
 export default function ServiceList({
   styles,
   COLORS,
@@ -40,7 +42,7 @@ export default function ServiceList({
         <View style={styles.filterRow}>
           <Text style={styles.filterLabel}>Sucursal:</Text>
           <View style={styles.filterOptions}>
-            {['Todas', 'Ambas', 'Centro', 'Lomas'].map(branch => (
+            {BRANCH_FILTERS.map(branch => (
               <TouchableOpacity
                 key={branch}
                 style={[
