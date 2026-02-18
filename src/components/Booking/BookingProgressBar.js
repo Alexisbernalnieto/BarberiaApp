@@ -1,9 +1,14 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { STEPS } from './BookingWizard.constants';
 
-export function BookingProgressBar({ styles, currentStep, COLORS, isMobile }) {
+export default function BookingProgressBar({
+  styles,
+  currentStep,
+  STEPS,
+  COLORS,
+  isMobile,
+}) {
   return (
     <View style={styles.progressContainer}>
       <View style={styles.progressTrack}>
@@ -11,13 +16,15 @@ export function BookingProgressBar({ styles, currentStep, COLORS, isMobile }) {
           style={[
             styles.progressFill,
             {
-              width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%`,
+              width: `${
+                ((currentStep - 1) / (STEPS.length - 1)) * 100
+              }%`,
             },
           ]}
         />
       </View>
       <View style={styles.stepsRow}>
-        {STEPS.map((step) => {
+        {STEPS.map(step => {
           const isActive = step.id === currentStep;
           const isCompleted = step.id < currentStep;
           return (
@@ -41,7 +48,10 @@ export function BookingProgressBar({ styles, currentStep, COLORS, isMobile }) {
               </View>
               {!isMobile && (
                 <Text
-                  style={[styles.stepTitle, isActive && styles.stepTitleActive]}
+                  style={[
+                    styles.stepTitle,
+                    isActive && styles.stepTitleActive,
+                  ]}
                 >
                   {step.title}
                 </Text>

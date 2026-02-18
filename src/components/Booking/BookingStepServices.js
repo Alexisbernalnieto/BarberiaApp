@@ -1,17 +1,17 @@
 import React from 'react';
-import { ScrollView, View, TouchableOpacity, Text } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { SERVICES } from '../../data/mockData';
 
-export function BookingStepServices({
+export default function BookingStepServices({
   styles,
   COLORS,
+  SERVICES,
   selectedBranch,
   selectedService,
   setSelectedService,
 }) {
   const filteredServices = SERVICES.filter(
-    (s) => !s.branch || s.branch === 'Ambas' || s.branch === selectedBranch
+    s => !s.branch || s.branch === 'Ambas' || s.branch === selectedBranch,
   );
 
   return (
@@ -21,7 +21,7 @@ export function BookingStepServices({
     >
       <Text style={styles.stepHeader}>SERVICIOS DISPONIBLES</Text>
       <View style={styles.gridContainer}>
-        {filteredServices.map((item) => (
+        {filteredServices.map(item => (
           <TouchableOpacity
             key={item.id}
             style={[
