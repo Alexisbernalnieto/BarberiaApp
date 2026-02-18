@@ -1,14 +1,10 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-const BRANCH_FILTERS = ['Todas', 'Ambas', 'Centro', 'Lomas'];
-
-export default function ServiceList({
+export default function ServiceListView({
   styles,
   COLORS,
-  filteredServices,
-  servicesByCategory,
   searchText,
   setSearchText,
   filterBranch,
@@ -17,14 +13,23 @@ export default function ServiceList({
   setPriceRange,
   expandedCategory,
   setExpandedCategory,
-  onCreateNew,
-  onSelectService,
+  setEditingService,
+  setViewMode,
+  getFilteredServices,
+  getServicesByCategory,
 }) {
+  const filteredServices = getFilteredServices();
+  const servicesByCategory = getServicesByCategory(filteredServices);
+
   return (
     <View style={styles.content}>
       <View style={styles.filterPanel}>
         <View style={styles.searchContainer}>
-          <MaterialCommunityIcons name="magnify" size={20} color={COLORS.primary} />
+          <MaterialCommunityIcons
+            name="magnify"
+            size={20}
+            color={COLORS.primary}
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar servicio..."
@@ -34,7 +39,11 @@ export default function ServiceList({
           />
           {searchText && (
             <TouchableOpacity onPress={() => setSearchText('')}>
-              <MaterialCommunityIcons name="close" size={18} color={COLORS.textSecondary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={18}
+                color={COLORS.textSecondary}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -42,7 +51,7 @@ export default function ServiceList({
         <View style={styles.filterRow}>
           <Text style={styles.filterLabel}>Sucursal:</Text>
           <View style={styles.filterOptions}>
-            {BRANCH_FILTERS.map(branch => (
+            {['Todas', 'Ambas', 'Centro', 'Lomas'].map(branch => (
               <TouchableOpacity
                 key={branch}
                 style={[
@@ -110,7 +119,19 @@ export default function ServiceList({
         </View>
       </View>
 
-      <TouchableOpacity style={styles.addButton} onPress={onCreateNew}>
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => {
+          setEditingService({
+            name: '',
+            price: '',
+            duration: '',
+            branch: 'Ambas',
+            assignedBarbers: [],
+          });
+          setViewMode('edit');
+        }}
+      >
         <Text style={styles.addButtonText}>+ Crear Nuevo Servicio</Text>
       </TouchableOpacity>
 
@@ -136,12 +157,18 @@ export default function ServiceList({
               <TouchableOpacity
                 style={styles.categoryHeader}
                 onPress={() =>
-                  setExpandedCategory(expandedCategory === category ? null : category)
+                  setExpandedCategory(
+                    expandedCategory === category ? null : category,
+                  )
                 }
               >
                 <View style={styles.categoryTitleContainer}>
                   <MaterialCommunityIcons
-                    name={expandedCategory === category ? 'chevron-down' : 'chevron-right'}
+                    name={
+                      expandedCategory === category
+                        ? 'chevron-down'
+                        : 'chevron-right'
+                    }
                     size={20}
                     color={COLORS.primary}
                   />
@@ -156,15 +183,24 @@ export default function ServiceList({
 
               {expandedCategory === category && (
                 <View style={styles.categoryServices}>
-                  {servicesByCategory[category].map((service, idx) => (
+                  {servicesByCategory[category].map((service, index) => (
                     <TouchableOpacity
                       key={service.id}
                       style={[
                         styles.card,
-                        idx === servicesByCategory[category].length - 1 &&
+                        index === servicesByCategory[category].length - 1 &&
                           styles.cardLast,
                       ]}
-                      onPress={() => onSelectService(service)}
+                      onPress={() => {
+                        setEditingService({
+                          ...service,
+                          assignedBarbers:
+                            service.assignedTo === 'Todos'
+                              ? []
+                              : service.assignedTo?.split(', ') || [],
+                        });
+                        setViewMode('edit');
+                      }}
                     >
                       <View style={styles.cardRow}>
                         <View style={styles.mainInfo}>
@@ -178,7 +214,10 @@ export default function ServiceList({
                               size={12}
                               color={COLORS.primary}
                             />
-                            <Text style={styles.branchBadgeText}> {service.branch}</Text>
+                            <Text style={styles.branchBadgeText}>
+                              {' '}
+                              {service.branch}
+                            </Text>
                           </View>
                         </View>
                         <Text style={styles.priceTag}>${service.price}</Text>

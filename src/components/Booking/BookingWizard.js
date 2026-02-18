@@ -1,18 +1,30 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { View, TouchableOpacity, Animated, useWindowDimensions, Text } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, useWindowDimensions } from 'react-native';
+import { BARBERS, SERVICES, BRANCHES } from '../../data/mockData';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { BookingProgressBar } from './BookingProgressBar';
-import { BookingStepBranch } from './BookingStepBranch';
-import { BookingStepServices } from './BookingStepServices';
-import { BookingStepBarbers } from './BookingStepBarbers';
-import { BookingStepDateTime } from './BookingStepDateTime';
-import { BookingStepConfirm } from './BookingStepConfirm';
-import { getStyles } from './BookingWizard.styles';
+import BookingProgressBar from './BookingProgressBar';
+import BookingStepBranch from './BookingStepBranch';
+import BookingStepServices from './BookingStepServices';
+import BookingStepBarbers from './BookingStepBarbers';
+import BookingStepDateTime from './BookingStepDateTime';
+import BookingStepConfirm from './BookingStepConfirm';
+import { getBookingWizardStyles } from './BookingWizardStyles';
+
+export const STEPS = [
+  { id: 1, title: 'Sucursal', icon: 'office-building' },
+  { id: 2, title: 'Servicio', icon: 'content-cut' },
+  { id: 3, title: 'Barbero', icon: 'account-tie' },
+  { id: 4, title: 'Horario', icon: 'clock-outline' },
+  { id: 5, title: 'Confirmar', icon: 'check-decagram' }
+];
 
 export default function BookingWizard({ user, existingAppointments, onConfirm, onCancel, isWalkIn = false, COLORS }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  const styles = useMemo(() => getStyles(COLORS, isMobile), [COLORS, isMobile]);
+  const styles = useMemo(
+    () => getBookingWizardStyles(COLORS, isMobile),
+    [COLORS, isMobile],
+  );
   const dToday = new Date();
   const todayLocal = `${dToday.getFullYear()}-${String(dToday.getMonth() + 1).padStart(2, '0')}-${String(dToday.getDate()).padStart(2, '0')}`;
 
@@ -46,6 +58,81 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
     else if (onCancel) onCancel(); 
   };
 
+  const isSlotTaken = (time) => {
+    if (!selectedBarber || !selectedDate) return false;
+    return existingAppointments.some(appt => 
+      appt.date === selectedDate && 
+      appt.time === time && 
+      appt.barberId === selectedBarber.id
+    );
+  };
+
+  const generateTimeSlots = () => {
+    if (!selectedDate || !selectedBranch) return [];
+
+    const dateObj = new Date(selectedDate + 'T00:00:00'); // Force local time interpretation
+    const day = dateObj.getDay(); // 0 = Sunday, 1 = Monday, ...
+    
+    // Generates slots based on barber schedule
+    const slots = [];
+    
+    if (selectedBarber && selectedBarber.schedule) {
+        const schedule = selectedBarber.schedule[day];
+        if (schedule && schedule.active) {
+            const [startH, startM] = schedule.start.split(':').map(Number);
+            const [endH, endM] = schedule.end.split(':').map(Number);
+            
+            let currentH = startH;
+            let currentM = startM;
+            
+            while (currentH < endH || (currentH === endH && currentM < endM)) {
+                 slots.push(`${String(currentH).padStart(2, '0')}:${String(currentM).padStart(2, '0')}`);
+                 
+                 currentM += 30;
+                 if (currentM >= 60) {
+                     currentH += 1;
+                     currentM -= 60;
+                 }
+            }
+        }
+    } else {
+        // Fallback to legacy branch logic if schedule is missing
+        let startHour = 10;
+        let endHour = 19; 
+
+        if (selectedBranch === 'Centro') {
+            if (day === 0) endHour = 15;
+            else endHour = 19;
+        } else if (selectedBranch === 'Lomas') {
+            if (day === 0) endHour = 15;
+            else endHour = 20;
+        }
+
+        for (let h = startHour; h < endHour; h++) {
+            slots.push(`${String(h).padStart(2, '0')}:00`);
+            slots.push(`${String(h).padStart(2, '0')}:30`);
+        }
+    }
+
+    // Filtrar horarios pasados si es hoy
+    const now = new Date();
+    const isToday = selectedDate === todayLocal;
+    
+    if (isToday) {
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        
+        return slots.filter(slot => {
+            const [slotH, slotM] = slot.split(':').map(Number);
+            if (slotH > currentHour) return true;
+            if (slotH === currentHour && slotM > currentMinute) return true;
+            return false;
+        });
+    }
+
+    return slots;
+  };
+
   const handleConfirm = () => {
     const appointmentData = {
       userId: user?.email || 'walkin-guest',
@@ -74,6 +161,7 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
         <BookingProgressBar
           styles={styles}
           currentStep={currentStep}
+          STEPS={STEPS}
           COLORS={COLORS}
           isMobile={isMobile}
         />
@@ -83,6 +171,7 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
             <BookingStepBranch
               styles={styles}
               COLORS={COLORS}
+              BRANCHES={BRANCHES}
               selectedBranch={selectedBranch}
               setSelectedBranch={setSelectedBranch}
             />
@@ -91,6 +180,7 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
             <BookingStepServices
               styles={styles}
               COLORS={COLORS}
+              SERVICES={SERVICES}
               selectedBranch={selectedBranch}
               selectedService={selectedService}
               setSelectedService={setSelectedService}
@@ -100,6 +190,7 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
             <BookingStepBarbers
               styles={styles}
               COLORS={COLORS}
+              BARBERS={BARBERS}
               selectedBranch={selectedBranch}
               selectedBarber={selectedBarber}
               setSelectedBarber={setSelectedBarber}
@@ -114,10 +205,9 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
               selectedTime={selectedTime}
               setSelectedTime={setSelectedTime}
               selectedService={selectedService}
-              selectedBranch={selectedBranch}
-              selectedBarber={selectedBarber}
-              existingAppointments={existingAppointments}
               todayLocal={todayLocal}
+              generateTimeSlots={generateTimeSlots}
+              isSlotTaken={isSlotTaken}
             />
           )}
           {currentStep === 5 && (

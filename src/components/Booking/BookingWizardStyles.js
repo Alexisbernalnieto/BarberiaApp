@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-export const getStyles = (COLORS, isMobile) =>
+export const getBookingWizardStyles = (COLORS, isMobile) =>
   StyleSheet.create({
     container: {
       flex: 1,

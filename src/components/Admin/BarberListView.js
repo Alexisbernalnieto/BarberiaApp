@@ -1,19 +1,22 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 
-export default function BarberList({
+export default function BarberListView({
   styles,
   barbers,
+  selectedBranchFilter,
+  setSelectedBranchFilter,
+  setEditingBarber,
+  setViewMode,
   numColumns,
   itemWidth,
   getBarberStats,
-  selectedBranchFilter,
-  setSelectedBranchFilter,
-  onAddNew,
-  onSelectBarber,
+  setSelectedBarber,
 }) {
   const filteredBarbers = barbers.filter(
-    b => selectedBranchFilter === 'Todos' || (b.branch || 'Centro') === selectedBranchFilter,
+    barber =>
+      selectedBranchFilter === 'Todos' ||
+      (barber.branch || 'Centro') === selectedBranchFilter,
   );
 
   return (
@@ -40,7 +43,13 @@ export default function BarberList({
         ))}
       </View>
 
-      <TouchableOpacity style={styles.addButton} onPress={onAddNew}>
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => {
+          setEditingBarber({ name: '', role: '', services: [], branch: 'Centro' });
+          setViewMode('form');
+        }}
+      >
         <Text style={styles.addButtonText}>+ REGISTRAR NUEVO BARBERO</Text>
       </TouchableOpacity>
 
@@ -53,12 +62,13 @@ export default function BarberList({
         columnWrapperStyle={numColumns > 1 ? { gap: 20 } : undefined}
         renderItem={({ item }) => {
           const stats = getBarberStats(item.name);
-          const barberWithStats = { ...item, ...stats };
-
           return (
             <TouchableOpacity
               style={[styles.card, { width: itemWidth, marginBottom: 0 }]}
-              onPress={() => onSelectBarber(barberWithStats)}
+              onPress={() => {
+                setSelectedBarber({ ...item, ...stats });
+                setViewMode('details');
+              }}
             >
               <View style={styles.cardHeader}>
                 <View style={styles.avatarContainer}>
@@ -75,7 +85,9 @@ export default function BarberList({
                     item.active ? styles.activeBadge : styles.inactiveBadge,
                   ]}
                 >
-                  <Text style={styles.statusText}>{item.active ? 'ACTIVO' : 'INACTIVO'}</Text>
+                  <Text style={styles.statusText}>
+                    {item.active ? 'ACTIVO' : 'INACTIVO'}
+                  </Text>
                 </View>
               </View>
 

@@ -1,29 +1,35 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { SERVICES } from '../../data/mockData';
 
-export default function BarberForm({
+export default function BarberFormView({
   styles,
-  DAYS,
   editingBarber,
   setEditingBarber,
+  DAYS,
   selectedDay,
   setSelectedDay,
-  defaultSchedule,
   updateSchedule,
   toggleServiceSelection,
-  onCancel,
-  onSave,
+  setViewMode,
+  handleSave,
+  DEFAULT_SCHEDULE,
 }) {
   const availableServices = SERVICES.filter(
-    s => !s.branch || s.branch === 'Ambas' || s.branch === editingBarber.branch,
+    service =>
+      !service.branch ||
+      service.branch === 'Ambas' ||
+      service.branch === editingBarber.branch,
   );
 
-  const currentSchedule = editingBarber.schedule || defaultSchedule;
+  const currentSchedule = editingBarber.schedule || DEFAULT_SCHEDULE;
   const daySchedule = currentSchedule[selectedDay];
 
   return (
-    <ScrollView style={styles.content} contentContainerStyle={styles.formContentContainer}>
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={styles.formContentContainer}
+    >
       <View style={styles.formContainer}>
         <Text style={styles.sectionTitle}>
           {editingBarber.id ? 'Editar Barbero' : 'Registrar Barbero'}
@@ -33,7 +39,7 @@ export default function BarberForm({
         <TextInput
           style={styles.input}
           value={editingBarber.name}
-          onChangeText={t => setEditingBarber({ ...editingBarber, name: t })}
+          onChangeText={text => setEditingBarber({ ...editingBarber, name: text })}
           placeholder="Ej. Juan Pérez"
           placeholderTextColor="#666"
         />
@@ -42,7 +48,7 @@ export default function BarberForm({
         <TextInput
           style={styles.input}
           value={editingBarber.role}
-          onChangeText={t => setEditingBarber({ ...editingBarber, role: t })}
+          onChangeText={text => setEditingBarber({ ...editingBarber, role: text })}
           placeholder="Ej. Master Barber"
           placeholderTextColor="#666"
         />
@@ -85,11 +91,18 @@ export default function BarberForm({
 
         <Text style={styles.sectionTitle}>Horarios de Atención</Text>
         <View style={styles.scheduleContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.daysScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.daysScroll}
+          >
             {DAYS.map((day, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.dayTab, selectedDay === index && styles.dayTabActive]}
+                style={[
+                  styles.dayTab,
+                  selectedDay === index && styles.dayTabActive,
+                ]}
                 onPress={() => setSelectedDay(index)}
               >
                 <Text
@@ -118,9 +131,13 @@ export default function BarberForm({
               <TouchableOpacity
                 style={[
                   styles.activeToggle,
-                  daySchedule.active ? styles.activeToggleOn : styles.activeToggleOff,
+                  daySchedule.active
+                    ? styles.activeToggleOn
+                    : styles.activeToggleOff,
                 ]}
-                onPress={() => updateSchedule(selectedDay, 'active', !daySchedule.active)}
+                onPress={() =>
+                  updateSchedule(selectedDay, 'active', !daySchedule.active)
+                }
               >
                 <Text
                   style={[
@@ -142,7 +159,9 @@ export default function BarberForm({
                   <TextInput
                     style={styles.input}
                     value={daySchedule.start}
-                    onChangeText={t => updateSchedule(selectedDay, 'start', t)}
+                    onChangeText={text =>
+                      updateSchedule(selectedDay, 'start', text)
+                    }
                     placeholder="HH:MM"
                     placeholderTextColor="#666"
                     maxLength={5}
@@ -154,7 +173,9 @@ export default function BarberForm({
                   <TextInput
                     style={styles.input}
                     value={daySchedule.end}
-                    onChangeText={t => updateSchedule(selectedDay, 'end', t)}
+                    onChangeText={text =>
+                      updateSchedule(selectedDay, 'end', text)
+                    }
                     placeholder="HH:MM"
                     placeholderTextColor="#666"
                     maxLength={5}
@@ -166,17 +187,19 @@ export default function BarberForm({
         </View>
 
         <Text style={styles.label}>
-          Servicios Habilitados {editingBarber.services?.length
-            ? `(${editingBarber.services.length})`
-            : '(0)'}
+          Servicios Habilitados {editingBarber.services?.length || 0}
         </Text>
         <View style={styles.servicesGrid}>
           {availableServices.map(service => {
-            const isSelected = editingBarber.services?.includes(service.name);
+            const isSelected =
+              editingBarber.services?.includes(service.name) || false;
             return (
               <TouchableOpacity
                 key={service.id}
-                style={[styles.serviceChip, isSelected && styles.serviceChipActive]}
+                style={[
+                  styles.serviceChip,
+                  isSelected && styles.serviceChipActive,
+                ]}
                 onPress={() => toggleServiceSelection(service.name)}
               >
                 <Text
@@ -193,10 +216,13 @@ export default function BarberForm({
         </View>
 
         <View style={styles.formActions}>
-          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => setViewMode('list')}
+          >
             <Text style={styles.cancelButtonText}>Cancelar</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.saveButton} onPress={onSave}>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Text style={styles.saveButtonText}>Guardar</Text>
           </TouchableOpacity>
         </View>
