@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, useWindowDimensions, Alert } from 'react-
 import { SERVICES as INITIAL_SERVICES } from '../../data/mockData';
 import ServiceListView from './ServiceListView';
 import ServiceFormView from './ServiceFormView';
-import { getServiceManagementStyles } from './ServiceManagementStyles';
+import { CATEGORIES, getServiceManagementStyles } from './ServiceManagementStyles';
 
 export default function ServiceManagement({ onClose, COLORS }) {
   const { width } = useWindowDimensions();
@@ -24,19 +24,10 @@ export default function ServiceManagement({ onClose, COLORS }) {
   const [viewMode, setViewMode] = useState('list'); // 'list', 'edit'
   const [editingService, setEditingService] = useState(null);
   
-  // Filtros y búsqueda
   const [searchText, setSearchText] = useState('');
   const [filterBranch, setFilterBranch] = useState('Todas');
   const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 });
   const [expandedCategory, setExpandedCategory] = useState('Todos');
-
-  // Categorizar servicios
-  const CATEGORIES = {
-    'Cortes': ['Corte', 'Fade', 'Tijera'],
-    'Barbas': ['Barba', 'Desvanecido'],
-    'Faciales': ['Exfoliación', 'Mascarilla', 'Facial', 'Cejas', 'Wax'],
-    'Otros': ['Lavado', 'Toallas', 'Colormetría'],
-  };
 
   const getCategoryForService = (serviceName) => {
     for (const [category, keywords] of Object.entries(CATEGORIES)) {
@@ -79,7 +70,6 @@ export default function ServiceManagement({ onClose, COLORS }) {
   };
 
   const handleSave = () => {
-    // Validaciones
     if (!editingService.name || editingService.name.trim() === '') {
       Alert.alert('Error', 'El nombre del servicio es requerido');
       return;

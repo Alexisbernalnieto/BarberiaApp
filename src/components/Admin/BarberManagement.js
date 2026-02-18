@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, useWindowDimensions, Alert } from 'react-
 import BarberListView from './BarberListView';
 import BarberFormView from './BarberFormView';
 import BarberDetailsView from './BarberDetailsView';
-import { getBarberManagementStyles } from './BarberManagementStyles';
+import { DAYS, DEFAULT_SCHEDULE, getBarberManagementStyles } from './BarberManagementStyles';
 
 export default function BarberManagement({ appointments, onClose, COLORS, barbers, setBarbers }) {
   const { width } = useWindowDimensions();
@@ -24,18 +24,6 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
   const [editingBarber, setEditingBarber] = useState(null); // Used for form
   const [selectedBranchFilter, setSelectedBranchFilter] = useState('Todos'); // 'Todos', 'Centro', 'Lomas'
   const [selectedDay, setSelectedDay] = useState(1); // 0=Domingo, 1=Lunes, etc.
-
-  const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-
-  const DEFAULT_SCHEDULE = {
-      0: { start: '10:00', end: '15:00', active: true },
-      1: { start: '10:00', end: '19:00', active: true },
-      2: { start: '10:00', end: '19:00', active: true },
-      3: { start: '10:00', end: '19:00', active: true },
-      4: { start: '10:00', end: '19:00', active: true },
-      5: { start: '10:00', end: '19:00', active: true },
-      6: { start: '10:00', end: '19:00', active: true },
-  };
 
   // Calculate stats for a barber
   const getBarberStats = (barberName) => {

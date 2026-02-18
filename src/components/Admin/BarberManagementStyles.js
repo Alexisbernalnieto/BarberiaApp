@@ -1,5 +1,17 @@
 import { StyleSheet } from 'react-native';
 
+export const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+export const DEFAULT_SCHEDULE = {
+  0: { start: '10:00', end: '15:00', active: true },
+  1: { start: '10:00', end: '19:00', active: true },
+  2: { start: '10:00', end: '19:00', active: true },
+  3: { start: '10:00', end: '19:00', active: true },
+  4: { start: '10:00', end: '19:00', active: true },
+  5: { start: '10:00', end: '19:00', active: true },
+  6: { start: '10:00', end: '19:00', active: true },
+};
+
 export const getBarberManagementStyles = (COLORS, isMobile) =>
   StyleSheet.create({
     container: {

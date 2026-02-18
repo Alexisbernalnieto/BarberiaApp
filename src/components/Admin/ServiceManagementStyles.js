@@ -1,5 +1,12 @@
 import { StyleSheet } from 'react-native';
 
+export const CATEGORIES = {
+  Cortes: ['Corte', 'Fade', 'Tijera'],
+  Barbas: ['Barba', 'Desvanecido'],
+  Faciales: ['Exfoliación', 'Mascarilla', 'Facial', 'Cejas', 'Wax'],
+  Otros: ['Lavado', 'Toallas', 'Colormetría'],
+};
+
 export const getServiceManagementStyles = (COLORS, isMobile) =>
   StyleSheet.create({
     container: {

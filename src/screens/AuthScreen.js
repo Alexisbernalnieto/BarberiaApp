@@ -128,7 +128,6 @@ export default function AuthScreen() {
 
   return (
     <View style={splitStyles.container}>
-      {/* Theme Toggle */}
       <TouchableOpacity style={splitStyles.themeToggle} onPress={toggleTheme}>
         <MaterialCommunityIcons 
           name={isDarkMode ? "weather-sunny" : "weather-night"} 
@@ -137,7 +136,6 @@ export default function AuthScreen() {
         />
       </TouchableOpacity>
 
-      {/* LEFT SIDE: Brand/Image */}
       {!isMobile && (
         <View style={splitStyles.brandSide}>
           {/* Background Image Placeholder or Decoration */}
@@ -156,7 +154,6 @@ export default function AuthScreen() {
         </View>
       )}
 
-      {/* RIGHT SIDE: Form */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={splitStyles.formSide}
