@@ -10,7 +10,7 @@ export const SPACING = {
   lg: 24,
   xl: 32,
   xxl: 48,
-  section: 64, // Espaciado para secciones grandes
+  section: 64, // Espaciado para secciones grandes jnjindsfjvbjskdbvcdsjhkbcvdjshbcs
 };
 
 export const FONT_SIZE = {
