@@ -1,14 +1,14 @@
 import React from 'react';
-import { View, Text, ScrollView, TextInput } from 'react-native';
+import { ScrollView, View, Text, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function BookingStepConfirm({
+export function BookingStepConfirm({
   styles,
   COLORS,
-  user,
   isWalkIn,
   guestName,
   setGuestName,
+  user,
   selectedBranch,
   selectedService,
   selectedBarber,
@@ -16,9 +16,11 @@ export default function BookingStepConfirm({
   selectedTime,
 }) {
   return (
-    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      contentContainerStyle={styles.stepContent}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.stepHeader}>CONFIRMACIÓN</Text>
-
       <View style={styles.ticketCard}>
         <View style={styles.ticketHeader}>
           <MaterialCommunityIcons
@@ -30,7 +32,6 @@ export default function BookingStepConfirm({
           <Text style={styles.ticketTitle}>EL CORONEL</Text>
           <Text style={styles.ticketSubtitle}>BARBER SHOP</Text>
         </View>
-
         <View style={styles.ticketContent}>
           <View style={styles.ticketRow}>
             <Text style={styles.ticketLabel}>CLIENTE</Text>
@@ -38,7 +39,12 @@ export default function BookingStepConfirm({
               <TextInput
                 style={[
                   styles.input,
-                  { flex: 1, marginLeft: 10, textAlign: 'right', color: COLORS.text },
+                  {
+                    flex: 1,
+                    marginLeft: 10,
+                    textAlign: 'right',
+                    color: COLORS.text,
+                  },
                 ]}
                 placeholder="Nombre del Cliente"
                 placeholderTextColor={COLORS.textSecondary}
@@ -49,9 +55,7 @@ export default function BookingStepConfirm({
               <Text style={styles.ticketValue}>{user.name}</Text>
             )}
           </View>
-
           <View style={styles.dashedDivider} />
-
           <View style={styles.ticketRow}>
             <Text style={styles.ticketLabel}>SUCURSAL</Text>
             <Text style={styles.ticketValue}>{selectedBranch}</Text>
@@ -72,20 +76,28 @@ export default function BookingStepConfirm({
             <Text style={styles.ticketLabel}>HORA</Text>
             <Text style={styles.ticketValue}>{selectedTime}</Text>
           </View>
-
           <View style={styles.dashedDivider} />
-
           <View style={styles.ticketFooter}>
             <Text style={styles.totalLabel}>TOTAL A PAGAR</Text>
             <Text style={styles.totalPrice}>${selectedService?.price}</Text>
           </View>
         </View>
-
-        <View style={[styles.ticketHole, { left: -10, top: '50%', marginTop: -10 }]} />
-        <View style={[styles.ticketHole, { right: -10, top: '50%', marginTop: -10 }]} />
+        <View
+          style={[
+            styles.ticketHole,
+            { left: -10, top: '50%', marginTop: -10 },
+          ]}
+        />
+        <View
+          style={[
+            styles.ticketHole,
+            { right: -10, top: '50%', marginTop: -10 },
+          ]}
+        />
       </View>
-
-      <Text style={styles.paymentNote}>* El pago se realizará en el establecimiento.</Text>
+      <Text style={styles.paymentNote}>
+        * El pago se realizará en el establecimiento.
+      </Text>
     </ScrollView>
   );
 }
