@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, View, Text, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export function BookingStepConfirm({
+export default function BookingStepConfirm({
   styles,
   COLORS,
   isWalkIn,
@@ -21,6 +21,7 @@ export function BookingStepConfirm({
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.stepHeader}>CONFIRMACIÓN</Text>
+
       <View style={styles.ticketCard}>
         <View style={styles.ticketHeader}>
           <MaterialCommunityIcons
@@ -32,6 +33,7 @@ export function BookingStepConfirm({
           <Text style={styles.ticketTitle}>EL CORONEL</Text>
           <Text style={styles.ticketSubtitle}>BARBER SHOP</Text>
         </View>
+
         <View style={styles.ticketContent}>
           <View style={styles.ticketRow}>
             <Text style={styles.ticketLabel}>CLIENTE</Text>
@@ -55,7 +57,9 @@ export function BookingStepConfirm({
               <Text style={styles.ticketValue}>{user.name}</Text>
             )}
           </View>
+
           <View style={styles.dashedDivider} />
+
           <View style={styles.ticketRow}>
             <Text style={styles.ticketLabel}>SUCURSAL</Text>
             <Text style={styles.ticketValue}>{selectedBranch}</Text>
@@ -76,12 +80,15 @@ export function BookingStepConfirm({
             <Text style={styles.ticketLabel}>HORA</Text>
             <Text style={styles.ticketValue}>{selectedTime}</Text>
           </View>
+
           <View style={styles.dashedDivider} />
+
           <View style={styles.ticketFooter}>
             <Text style={styles.totalLabel}>TOTAL A PAGAR</Text>
             <Text style={styles.totalPrice}>${selectedService?.price}</Text>
           </View>
         </View>
+
         <View
           style={[
             styles.ticketHole,
@@ -95,6 +102,7 @@ export function BookingStepConfirm({
           ]}
         />
       </View>
+
       <Text style={styles.paymentNote}>
         * El pago se realizará en el establecimiento.
       </Text>

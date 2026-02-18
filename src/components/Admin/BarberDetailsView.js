@@ -1,58 +1,79 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 
-export default function BarberDetails({
+export default function BarberDetailsView({
   styles,
-  DAYS,
   selectedBarber,
-  defaultSchedule,
-  onBack,
-  onEdit,
-  onDelete,
+  setViewMode,
+  DAYS,
+  DEFAULT_SCHEDULE,
+  handleDelete,
+  setEditingBarber,
 }) {
-  const scheduleForDay = index =>
-    selectedBarber.schedule ? selectedBarber.schedule[index] : defaultSchedule[index];
-
   return (
     <View style={styles.content}>
       <View style={styles.detailsHeader}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => setViewMode('list')}
+          style={styles.backButton}
+        >
           <Text style={styles.backText}>← Volver</Text>
         </TouchableOpacity>
         <Text style={styles.detailsTitle}>{selectedBarber.name}</Text>
       </View>
 
       <View style={styles.detailCard}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <View
+          style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+        >
           <View>
             <Text style={styles.detailLabel}>Rol:</Text>
             <Text style={styles.detailValue}>{selectedBarber.role}</Text>
-            <Text style={[styles.detailLabel, { marginTop: 5 }]}>Sucursal:</Text>
-            <Text style={styles.detailValue}>{selectedBarber.branch || 'Centro'}</Text>
+            <Text style={[styles.detailLabel, { marginTop: 5 }]}>
+              Sucursal:
+            </Text>
+            <Text style={styles.detailValue}>
+              {selectedBarber.branch || 'Centro'}
+            </Text>
           </View>
           <View style={styles.detailsActions}>
-            <TouchableOpacity style={styles.editButton} onPress={onEdit}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => {
+                setEditingBarber({ ...selectedBarber });
+                setViewMode('form');
+              }}
+            >
               <Text style={styles.editButtonText}>EDITAR</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDelete(selectedBarber.id)}
+            >
               <Text style={styles.deleteButtonText}>ELIMINAR</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={[styles.detailLabel, { marginTop: 10 }]}>Servicios Habilitados:</Text>
+        <Text style={[styles.detailLabel, { marginTop: 10 }]}>
+          Servicios Habilitados:
+        </Text>
         <View style={styles.tagsContainer}>
-          {selectedBarber.services.map((s, i) => (
-            <View key={i} style={styles.tag}>
-              <Text style={styles.tagText}>{s}</Text>
+          {selectedBarber.services.map((service, index) => (
+            <View key={index} style={styles.tag}>
+              <Text style={styles.tagText}>{service}</Text>
             </View>
           ))}
         </View>
 
-        <Text style={[styles.detailLabel, { marginTop: 15 }]}>Horario Semanal:</Text>
+        <Text style={[styles.detailLabel, { marginTop: 15 }]}>
+          Horario Semanal:
+        </Text>
         <View style={styles.scheduleSummary}>
           {DAYS.map((day, index) => {
-            const schedule = scheduleForDay(index);
+            const schedule = selectedBarber.schedule
+              ? selectedBarber.schedule[index]
+              : DEFAULT_SCHEDULE[index];
             return (
               <View key={index} style={styles.scheduleRow}>
                 <Text style={styles.scheduleDay}>{day}</Text>
@@ -75,7 +96,9 @@ export default function BarberDetails({
       <Text style={styles.sectionTitle}>Rendimiento Histórico</Text>
       <View style={styles.statsGrid}>
         <View style={styles.bigStatBox}>
-          <Text style={styles.bigStatValue}>${selectedBarber.totalEarnings}</Text>
+          <Text style={styles.bigStatValue}>
+            ${selectedBarber.totalEarnings}
+          </Text>
           <Text style={styles.bigStatLabel}>Ingresos Totales</Text>
         </View>
         <View style={styles.bigStatBox}>
@@ -87,7 +110,7 @@ export default function BarberDetails({
       <Text style={styles.sectionTitle}>Historial de Citas</Text>
       <FlatList
         data={selectedBarber.history}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(_, index) => index.toString()}
         renderItem={({ item }) => (
           <View style={styles.historyRow}>
             <Text style={styles.historyDate}>

@@ -23,7 +23,6 @@ import BookingWizard from './Booking/BookingWizard';
 export default function AdminDashboard({ appointments, onLogout, onAddAppointment, role = 'admin', COLORS, toggleTheme, isDarkMode, barbers, setBarbers }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  const isTablet = width >= 768 && width < 1024;
 
   // Animation for Fade In
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
