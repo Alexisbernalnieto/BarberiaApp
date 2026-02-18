@@ -1,12 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import FinancialHeader from './FinancialHeader';
-import FinancialSummary from './FinancialSummary';
-import FinancialEmployeesRanking from './FinancialEmployeesRanking';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 
 export default function FinancialReport({ appointments, onClose, COLORS }) {
-  const [filter, setFilter] = useState('day');
-  const [selectedBranch, setSelectedBranch] = useState('All');
+  const [filter, setFilter] = useState('day'); // 'day', 'month', 'employees'
+  const [selectedBranch, setSelectedBranch] = useState('All'); // 'All', 'Centro', 'Lomas'
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
@@ -15,14 +12,18 @@ export default function FinancialReport({ appointments, onClose, COLORS }) {
   const today = new Date().toISOString().split('T')[0];
   const currentMonth = today.slice(0, 7); // YYYY-MM
 
+  // Filter appointments based on time period AND branch
   const timeFilteredApps = appointments.filter(app => {
+    // Branch Filter
     if (selectedBranch !== 'All') {
-      if (app.branch !== selectedBranch && (app.branch || selectedBranch !== 'Centro')) {
-        const appBranch = app.branch || 'Centro';
-        if (appBranch !== selectedBranch) return false;
-      }
+        if (app.branch !== selectedBranch && (app.branch || selectedBranch !== 'Centro')) { // Handle legacy missing branch as Centro? Or just strict?
+            // Let's assume missing branch = Centro for legacy
+            const appBranch = app.branch || 'Centro';
+            if (appBranch !== selectedBranch) return false;
+        }
     }
 
+    // Time Filter
     if (filter === 'day') return app.date === today;
     if (filter === 'month' || filter === 'employees') return app.date.startsWith(currentMonth);
     return true;
@@ -31,45 +32,114 @@ export default function FinancialReport({ appointments, onClose, COLORS }) {
   const totalEarnings = timeFilteredApps.reduce((sum, app) => sum + (app.price || 0), 0);
   const totalServices = timeFilteredApps.length;
 
+  // Group by barber for employee view
   const getBarberRanking = () => {
     const ranking = {};
     timeFilteredApps.forEach(app => {
-      if (!ranking[app.barberName]) {
-        ranking[app.barberName] = { name: app.barberName, earnings: 0, services: 0 };
-      }
-      ranking[app.barberName].earnings += app.price || 0;
-      ranking[app.barberName].services += 1;
+        if (!ranking[app.barberName]) {
+            ranking[app.barberName] = { name: app.barberName, earnings: 0, services: 0 };
+        }
+        ranking[app.barberName].earnings += (app.price || 0);
+        ranking[app.barberName].services += 1;
     });
     return Object.values(ranking).sort((a, b) => b.earnings - a.earnings);
   };
 
+  const renderContent = () => {
+    if (filter === 'employees') {
+        const ranking = getBarberRanking();
+        return (
+            <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
+                <View style={styles.rankingHeader}>
+                    <Text style={styles.rankingTitle}>Rendimiento del Mes</Text>
+                    <Text style={styles.rankingSubtitle}>Ranking por ingresos generados</Text>
+                </View>
+                <View style={!isMobile && styles.gridContainer}>
+                    {ranking.map((barber, index) => (
+                        <View key={index} style={[styles.rankingCard, !isMobile && { width: '48%' }]}>
+                            <View style={styles.rankBadge}>
+                                <Text style={styles.rankText}>#{index + 1}</Text>
+                            </View>
+                            <View style={{flex: 1}}>
+                                <Text style={styles.barberName}>{barber.name}</Text>
+                                <Text style={styles.barberServices}>{barber.services} servicios</Text>
+                            </View>
+                            <Text style={styles.barberEarnings}>${barber.earnings}</Text>
+                        </View>
+                    ))}
+                </View>
+            </ScrollView>
+        );
+    }
+
+    return (
+        <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
+            <View style={styles.card}>
+                <Text style={styles.cardLabel}>Ganancias Totales ({filter === 'day' ? 'Hoy' : 'Mes'})</Text>
+                <Text style={styles.bigMoney}>${totalEarnings}</Text>
+                <Text style={styles.cardSub}>{totalServices} servicios realizados</Text>
+            </View>
+
+            <Text style={styles.sectionTitle}>Desglose de Citas</Text>
+            <View style={!isMobile && styles.gridContainer}>
+                {timeFilteredApps.map((app, index) => (
+                    <View key={index} style={[styles.row, !isMobile && { width: '48%', marginRight: '2%' }]}>
+                        <View>
+                            <Text style={styles.rowTitle}>{app.serviceName}</Text>
+                            <Text style={styles.rowSub}>{app.date} - {app.barberName}</Text>
+                        </View>
+                        <Text style={styles.rowPrice}>+${app.price}</Text>
+                    </View>
+                ))}
+            </View>
+        </ScrollView>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <FinancialHeader
-        styles={styles}
-        title="FINANZAS"
-        onClose={onClose}
-        selectedBranch={selectedBranch}
-        setSelectedBranch={setSelectedBranch}
-        filter={filter}
-        setFilter={setFilter}
-      />
-      {filter === 'employees' ? (
-        <FinancialEmployeesRanking
-          styles={styles}
-          isMobile={isMobile}
-          ranking={getBarberRanking()}
-        />
-      ) : (
-        <FinancialSummary
-          styles={styles}
-          isMobile={isMobile}
-          filter={filter}
-          totalEarnings={totalEarnings}
-          totalServices={totalServices}
-          timeFilteredApps={timeFilteredApps}
-        />
-      )}
+      <View style={styles.header}>
+        <Text style={styles.title}>FINANZAS</Text>
+        <TouchableOpacity onPress={onClose}><Text style={styles.close}>Cerrar</Text></TouchableOpacity>
+      </View>
+
+      {/* Branch Filter */}
+      <View style={styles.branchFilter}>
+        {['All', 'Centro', 'Lomas'].map(branch => (
+            <TouchableOpacity 
+                key={branch}
+                style={[styles.branchBtn, selectedBranch === branch && styles.activeBranchBtn]}
+                onPress={() => setSelectedBranch(branch)}
+            >
+                <Text style={[styles.branchText, selectedBranch === branch && styles.activeBranchText]}>
+                    {branch === 'All' ? 'Todas' : branch}
+                </Text>
+            </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.tabs}>
+        <TouchableOpacity 
+            style={[styles.tab, filter === 'day' && styles.activeTab]} 
+            onPress={() => setFilter('day')}
+        >
+            <Text style={[styles.tabText, filter === 'day' && styles.activeTabText]}>HOY</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+            style={[styles.tab, filter === 'month' && styles.activeTab]} 
+            onPress={() => setFilter('month')}
+        >
+            <Text style={[styles.tabText, filter === 'month' && styles.activeTabText]}>ESTE MES</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+            style={[styles.tab, filter === 'employees' && styles.activeTab]} 
+            onPress={() => setFilter('employees')}
+        >
+            <Text style={[styles.tabText, filter === 'employees' && styles.activeTabText]}>BARBEROS</Text>
+        </TouchableOpacity>
+      </View>
+
+      {renderContent()}
     </View>
   );
 }
