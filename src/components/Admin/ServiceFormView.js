@@ -92,7 +92,62 @@ export default function ServiceFormView({
               }
             />
           </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.label}>Buffer (min)</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              placeholder="Limpieza"
+              placeholderTextColor="#666"
+              value={String(editingService.bufferTime || '')}
+              onChangeText={text =>
+                setEditingService({
+                  ...editingService,
+                  bufferTime: Number(text) || '',
+                })
+              }
+            />
+          </View>
         </View>
+
+        {/* ✅ TIMELINE VISUAL: Duración + Buffer */}
+        {editingService.duration && (
+          <View style={styles.timelineContainer}>
+            <Text style={styles.timelineLabel}>Tiempo Total Requerido</Text>
+            <View style={styles.timeline}>
+              <View style={[
+                styles.timelineSegment,
+                { 
+                  flex: editingService.duration,
+                  backgroundColor: styles.timelineServiceColor.backgroundColor
+                }
+              ]}>
+                <Text style={styles.timelineSegmentText}>
+                  {editingService.duration}m (Servicio)
+                </Text>
+              </View>
+              <View style={[
+                styles.timelineSegment,
+                { 
+                  flex: (editingService.bufferTime || 5),
+                  backgroundColor: styles.timelineBufferColor.backgroundColor
+                }
+              ]}>
+                <Text style={styles.timelineSegmentText}>
+                  {editingService.bufferTime || 5}m (Limpieza)
+                </Text>
+              </View>
+            </View>
+            <View style={styles.timelineInfo}>
+              <Text style={styles.timelineTotal}>
+                Total: {(editingService.duration || 0) + (editingService.bufferTime || 5)} min
+              </Text>
+              <Text style={styles.timelineSubtext}>
+                Próxima cita disponible en: {(editingService.duration || 0) + (editingService.bufferTime || 5)} min
+              </Text>
+            </View>
+          </View>
+        )}
 
         <Text style={styles.label}>Asignar a Barberos</Text>
         <View style={styles.barberCheckboxContainer}>

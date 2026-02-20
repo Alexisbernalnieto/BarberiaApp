@@ -71,20 +71,20 @@ export const BARBERS = [
 ];
 
 export const SERVICES = [
-  { id: 1, name: 'Corte Fade/Lavado', price: 300, duration: 60, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 2, name: 'Corte Fade', price: 229, duration: 45, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 3, name: 'Corte Clásico', price: 229, duration: 45, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 4, name: 'Corte a Tijera', price: 229, duration: 45, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 5, name: 'Grecas', price: 50, duration: 15, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 6, name: 'Arreglo de Barba', price: 180, duration: 30, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 7, name: 'Desvanecido de Barba', price: 210, duration: 35, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 8, name: 'Toallas Calientes', price: 180, duration: 20, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 9, name: 'Exfoliación Facial', price: 129, duration: 20, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 10, name: 'Mascarilla Negra', price: 129, duration: 20, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 11, name: 'Perfilación de Cejas', price: 30, duration: 10, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 12, name: 'Wax Facial (Orejas/Nariz)', price: 80, duration: 15, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 13, name: 'Lavado', price: 80, duration: 15, assignedTo: 'Todos', branch: 'Ambas' },
-  { id: 14, name: 'Colormetría', price: 500, duration: 90, assignedTo: 'Ana', branch: 'Ambas' },
+  { id: 1, name: 'Corte Fade/Lavado', price: 300, duration: 60, bufferTime: 5, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 2, name: 'Corte Fade', price: 229, duration: 45, bufferTime: 5, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 3, name: 'Corte Clásico', price: 229, duration: 45, bufferTime: 5, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 4, name: 'Corte a Tijera', price: 229, duration: 45, bufferTime: 5, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 5, name: 'Grecas', price: 50, duration: 15, bufferTime: 3, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 6, name: 'Arreglo de Barba', price: 180, duration: 30, bufferTime: 5, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 7, name: 'Desvanecido de Barba', price: 210, duration: 35, bufferTime: 5, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 8, name: 'Toallas Calientes', price: 180, duration: 20, bufferTime: 3, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 9, name: 'Exfoliación Facial', price: 129, duration: 20, bufferTime: 3, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 10, name: 'Mascarilla Negra', price: 129, duration: 20, bufferTime: 3, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 11, name: 'Perfilación de Cejas', price: 30, duration: 10, bufferTime: 2, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 12, name: 'Wax Facial (Orejas/Nariz)', price: 80, duration: 15, bufferTime: 2, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 13, name: 'Lavado', price: 80, duration: 15, bufferTime: 3, assignedTo: 'Todos', branch: 'Ambas' },
+  { id: 14, name: 'Colormetría', price: 500, duration: 90, bufferTime: 10, assignedTo: 'Ana', branch: 'Ambas' },
 ];
 
 export const TIME_SLOTS = [
