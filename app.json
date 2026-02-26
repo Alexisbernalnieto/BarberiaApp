@@ -12,7 +12,8 @@
       "supportsTablet": true
     },
     "android": {
-      "backgroundColor": "#1a1a1a"
+      "backgroundColor": "#1a1a1a",
+      "package": "com.anonymous.barberiaapp"
     },
     "web": {
       "backgroundColor": "#1a1a1a"
