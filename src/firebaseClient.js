@@ -1,19 +1,18 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+// src/firebaseClient.js
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAA5ZVahWoIDeVaKm1nfPFJLnJeEzae9vU",
-  authDomain: "barberia-app-c4c2b.firebaseapp.com",
-  projectId: "barberia-app-c4c2b",
-  storageBucket: "barberia-app-c4c2b.firebasestorage.app",
-  messagingSenderId: "398150919752",
-  appId: "1:398150919752:web:f78319899b12cbc7a09a7d",
-  measurementId: "G-Q4FD9EE2CP"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
 
-// Inicializar Auth con persistencia por defecto (React Native la maneja mejor así)
-export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const auth = getAuth(app);
