@@ -53,6 +53,23 @@ export default function BarberFormView({
           placeholderTextColor="#666"
         />
 
+        <Text style={styles.label}>Estatus</Text>
+        <TouchableOpacity 
+            onPress={() => setEditingBarber({...editingBarber, active: !editingBarber.active})}
+            style={{
+                backgroundColor: editingBarber.active ? '#10B981' : '#EF4444',
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 8,
+                alignSelf: 'flex-start',
+                marginBottom: 15
+            }}
+        >
+            <Text style={{color: 'white', fontWeight: 'bold'}}>
+                {editingBarber.active ? 'ACTIVO' : 'INACTIVO'}
+            </Text>
+        </TouchableOpacity>
+
         <Text style={styles.label}>Sucursal</Text>
         <View style={styles.rowInputs}>
           <TouchableOpacity

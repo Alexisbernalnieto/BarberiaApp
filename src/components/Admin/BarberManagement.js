@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
+import { db } from '../../firebaseClient';
+import { doc, updateDoc } from 'firebase/firestore';
 import BarberListView from './BarberListView';
 import BarberFormView from './BarberFormView';
 import BarberDetailsView from './BarberDetailsView';
@@ -36,7 +38,7 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
     return { totalServices, totalEarnings, lastActive, history: barberApps };
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editingBarber.name && editingBarber.role) {
         // Ensure schedule exists
         const barberToSave = {
@@ -46,14 +48,19 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
 
         if (editingBarber.id) {
             // Edit existing
-            setBarbers(barbers.map(b => b.id === editingBarber.id ? barberToSave : b));
+            try {
+                await updateDoc(doc(db, 'users', editingBarber.id), barberToSave);
+                // Optimistic update
+                setBarbers(barbers.map(b => b.id === editingBarber.id ? barberToSave : b));
+                Alert.alert('Éxito', 'Barbero actualizado correctamente');
+            } catch (error) {
+                console.error("Error updating barber:", error);
+                Alert.alert('Error', 'No se pudo actualizar el barbero');
+            }
         } else {
             // Add new
-            setBarbers([...barbers, { 
-                id: barbers.length + 1, 
-                ...barberToSave, 
-                active: true 
-            }]);
+            Alert.alert('Aviso', 'Para registrar nuevos barberos, por favor ve a "Gestión de Usuarios" y asigna el rol de Barbero a un usuario registrado.');
+            return;
         }
         setEditingBarber(null);
         setViewMode('list');
