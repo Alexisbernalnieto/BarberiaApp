@@ -123,7 +123,7 @@ export default function ServiceFormView({
                 }
               ]}>
                 <Text style={styles.timelineSegmentText}>
-                  {editingService.duration}m (Servicio)
+                  {editingService.duration}Min (Servicio)
                 </Text>
               </View>
               <View style={[
@@ -134,16 +134,16 @@ export default function ServiceFormView({
                 }
               ]}>
                 <Text style={styles.timelineSegmentText}>
-                  {editingService.bufferTime || 5}m (Limpieza)
+                  {editingService.bufferTime || 5}Min (Limpieza)
                 </Text>
               </View>
             </View>
             <View style={styles.timelineInfo}>
               <Text style={styles.timelineTotal}>
-                Total: {(editingService.duration || 0) + (editingService.bufferTime || 5)} min
+                Total: {(editingService.duration || 0) + (editingService.bufferTime || 5)} Min
               </Text>
               <Text style={styles.timelineSubtext}>
-                Próxima cita disponible en: {(editingService.duration || 0) + (editingService.bufferTime || 5)} min
+                Próxima cita disponible en: {(editingService.duration || 0) + (editingService.bufferTime || 5)} Min
               </Text>
             </View>
           </View>

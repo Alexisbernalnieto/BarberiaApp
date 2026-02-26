@@ -286,7 +286,7 @@ export default function ServiceListView({
                               style={{ marginRight: 4 }}
                             />
                             <Text style={styles.durationText}>
-                              {service.duration}m
+                              {service.duration}Min
                             </Text>
                             <MaterialCommunityIcons
                               name="plus"
@@ -295,10 +295,10 @@ export default function ServiceListView({
                               style={{ marginHorizontal: 4 }}
                             />
                             <Text style={styles.bufferText}>
-                              {service.bufferTime || 5}m limpieza
+                              {service.bufferTime || 5}Min limpieza
                             </Text>
                             <Text style={styles.totalTimeText}>
-                              = {(service.duration || 0) + (service.bufferTime || 5)}m total
+                              = {(service.duration || 0) + (service.bufferTime || 5)}Min total
                             </Text>
                           </View>
                           <View style={styles.branchBadge}>
