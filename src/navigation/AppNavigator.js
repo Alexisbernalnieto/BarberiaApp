@@ -9,6 +9,9 @@ import UserDashboard from '../components/UserDashboard';
 import AdminDashboard from '../components/AdminDashboard';
 import BarberDashboard from '../components/BarberDashboard';
 
+// 🔥 Importamos el servicio oficial para crear citas
+import { createAppointment } from '../services/appointments';
+
 export default function AppNavigator() {
   const { currentUser, loading, logout } = useAuth();
   const { theme, COLORS, toggleTheme, isDarkMode } = useTheme();
@@ -37,13 +40,12 @@ export default function AppNavigator() {
         COLORS={COLORS}
         toggleTheme={toggleTheme}
         isDarkMode={isDarkMode}
+
+        // 🔥 Ahora AdminDashboard también puede crear citas
+        onAddAppointment={createAppointment}
       />
     );
   } else if (currentUser.role === 'reception' || currentUser.role === 2) {
-    // Assuming Reception uses AdminDashboard for now, or a specific one if it existed.
-    // App.js likely mapped it to AdminDashboard or similar.
-    // Let's assume AdminDashboard handles reception logic internally or it's the same view.
-    // Based on previous App.js code (which I didn't see fully for reception but likely similar):
     return (
       <AdminDashboard 
         user={currentUser} 
@@ -53,6 +55,9 @@ export default function AppNavigator() {
         COLORS={COLORS}
         toggleTheme={toggleTheme}
         isDarkMode={isDarkMode}
+
+        // 🔥 Recepción también puede crear citas
+        onAddAppointment={createAppointment}
       />
     );
   } else if (currentUser.role === 'barber' || currentUser.role === 3) {
@@ -78,6 +83,9 @@ export default function AppNavigator() {
         COLORS={COLORS}
         toggleTheme={toggleTheme}
         isDarkMode={isDarkMode}
+
+        // 🔥 Aquí es donde realmente lo necesitabas
+        onAddAppointment={createAppointment}
       />
     );
   }
