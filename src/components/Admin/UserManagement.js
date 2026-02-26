@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Alert, StyleSheet, ActivityIndi
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 import { db } from '../../firebaseClient';
+import { DEFAULT_SCHEDULE } from './BarberManagementStyles';
 
 export default function UserManagement({ COLORS }) {
   const [users, setUsers] = useState([]);
@@ -58,6 +59,8 @@ export default function UserManagement({ COLORS }) {
       await updateDoc(doc(db, 'users', branchModalUser.id), {
         role: 3,
         branch: branchSelection,
+        active: true,
+        schedule: DEFAULT_SCHEDULE,
       });
       setBranchModalUser(null);
       Alert.alert('Éxito', `Usuario actualizado a rol: BARBERO`);
