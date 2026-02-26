@@ -13,6 +13,8 @@ export default function UserManagement({ COLORS }) {
   const [editingUser, setEditingUser] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [branchModalUser, setBranchModalUser] = useState(null);
+  const [branchSelection, setBranchSelection] = useState('Centro');
 
   // Escuchar cambios en la colección de usuarios en tiempo real
   useEffect(() => {
@@ -35,11 +37,30 @@ export default function UserManagement({ COLORS }) {
     return () => unsubscribe();
   }, []);
 
-  // Función para cambiar rol
   const changeRole = async (userId, newRole, roleName) => {
     try {
       await updateDoc(doc(db, 'users', userId), { role: newRole });
       Alert.alert('Éxito', `Usuario actualizado a rol: ${roleName}`);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'No tienes permisos para cambiar roles.');
+    }
+  };
+
+  const handleSetBarberRole = (user) => {
+    setBranchSelection(user.branch || 'Centro');
+    setBranchModalUser(user);
+  };
+
+  const confirmSetBarberRole = async () => {
+    if (!branchModalUser) return;
+    try {
+      await updateDoc(doc(db, 'users', branchModalUser.id), {
+        role: 3,
+        branch: branchSelection,
+      });
+      setBranchModalUser(null);
+      Alert.alert('Éxito', `Usuario actualizado a rol: BARBERO`);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'No tienes permisos para cambiar roles.');
@@ -161,7 +182,7 @@ export default function UserManagement({ COLORS }) {
 
         <TouchableOpacity 
           style={[styles.btn, { backgroundColor: item.role === 3 ? '#8B5CF6' : COLORS.border }]}
-          onPress={() => changeRole(item.id, 3, 'BARBERO')}
+          onPress={() => handleSetBarberRole(item)}
         >
           <Text style={styles.btnText}>Barbero</Text>
         </TouchableOpacity>
@@ -252,6 +273,50 @@ export default function UserManagement({ COLORS }) {
             </View>
         </View>
       </Modal>
+
+      <Modal visible={!!branchModalUser} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: COLORS.surface }]}>
+            <Text style={[styles.modalTitle, { color: COLORS.text }]}>Asignar sucursal</Text>
+            <Text style={[styles.label, { color: COLORS.textSecondary }]}>Sucursal:</Text>
+            <View style={styles.branchRow}>
+              {['Centro', 'Lomas'].map(branch => (
+                <TouchableOpacity
+                  key={branch}
+                  style={[
+                    styles.branchOption,
+                    branchSelection === branch && styles.branchOptionActive,
+                  ]}
+                  onPress={() => setBranchSelection(branch)}
+                >
+                  <Text
+                    style={[
+                      styles.branchText,
+                      branchSelection === branch && styles.branchTextActive,
+                    ]}
+                  >
+                    {branch}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                onPress={() => setBranchModalUser(null)}
+                style={[styles.modalBtn, { borderColor: COLORS.border, borderWidth: 1 }]}
+              >
+                <Text style={{ color: COLORS.text }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmSetBarberRole}
+                style={[styles.modalBtn, { backgroundColor: COLORS.primary }]}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -286,5 +351,10 @@ const styles = StyleSheet.create({
   label: { marginBottom: 5, fontSize: 14 },
   input: { borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 15 },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 10 },
-  modalBtn: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center' }
+  modalBtn: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center' },
+  branchRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  branchOption: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, marginHorizontal: 4, alignItems: 'center' },
+  branchOptionActive: { borderColor: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.1)' },
+  branchText: { fontSize: 14 },
+  branchTextActive: { fontWeight: 'bold' }
 });
