@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Animated, useWindowDimensions } from 'react-native';
-import { BARBERS, SERVICES, BRANCHES } from '../../data/mockData';
+import { SERVICES, BRANCHES } from '../../data/mockData';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import BookingProgressBar from './BookingProgressBar';
 import BookingStepBranch from './BookingStepBranch';
@@ -18,7 +18,7 @@ export const STEPS = [
   { id: 5, title: 'Confirmar', icon: 'check-decagram' }
 ];
 
-export default function BookingWizard({ user, existingAppointments, onConfirm, onCancel, isWalkIn = false, COLORS }) {
+export default function BookingWizard({ user, existingAppointments, onConfirm, onCancel, isWalkIn = false, COLORS, barbers }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const styles = useMemo(
@@ -37,6 +37,7 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState(null);
   const [guestName, setGuestName] = useState(user?.name || '');
+  const barberList = barbers && barbers.length ? barbers : [];
   
   const goToStep = (step) => {
     Animated.sequence([
@@ -190,7 +191,7 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
             <BookingStepBarbers
               styles={styles}
               COLORS={COLORS}
-              BARBERS={BARBERS}
+              BARBERS={barberList}
               selectedBranch={selectedBranch}
               selectedBarber={selectedBarber}
               setSelectedBarber={setSelectedBarber}
