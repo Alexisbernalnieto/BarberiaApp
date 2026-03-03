@@ -29,6 +29,7 @@ export default function BookingStepServices({
               selectedService?.id === item.id && styles.activeServiceCard,
             ]}
             onPress={() => setSelectedService(item)}
+            dataSet={{ bookingCard: 'true', cardActive: selectedService?.id === item.id ? 'true' : undefined }}
           >
             <View style={styles.serviceRow}>
               <View style={styles.serviceInfo}>

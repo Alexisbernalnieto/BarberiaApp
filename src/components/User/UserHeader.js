@@ -6,10 +6,10 @@ export default function UserHeader({ user, onLogout, toggleTheme, isDarkMode, CO
   const styles = getStyles(COLORS, isMobile);
 
   return (
-    <View style={styles.header}>
+    <View style={styles.header} dataSet={{ header: 'true' }}>
       {/* Brand + User Section */}
       <View style={styles.brandSection}>
-        <View style={styles.logoContainer}>
+        <View style={styles.logoContainer} dataSet={{ logo: 'true' }}>
           <MaterialCommunityIcons name="content-cut" size={22} color={COLORS.primary} />
         </View>
         {!isMobile && (
@@ -27,10 +27,10 @@ export default function UserHeader({ user, onLogout, toggleTheme, isDarkMode, CO
 
       {/* Actions */}
       <View style={styles.headerActions}>
-        <TouchableOpacity onPress={toggleTheme} style={styles.iconBtn}>
+        <TouchableOpacity onPress={toggleTheme} style={styles.iconBtn} dataSet={{ themeToggle: 'true', headerBtn: 'true' }}>
           <MaterialCommunityIcons name={isDarkMode ? "white-balance-sunny" : "weather-night"} size={20} color={COLORS.textSecondary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} dataSet={{ logoutBtn: 'true' }}>
           <MaterialCommunityIcons name="logout" size={16} color={COLORS.error} />
           {!isMobile && <Text style={styles.logoutText}>Salir</Text>}
         </TouchableOpacity>

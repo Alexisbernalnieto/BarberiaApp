@@ -24,6 +24,7 @@ export default function BookingStepBranch({
               selectedBranch === branch.name && styles.activeBranchCard,
             ]}
             onPress={() => setSelectedBranch(branch.name)}
+            dataSet={{ bookingCard: 'true', cardActive: selectedBranch === branch.name ? 'true' : undefined }}
           >
             <View
               style={[

@@ -29,6 +29,7 @@ export default function BookingStepBarbers({
               selectedBarber?.id === item.id && styles.activeBarberCard,
             ]}
             onPress={() => setSelectedBarber(item)}
+            dataSet={{ bookingCard: 'true', cardActive: selectedBarber?.id === item.id ? 'true' : undefined }}
           >
             <View
               style={[

@@ -81,6 +81,7 @@ export default function BookingStepDateTime({
                       selectedTime === slot && styles.activeSlot,
                     ]}
                     onPress={() => setSelectedTime(slot)}
+                    dataSet={{ timeSlot: 'true', timeSlotActive: selectedTime === slot ? 'true' : undefined, disabled: taken ? 'true' : undefined }}
                   >
                     <Text
                       style={[
