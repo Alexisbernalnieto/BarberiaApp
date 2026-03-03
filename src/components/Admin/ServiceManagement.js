@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
-import { SERVICES as INITIAL_SERVICES } from '../../data/mockData';
+import { SERVICES as INITIAL_SERVICES, BARBERS } from '../../data/mockData';
 import ServiceListView from './ServiceListView';
 import ServiceFormView from './ServiceFormView';
 import { CATEGORIES, getServiceManagementStyles } from './ServiceManagementStyles';
@@ -25,7 +25,7 @@ export default function ServiceManagement({ onClose, COLORS }) {
   const [editingService, setEditingService] = useState(null);
   
   const [searchText, setSearchText] = useState('');
-  const [filterBranch, setFilterBranch] = useState('Todas');
+  const [filterBranch, setFilterBranch] = useState('Ambas');
   const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 });
   const [expandedCategory, setExpandedCategory] = useState('Todos');
 
@@ -46,7 +46,7 @@ export default function ServiceManagement({ onClose, COLORS }) {
           return false;
         }
         // Filtro por sucursal
-        if (filterBranch !== 'Todas' && service.branch !== filterBranch) {
+        if (service.branch !== filterBranch) {
           return false;
         }
         // Filtro por precio
@@ -67,6 +67,36 @@ export default function ServiceManagement({ onClose, COLORS }) {
       grouped[category].push(service);
     });
     return grouped;
+  };
+
+  // ✅ NUEVA FUNCIÓN: Detectar barberos sin servicios
+  const getBarbersWithoutServices = () => {
+    return BARBERS.filter(barber => {
+      return !services.some(service => {
+        const barberList = service.assignedBarbers || 
+                          (service.assignedTo === 'Todos' ? BARBERS.map(b => b.name) : service.assignedTo?.split(', ') || []);
+        return barberList.includes(barber.name);
+      });
+    });
+  };
+
+  // ✅ NUEVA FUNCIÓN: Obtener servicios populares
+  const getPopularServices = () => {
+    return services
+      .sort((a, b) => {
+        const aCount = (a.assignedBarbers || []).length;
+        const bCount = (b.assignedBarbers || []).length;
+        return bCount - aCount;
+      })
+      .slice(0, 5);
+  };
+
+  // ✅ NUEVA FUNCIÓN: Obtener servicios recomendados por barbero
+  const getRecommendedServicesForBarber = (barberName) => {
+    const barberBranch = BARBERS.find(b => b.name === barberName)?.branch;
+    return getPopularServices()
+      .filter(s => s.branch === 'Ambas' || s.branch === barberBranch)
+      .slice(0, 3);
   };
 
   const handleSave = () => {
@@ -150,6 +180,10 @@ export default function ServiceManagement({ onClose, COLORS }) {
           setViewMode={setViewMode}
           getFilteredServices={getFilteredServices}
           getServicesByCategory={getServicesByCategory}
+          getBarbersWithoutServices={getBarbersWithoutServices}
+          getRecommendedServicesForBarber={getRecommendedServicesForBarber}
+          services={services}
+          setServices={setServices}
         />
       )}
       {viewMode === 'edit' && editingService && (
