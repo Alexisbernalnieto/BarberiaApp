@@ -6,9 +6,9 @@ export default function UserAppointments({ appointments, COLORS, numColumns, gap
   const styles = getStyles(COLORS, itemWidth);
 
   const renderAppointmentItem = ({ item }) => (
-    <View style={styles.card}>
+    <View style={styles.card} dataSet={{ card: 'true' }}>
       {/* Gold accent bar */}
-      <View style={styles.cardAccent} />
+      <View style={styles.cardAccent} dataSet={{ accentBar: 'true' }} />
       <View style={styles.cardContent}>
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
@@ -18,7 +18,7 @@ export default function UserAppointments({ appointments, COLORS, numColumns, gap
               <Text style={styles.barberName}> {item.barberName}</Text>
             </View>
           </View>
-          <View style={[styles.statusBadge]}>
+          <View style={[styles.statusBadge]} dataSet={{ badgeGold: 'true' }}>
             <Text style={styles.statusText}>{item.status || 'Confirmado'}</Text>
           </View>
         </View>
@@ -50,13 +50,13 @@ export default function UserAppointments({ appointments, COLORS, numColumns, gap
   return (
     <Animated.View style={[styles.contentContainer, { opacity: fadeAnim }]}>
       {appointments.length === 0 ? (
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIconContainer}>
+        <View style={styles.emptyState} dataSet={{ emptyState: 'true' }}>
+          <View style={styles.emptyIconContainer} dataSet={{ emptyIcon: 'true' }}>
             <MaterialCommunityIcons name="calendar-blank-outline" size={40} color={COLORS.primary} />
           </View>
           <Text style={styles.emptyTitle}>Sin Citas Programadas</Text>
           <Text style={styles.emptyText}>Agenda tu próxima visita en El Coronel Barbón.</Text>
-          <TouchableOpacity style={styles.ctaButton} onPress={onBookNow}>
+          <TouchableOpacity style={styles.ctaButton} onPress={onBookNow} dataSet={{ btnGold: 'true', btn: 'true' }}>
             <Text style={styles.ctaButtonText}>RESERVAR AHORA</Text>
             <MaterialCommunityIcons name="arrow-right" size={16} color="#000" style={{ marginLeft: 8 }} />
           </TouchableOpacity>

@@ -128,7 +128,7 @@ export default function AuthScreen() {
 
   return (
     <View style={splitStyles.container}>
-      <TouchableOpacity style={splitStyles.themeToggle} onPress={toggleTheme}>
+      <TouchableOpacity onPress={toggleTheme} style={splitStyles.themeToggle} dataSet={{ themeToggle: 'true' }}>
         <MaterialCommunityIcons
           name={isDarkMode ? "weather-sunny" : "weather-night"}
           size={24}
@@ -137,16 +137,16 @@ export default function AuthScreen() {
       </TouchableOpacity>
 
       {!isMobile && (
-        <View style={splitStyles.brandSide}>
+        <View style={splitStyles.brandSide} dataSet={{ brandSide: 'true' }}>
           {/* Background Image Placeholder or Decoration */}
           <View style={splitStyles.brandOverlay} />
 
-          <View style={[splitStyles.decoCircle, { borderColor: COLORS.primary }]} />
-          <View style={[splitStyles.decoCircleSmall, { backgroundColor: COLORS.primary }]} />
+          <View style={[splitStyles.decoCircle, { borderColor: COLORS.primary }]} dataSet={{ decoCircle: 'true' }} />
+          <View style={[splitStyles.decoCircleSmall, { backgroundColor: COLORS.primary }]} dataSet={{ decoCircleSmall: 'true' }} />
 
-          <View style={splitStyles.brandContent}>
+          <View style={splitStyles.brandContent} dataSet={{ brandContent: 'true' }}>
             <MaterialCommunityIcons name="content-cut" size={70} color={COLORS.primary} style={{ marginBottom: 24, opacity: 0.9 }} />
-            <Text style={splitStyles.brandTitle}>EL CORONEL</Text>
+            <Text style={splitStyles.brandTitle} dataSet={{ brandTitle: 'true' }}>EL CORONEL</Text>
             <Text style={[splitStyles.brandSubtitle, { marginBottom: 4 }]}>BARBÓN</Text>
             <View style={splitStyles.divider} />
             <Text style={splitStyles.quote}>Peluquería y Barbería de Alto Nivel{"\n"}San Juan del Río, Querétaro</Text>
@@ -170,14 +170,14 @@ export default function AuthScreen() {
           <Animated.View style={{ opacity: fadeAnim, width: '100%', maxWidth: 400 }}>
             {isLogin ? (
               // === LOGIN FORM ===
-              <View style={splitStyles.formCard}>
+              <View style={splitStyles.formCard} dataSet={{ formCard: 'true' }}>
                 <Text style={splitStyles.formTitle}>Bienvenido</Text>
                 <Text style={splitStyles.formSubtitle}>Inicia sesión en tu cuenta</Text>
 
                 {/* Email Input */}
                 <View style={splitStyles.inputGroup}>
                   <Text style={splitStyles.label}>Email</Text>
-                  <View style={[splitStyles.inputWrapper, emailError ? { borderColor: COLORS.error } : {}]}>
+                  <View style={[splitStyles.inputWrapper, emailError ? { borderColor: COLORS.error } : {}]} dataSet={{ inputWrapper: 'true' }}>
                     <MaterialCommunityIcons name="email-outline" size={20} color={COLORS.textSecondary} />
                     <TextInput
                       style={splitStyles.input}
@@ -196,7 +196,7 @@ export default function AuthScreen() {
                 {/* Password Input */}
                 <View style={splitStyles.inputGroup}>
                   <Text style={splitStyles.label}>Contraseña</Text>
-                  <View style={[splitStyles.inputWrapper, passwordError ? { borderColor: COLORS.error } : {}]}>
+                  <View style={[splitStyles.inputWrapper, passwordError ? { borderColor: COLORS.error } : {}]} dataSet={{ inputWrapper: 'true' }}>
                     <MaterialCommunityIcons name="lock-outline" size={20} color={COLORS.textSecondary} />
                     <TextInput
                       style={splitStyles.input}
@@ -215,7 +215,7 @@ export default function AuthScreen() {
                   <Text style={splitStyles.linkText}>¿Olvidaste tu contraseña?</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={splitStyles.primaryBtn} onPress={handleLogin}>
+                <TouchableOpacity style={splitStyles.primaryBtn} onPress={handleLogin} dataSet={{ primaryBtn: 'true' }}>
                   <Text style={splitStyles.primaryBtnText}>INICIAR SESIÓN</Text>
                 </TouchableOpacity>
 
@@ -228,14 +228,14 @@ export default function AuthScreen() {
               </View>
             ) : (
               // === REGISTER FORM ===
-              <View style={splitStyles.formCard}>
+              <View style={splitStyles.formCard} dataSet={{ formCard: 'true' }}>
                 <Text style={splitStyles.formTitle}>Crear Cuenta</Text>
                 <Text style={splitStyles.formSubtitle}>Únete a la experiencia El Coronel</Text>
 
                 {/* Name Input */}
                 <View style={splitStyles.inputGroup}>
                   <Text style={splitStyles.label}>Nombre Completo</Text>
-                  <View style={splitStyles.inputWrapper}>
+                  <View style={splitStyles.inputWrapper} dataSet={{ inputWrapper: 'true' }}>
                     <MaterialCommunityIcons name="account-outline" size={20} color={COLORS.textSecondary} />
                     <TextInput
                       style={splitStyles.input}
@@ -250,7 +250,7 @@ export default function AuthScreen() {
                 {/* Email Input */}
                 <View style={splitStyles.inputGroup}>
                   <Text style={splitStyles.label}>Email</Text>
-                  <View style={[splitStyles.inputWrapper, registerEmailError ? { borderColor: COLORS.error } : {}]}>
+                  <View style={[splitStyles.inputWrapper, registerEmailError ? { borderColor: COLORS.error } : {}]} dataSet={{ inputWrapper: 'true' }}>
                     <MaterialCommunityIcons name="email-outline" size={20} color={COLORS.textSecondary} />
                     <TextInput
                       style={splitStyles.input}
@@ -268,7 +268,7 @@ export default function AuthScreen() {
                 {/* Password Input */}
                 <View style={splitStyles.inputGroup}>
                   <Text style={splitStyles.label}>Contraseña</Text>
-                  <View style={[splitStyles.inputWrapper, registerPasswordError ? { borderColor: COLORS.error } : {}]}>
+                  <View style={[splitStyles.inputWrapper, registerPasswordError ? { borderColor: COLORS.error } : {}]} dataSet={{ inputWrapper: 'true' }}>
                     <MaterialCommunityIcons name="lock-outline" size={20} color={COLORS.textSecondary} />
                     <TextInput
                       style={splitStyles.input}
@@ -285,7 +285,7 @@ export default function AuthScreen() {
                 {/* Confirm Password Input */}
                 <View style={splitStyles.inputGroup}>
                   <Text style={splitStyles.label}>Confirmar Contraseña</Text>
-                  <View style={[splitStyles.inputWrapper, confirmPasswordError ? { borderColor: COLORS.error } : {}]}>
+                  <View style={[splitStyles.inputWrapper, confirmPasswordError ? { borderColor: COLORS.error } : {}]} dataSet={{ inputWrapper: 'true' }}>
                     <MaterialCommunityIcons name="lock-check-outline" size={20} color={COLORS.textSecondary} />
                     <TextInput
                       style={splitStyles.input}
@@ -299,7 +299,7 @@ export default function AuthScreen() {
                   {confirmPasswordError ? <Text style={splitStyles.errorText}>{confirmPasswordError}</Text> : null}
                 </View>
 
-                <TouchableOpacity style={splitStyles.primaryBtn} onPress={handleRegister}>
+                <TouchableOpacity style={splitStyles.primaryBtn} onPress={handleRegister} dataSet={{ primaryBtn: 'true' }}>
                   <Text style={splitStyles.primaryBtnText}>REGISTRARSE</Text>
                 </TouchableOpacity>
 

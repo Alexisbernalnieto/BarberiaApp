@@ -12,6 +12,7 @@ export default function UserSummary({ nextAppointment, activeTab, setActiveTab, 
         <TouchableOpacity
           style={[styles.tab, activeTab === 'book' && styles.tabActive]}
           onPress={() => setActiveTab('book')}
+          dataSet={{ tab: 'true' }}
         >
           <MaterialCommunityIcons
             name="chair-rolling"
@@ -21,12 +22,13 @@ export default function UserSummary({ nextAppointment, activeTab, setActiveTab, 
           <Text style={[styles.tabText, activeTab === 'book' && styles.tabTextActive]}>
             Nueva Reserva
           </Text>
-          {activeTab === 'book' && <View style={styles.tabIndicator} />}
+          {activeTab === 'book' && <View style={styles.tabIndicator} dataSet={{ tabIndicator: 'true' }} />}
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.tab, activeTab === 'appointments' && styles.tabActive]}
           onPress={() => setActiveTab('appointments')}
+          dataSet={{ tab: 'true' }}
         >
           <MaterialCommunityIcons
             name="calendar-multiselect"
@@ -36,14 +38,14 @@ export default function UserSummary({ nextAppointment, activeTab, setActiveTab, 
           <Text style={[styles.tabText, activeTab === 'appointments' && styles.tabTextActive]}>
             Mis Citas
           </Text>
-          {activeTab === 'appointments' && <View style={styles.tabIndicator} />}
+          {activeTab === 'appointments' && <View style={styles.tabIndicator} dataSet={{ tabIndicator: 'true' }} />}
         </TouchableOpacity>
       </View>
 
       {/* NEXT APPOINTMENT — Compact hero card */}
       {nextAppointment && (
-        <View style={styles.heroCard}>
-          <View style={styles.heroAccent} />
+        <View style={styles.heroCard} dataSet={{ heroCard: 'true' }}>
+          <View style={styles.heroAccent} dataSet={{ accentBar: 'true' }} />
           <View style={styles.heroContent}>
             <View style={styles.heroLeft}>
               <View style={styles.heroIconWrap}>
