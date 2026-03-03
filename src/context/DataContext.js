@@ -50,8 +50,8 @@ export const DataProvider = ({ children }) => {
       }
     );
 
-    // 🔥 Cargar barberos (solo si el usuario puede verlos)
-    const qBarbers = query(collection(db, 'users'), where('role', '==', 3));
+    // 🔥 Cargar barberos — buscar por role numérico (3) o string ('barber')
+    const qBarbers = query(collection(db, 'users'), where('role', 'in', [3, 'barber']));
     const unsubBarbers = onSnapshot(
       qBarbers,
       (snapshot) => {

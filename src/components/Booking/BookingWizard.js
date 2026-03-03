@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Animated, useWindowDimensions } from 'react-native';
-import { SERVICES, BRANCHES } from '../../data/mockData';
+import { SERVICES, BRANCHES, BARBERS as MOCK_BARBERS } from '../../data/mockData';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import BookingProgressBar from './BookingProgressBar';
 import BookingStepBranch from './BookingStepBranch';
@@ -37,7 +37,7 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState(null);
   const [guestName, setGuestName] = useState(user?.name || '');
-  const barberList = barbers && barbers.length ? barbers : [];
+  const barberList = barbers && barbers.length ? barbers : MOCK_BARBERS;
 
   const goToStep = (step) => {
     Animated.sequence([
