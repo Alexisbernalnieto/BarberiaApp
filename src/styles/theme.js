@@ -10,7 +10,7 @@ export const SPACING = {
   lg: 24,
   xl: 32,
   xxl: 48,
-  section: 64, // Espaciado para secciones grandes jnjindsfjvbjskdbvcdsjhkbcvdjshbcs
+  section: 64, // Espaciado para secciones grandes
 };
 
 export const FONT_SIZE = {
@@ -91,7 +91,7 @@ export const LIGHT_THEME = {
   inputBg: '#FFFFFF',
   border: '#E5E7EB', // Gray 200
   overlay: 'rgba(0,0,0,0.05)',
-  
+
   ...COMMON_COLORS,
   spacing: SPACING,
   fontSize: FONT_SIZE,
