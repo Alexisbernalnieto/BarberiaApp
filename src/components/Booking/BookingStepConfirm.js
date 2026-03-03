@@ -22,7 +22,7 @@ export default function BookingStepConfirm({
     >
       <Text style={styles.stepHeader}>CONFIRMACIÓN</Text>
 
-      <View style={styles.ticketCard}>
+      <View style={styles.ticketCard} dataSet={{ ticket: 'true' }}>
         <View style={styles.ticketHeader}>
           <MaterialCommunityIcons
             name="mustache"
