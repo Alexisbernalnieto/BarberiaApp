@@ -40,3 +40,10 @@ export const createAppointment = async ({
 
   return await addDoc(collection(db, 'appointments'), payload);
 };
+
+// TODO: Implementar cancelación de citas con reembolso Stripe
+// Se necesita:
+// 1. Una Cloud Function que llame a stripe.refunds.create({ payment_intent: paymentIntentId })
+// 2. Un método cancelAppointment() aquí que actualice el status a 'cancelled' en Firestore
+// 3. UI en UserDashboard/AdminDashboard para permitir cancelaciones
+

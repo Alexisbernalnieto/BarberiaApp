@@ -13,7 +13,8 @@ export default function VerificationModal({ visible, onClose, onVerified, COLORS
   const handleVerify = () => {
     if (phoneNumber.length === 10) {
       setLoading(true);
-      // Simulación de verificación
+      // TODO: Implementar verificación real con SMS/OTP (ej: Firebase Phone Auth o Twilio)
+      // Actualmente solo simula una espera de 1.5s sin verificar nada
       setTimeout(() => {
         setLoading(false);
         onVerified();

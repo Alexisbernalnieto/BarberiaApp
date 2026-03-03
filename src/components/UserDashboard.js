@@ -9,8 +9,9 @@ import UserAppointments from './User/UserAppointments';
 // Stripe Web
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-// Servicio para guardar cita
+// Servicios
 import { createAppointment } from '../services/appointments';
+import { createPaymentIntentWeb } from '../services/payments';
 
 export default function UserDashboard({ user, appointments, onLogout, COLORS, toggleTheme, isDarkMode, barbers }) {
   const { width } = useWindowDimensions();
@@ -58,20 +59,15 @@ export default function UserDashboard({ user, appointments, onLogout, COLORS, to
     setPendingAppointment(data);
     setPaymentMessage("");
 
-    const amountInCents = Math.round((data.price || 0) * 100);
-
-    const res = await fetch(
-      "https://us-central1-barberia-app-c4c2b.cloudfunctions.net/createPaymentIntentWeb",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: amountInCents }),
-      }
-    );
-
-    const json = await res.json();
-    setClientSecret(json.clientSecret);
-    setShowPayment(true);
+    try {
+      // Enviar precio en pesos (la Cloud Function convierte a centavos)
+      const json = await createPaymentIntentWeb(data.price || 0);
+      setClientSecret(json.clientSecret);
+      setShowPayment(true);
+    } catch (error) {
+      console.error("Error creando PaymentIntent:", error);
+      setPaymentMessage("Error al preparar el pago: " + error.message);
+    }
   };
 
   const handleConfirmPayment = async () => {
@@ -123,17 +119,17 @@ export default function UserDashboard({ user, appointments, onLogout, COLORS, to
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
       <View style={styles.container}>
 
-        <UserHeader 
-          user={user} 
-          onLogout={onLogout} 
-          toggleTheme={toggleTheme} 
-          isDarkMode={isDarkMode} 
-          COLORS={COLORS} 
+        <UserHeader
+          user={user}
+          onLogout={onLogout}
+          toggleTheme={toggleTheme}
+          isDarkMode={isDarkMode}
+          COLORS={COLORS}
           isMobile={isMobile}
         />
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={{flexGrow: 1}}>
-          <UserSummary 
+        <ScrollView style={styles.scrollView} contentContainerStyle={{ flexGrow: 1 }}>
+          <UserSummary
             nextAppointment={nextAppointment}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -205,16 +201,16 @@ export default function UserDashboard({ user, appointments, onLogout, COLORS, to
               {!showPayment && (
                 activeTab === 'book' ? (
                   <Animated.View style={[styles.bookingWrapper, { opacity: fadeAnim }]}>
-                    <BookingWizard 
-                      user={user} 
-                      existingAppointments={appointments} 
+                    <BookingWizard
+                      user={user}
+                      existingAppointments={appointments}
                       onConfirm={handleNewBooking}
                       COLORS={COLORS}
                       barbers={barbers}
                     />
                   </Animated.View>
                 ) : (
-                  <UserAppointments 
+                  <UserAppointments
                     appointments={myAppointments}
                     COLORS={COLORS}
                     numColumns={numColumns}
@@ -249,31 +245,32 @@ const getStyles = (COLORS, isMobile) => StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    backgroundColor: COLORS.background, 
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    marginTop: 8,
+    backgroundColor: COLORS.background,
+    maxWidth: 1400,
+    width: '100%',
+    alignSelf: 'center',
   },
   contentHeader: {
-    paddingHorizontal: isMobile ? 20 : 40,
-    paddingTop: 32,
-    paddingBottom: 24,
+    paddingHorizontal: isMobile ? 20 : 48,
+    paddingTop: 28,
+    paddingBottom: 20,
   },
   contentTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '800',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
   contentDivider: {
-    width: 60,
-    height: 4,
+    width: 48,
+    height: 3,
     backgroundColor: COLORS.primary,
     borderRadius: 2,
   },
   contentContainer: {
     flex: 1,
-    paddingHorizontal: isMobile ? 20 : 40,
+    paddingHorizontal: isMobile ? 20 : 48,
     paddingBottom: 40,
   },
   bookingWrapper: {

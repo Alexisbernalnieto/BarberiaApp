@@ -7,287 +7,217 @@ export default function UserSummary({ nextAppointment, activeTab, setActiveTab, 
 
   return (
     <View style={styles.dashboardSummary}>
-      
-      {/* NEXT APPOINTMENT CARD */}
-      <View style={styles.heroCardContainer}>
-        <Text style={styles.sectionTitle}>TU PRÓXIMA VISITA</Text>
+      {/* TAB NAVIGATION — Desktop: horizontal bar, elegant */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'book' && styles.tabActive]}
+          onPress={() => setActiveTab('book')}
+        >
+          <MaterialCommunityIcons
+            name="chair-rolling"
+            size={20}
+            color={activeTab === 'book' ? COLORS.primary : COLORS.textSecondary}
+          />
+          <Text style={[styles.tabText, activeTab === 'book' && styles.tabTextActive]}>
+            Nueva Reserva
+          </Text>
+          {activeTab === 'book' && <View style={styles.tabIndicator} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'appointments' && styles.tabActive]}
+          onPress={() => setActiveTab('appointments')}
+        >
+          <MaterialCommunityIcons
+            name="calendar-multiselect"
+            size={20}
+            color={activeTab === 'appointments' ? COLORS.primary : COLORS.textSecondary}
+          />
+          <Text style={[styles.tabText, activeTab === 'appointments' && styles.tabTextActive]}>
+            Mis Citas
+          </Text>
+          {activeTab === 'appointments' && <View style={styles.tabIndicator} />}
+        </TouchableOpacity>
+      </View>
+
+      {/* NEXT APPOINTMENT — Compact hero card */}
+      {nextAppointment && (
         <View style={styles.heroCard}>
-          {nextAppointment ? (
-            <>
-              <View style={styles.heroHeader}>
-                <View>
-                  <Text style={styles.heroService}>{nextAppointment.serviceName}</Text>
-                  <View style={styles.rowCenter}>
-                    <MaterialCommunityIcons name="account-tie" size={16} color={COLORS.textSecondary} style={{marginRight: 6}} />
-                    <Text style={styles.heroBarber}>{nextAppointment.barberName}</Text>
-                  </View>
-                </View>
-                <View style={styles.heroPriceBadge}>
-                  <Text style={styles.heroPrice}>${nextAppointment.price}</Text>
-                </View>
+          <View style={styles.heroAccent} />
+          <View style={styles.heroContent}>
+            <View style={styles.heroLeft}>
+              <View style={styles.heroIconWrap}>
+                <MaterialCommunityIcons name="calendar-check" size={20} color={COLORS.primary} />
               </View>
-              
-              <View style={styles.heroDivider} />
-              
-              <View style={styles.heroFooter}>
-                <View style={styles.heroInfoItem}>
-                  <Text style={styles.heroInfoLabel}>FECHA</Text>
-                  <View style={styles.rowCenter}>
-                    <MaterialCommunityIcons name="calendar-month" size={20} color={COLORS.primary} style={{marginRight: 8}} />
-                    <Text style={styles.heroInfoValue}>{nextAppointment.date}</Text>
-                  </View>
-                </View>
-                <View style={styles.heroInfoSeparator} />
-                <View style={styles.heroInfoItem}>
-                  <Text style={styles.heroInfoLabel}>HORA</Text>
-                  <View style={styles.rowCenter}>
-                    <MaterialCommunityIcons name="clock-time-four" size={20} color={COLORS.primary} style={{marginRight: 8}} />
-                    <Text style={styles.heroInfoValue}>{nextAppointment.time}</Text>
-                  </View>
-                </View>
+              <View>
+                <Text style={styles.heroLabel}>PRÓXIMA CITA</Text>
+                <Text style={styles.heroService}>{nextAppointment.serviceName}</Text>
               </View>
-            </>
-          ) : (
-            <View style={styles.heroEmpty}>
-              <View style={styles.heroEmptyIconBg}>
-                <MaterialCommunityIcons name="calendar-clock" size={32} color={COLORS.primary} />
-              </View>
-              <View style={{flex: 1}}>
-                <Text style={styles.heroEmptyTitle}>Sin reservas activas</Text>
-                <Text style={styles.heroEmptyText}>¿Listo para un nuevo look?</Text>
-              </View>
-              <TouchableOpacity onPress={() => setActiveTab('book')} style={styles.heroBookBtn}>
-                <Text style={styles.heroBookBtnText}>Reservar</Text>
-              </TouchableOpacity>
             </View>
-          )}
+            <View style={styles.heroDetails}>
+              <View style={styles.heroDetail}>
+                <MaterialCommunityIcons name="calendar-month" size={16} color={COLORS.textSecondary} />
+                <Text style={styles.heroDetailText}>{nextAppointment.date}</Text>
+              </View>
+              <View style={styles.heroDetailSep} />
+              <View style={styles.heroDetail}>
+                <MaterialCommunityIcons name="clock-outline" size={16} color={COLORS.textSecondary} />
+                <Text style={styles.heroDetailText}>{nextAppointment.time}</Text>
+              </View>
+              <View style={styles.heroDetailSep} />
+              <View style={styles.heroDetail}>
+                <MaterialCommunityIcons name="account-tie" size={16} color={COLORS.textSecondary} />
+                <Text style={styles.heroDetailText}>{nextAppointment.barberName}</Text>
+              </View>
+            </View>
+            <View style={styles.heroPriceBadge}>
+              <Text style={styles.heroPrice}>${nextAppointment.price}</Text>
+            </View>
+          </View>
         </View>
-      </View>
-
-      {/* QUICK ACTIONS */}
-      <View style={styles.actionsContainer}>
-        <Text style={styles.sectionTitle}>ACCIONES RÁPIDAS</Text>
-        <View style={styles.actionButtonsWrapper}>
-          <TouchableOpacity 
-            style={[styles.actionCard, activeTab === 'book' && styles.actionCardActive]} 
-            onPress={() => setActiveTab('book')}
-          >
-            <View style={[styles.actionIconCircle, activeTab === 'book' && styles.actionIconCircleActive]}>
-              <MaterialCommunityIcons 
-                name="chair-rolling" 
-                size={24} 
-                color={activeTab === 'book' ? COLORS.primary : COLORS.text} 
-              />
-            </View>
-            <View>
-              <Text style={[styles.actionCardTitle, activeTab === 'book' && styles.actionTextActive]}>Nueva Reserva</Text>
-              <Text style={[styles.actionCardDesc, activeTab === 'book' && styles.actionTextActive]}>Agenda tu corte</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionCard, activeTab === 'appointments' && styles.actionCardActive]} 
-            onPress={() => setActiveTab('appointments')}
-          >
-            <View style={[styles.actionIconCircle, activeTab === 'appointments' && styles.actionIconCircleActive]}>
-              <MaterialCommunityIcons 
-                name="calendar-multiselect" 
-                size={24} 
-                color={activeTab === 'appointments' ? COLORS.primary : COLORS.text} 
-              />
-            </View>
-            <View>
-              <Text style={[styles.actionCardTitle, activeTab === 'appointments' && styles.actionTextActive]}>Mis Citas</Text>
-              <Text style={[styles.actionCardDesc, activeTab === 'appointments' && styles.actionTextActive]}>Ver historial</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
+      )}
     </View>
   );
 }
 
 const getStyles = (COLORS, isMobile) => StyleSheet.create({
   dashboardSummary: {
-    flexDirection: isMobile ? 'column' : 'row',
-    padding: isMobile ? 20 : 40,
-    gap: isMobile ? 24 : 32,
+    paddingHorizontal: isMobile ? 20 : 48,
+    paddingTop: 0,
     backgroundColor: COLORS.background,
   },
-  sectionTitle: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 16,
+
+  // TAB BAR
+  tabBar: {
+    flexDirection: 'row',
+    gap: isMobile ? 0 : 8,
+    paddingTop: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    marginBottom: 24,
   },
-  rowCenter: {
+  tab: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: isMobile ? 16 : 24,
+    position: 'relative',
+    ...Platform.select({
+      web: { cursor: 'pointer', transition: 'all 0.2s ease' },
+    }),
   },
-  
+  tabActive: {},
+  tabText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  tabTextActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: -1,
+    left: isMobile ? 16 : 24,
+    right: isMobile ? 16 : 24,
+    height: 2,
+    backgroundColor: COLORS.primary,
+    borderRadius: 1,
+  },
+
   // HERO CARD
-  heroCardContainer: {
-    flex: isMobile ? undefined : 1.2,
-  },
   heroCard: {
+    flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderRadius: 16,
-    padding: 24,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    ...COLORS.shadows.medium,
-    position: 'relative',
+    borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.12)' : 'rgba(0,0,0,0.06)',
     overflow: 'hidden',
-  },
-  heroHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: COLORS.mode === 'dark'
+          ? '0 4px 24px rgba(0,0,0,0.3), 0 0 60px rgba(212, 175, 55, 0.03)'
+          : '0 4px 16px rgba(0,0,0,0.06)',
+      },
+      default: {
+        ...COLORS.shadows.medium,
+      },
+    }),
+  },
+  heroAccent: {
+    width: 4,
+    backgroundColor: COLORS.primary,
+  },
+  heroContent: {
+    flex: 1,
+    flexDirection: isMobile ? 'column' : 'row',
+    alignItems: isMobile ? 'flex-start' : 'center',
+    padding: isMobile ? 16 : 20,
+    gap: isMobile ? 12 : 24,
+  },
+  heroLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: isMobile ? undefined : 1,
+  },
+  heroIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(212, 175, 55, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 2,
   },
   heroService: {
     color: COLORS.text,
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  heroDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  heroDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  heroDetailText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  heroDetailSep: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: COLORS.textSecondary,
+    opacity: 0.4,
   },
   heroPriceBadge: {
-    backgroundColor: COLORS.primary + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    backgroundColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(212, 175, 55, 0.08)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.primary + '40',
+    borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(212, 175, 55, 0.15)',
   },
   heroPrice: {
     color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  heroBarber: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-  },
-  heroDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 20,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    opacity: 0.5,
-  },
-  heroFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  heroInfoItem: {
-    flex: 1,
-  },
-  heroInfoLabel: {
-    color: COLORS.textSecondary,
-    fontSize: 10,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-  },
-  heroInfoValue: {
-    color: COLORS.text,
     fontSize: 16,
-    fontWeight: '600',
-  },
-  heroInfoSeparator: {
-    width: 1,
-    height: 32,
-    backgroundColor: COLORS.border,
-    marginHorizontal: 20,
-  },
-  heroEmpty: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  heroEmptyIconBg: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.surfaceHighlight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  heroEmptyTitle: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  heroEmptyText: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-  },
-  heroBookBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.primary,
-    borderRadius: 8,
-  },
-  heroBookBtnText: {
-    color: COLORS.textInverse,
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-
-  // ACTIONS
-  actionsContainer: {
-    flex: isMobile ? undefined : 1.8,
-  },
-  actionButtonsWrapper: {
-    flexDirection: isMobile ? 'column' : 'row',
-    gap: 16,
-  },
-  actionCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 16,
-    ...COLORS.shadows.light,
-    ...Platform.select({
-        web: { cursor: 'pointer', transition: '0.2s' },
-    }),
-  },
-  actionCardActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.surface,
-    ...COLORS.shadows.medium,
-  },
-  actionIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.surfaceHighlight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionIconCircleActive: {
-    backgroundColor: COLORS.primary + '20',
-  },
-  actionCardTitle: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  actionCardDesc: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
-  },
-  actionTextActive: {
-    color: COLORS.primary,
+    fontWeight: '800',
   },
 });
