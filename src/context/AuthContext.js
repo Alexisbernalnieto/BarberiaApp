@@ -1,14 +1,14 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Alert } from 'react-native';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  onAuthStateChanged, 
-  signOut, 
-  sendEmailVerification, 
-  sendPasswordResetEmail 
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+  sendEmailVerification,
+  sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocFromCache, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebaseClient';
 
 const AuthContext = createContext();
@@ -16,6 +16,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [offlineError, setOfflineError] = useState(false);
 
   // Helper to map numeric roles to strings
   const mapRole = (r) => {
@@ -25,35 +26,63 @@ export const AuthProvider = ({ children }) => {
     return 'user';
   };
 
+  // Fetch user document with retry and cache fallback
+  const fetchUserDoc = async (userDocRef) => {
+    const MAX_RETRIES = 3;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        // Try server first
+        const userDoc = await getDoc(userDocRef);
+        setOfflineError(false);
+        return userDoc;
+      } catch (error) {
+        console.warn(`[Auth] Server fetch attempt ${attempt}/${MAX_RETRIES} failed:`, error.message);
+
+        // On first failure, try cache immediately
+        if (attempt === 1) {
+          try {
+            const cachedDoc = await getDocFromCache(userDocRef);
+            if (cachedDoc.exists()) {
+              console.log('[Auth] Using cached user data');
+              setOfflineError(true);
+              return cachedDoc;
+            }
+          } catch (cacheError) {
+            console.warn('[Auth] Cache also empty:', cacheError.message);
+          }
+        }
+
+        // Wait before retrying (exponential backoff: 1s, 2s, 4s)
+        if (attempt < MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+        }
+      }
+    }
+
+    // All retries exhausted
+    setOfflineError(true);
+    return null;
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            const finalRole = typeof data.role === 'number' ? mapRole(data.role) : (data.role || 'user');
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await fetchUserDoc(userDocRef);
 
-            setCurrentUser({ 
-              ...data, 
-              uid: user.uid,
-              role: finalRole,
-              emailVerified: user.emailVerified // Keep track of this
-            });
-          } else {
-            // User authenticated but no doc
-            setCurrentUser({ 
-              email: user.email, 
-              uid: user.uid, 
-              name: user.displayName || 'Usuario', 
-              role: 'user',
-              emailVerified: user.emailVerified
-            });
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
+        if (userDoc && userDoc.exists()) {
+          const data = userDoc.data();
+          const finalRole = typeof data.role === 'number' ? mapRole(data.role) : (data.role || 'user');
+
+          setCurrentUser({
+            ...data,
+            uid: user.uid,
+            role: finalRole,
+            emailVerified: user.emailVerified
+          });
+        } else if (userDoc && !userDoc.exists()) {
+          // User authenticated but no Firestore doc yet (edge case)
           setCurrentUser({
             email: user.email,
             uid: user.uid,
@@ -61,9 +90,22 @@ export const AuthProvider = ({ children }) => {
             role: 'user',
             emailVerified: user.emailVerified
           });
+        } else {
+          // Could not fetch user data at all (offline + no cache)
+          // Still set user so they're not stuck on login, but mark offline
+          console.error('[Auth] Could not load user data after retries. User may see limited functionality.');
+          setCurrentUser({
+            email: user.email,
+            uid: user.uid,
+            name: user.displayName || user.email?.split('@')[0] || 'Usuario',
+            role: 'user',
+            emailVerified: user.emailVerified,
+            _offlineMode: true
+          });
         }
       } else {
         setCurrentUser(null);
+        setOfflineError(false);
       }
       setLoading(false);
     });
@@ -75,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      
+
       const isSystemAccount = user.email.endsWith('@barberia.com');
 
       if (!user.emailVerified && !isSystemAccount) {
@@ -111,7 +153,7 @@ export const AuthProvider = ({ children }) => {
       await setDoc(doc(db, 'users', user.uid), {
         email: email,
         name: name,
-        role: 1, 
+        role: 1,
         createdAt: new Date().toISOString()
       });
 
@@ -146,7 +188,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, register, logout, resetPassword }}>
+    <AuthContext.Provider value={{ currentUser, loading, login, register, logout, resetPassword, offlineError }}>
       {children}
     </AuthContext.Provider>
   );
