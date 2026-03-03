@@ -30,11 +30,11 @@ export default function AppNavigator() {
   }
 
   // Render Dashboard based on Role
-  if (currentUser.role === 'admin' || currentUser.role === 0) {
+  if (currentUser.role === 'admin') {
     return (
-      <AdminDashboard 
-        user={currentUser} 
-        onLogout={logout} 
+      <AdminDashboard
+        user={currentUser}
+        onLogout={logout}
         appointments={appointments}
         barbers={barbers}
         COLORS={COLORS}
@@ -45,11 +45,11 @@ export default function AppNavigator() {
         onAddAppointment={createAppointment}
       />
     );
-  } else if (currentUser.role === 'reception' || currentUser.role === 2) {
+  } else if (currentUser.role === 'reception') {
     return (
-      <AdminDashboard 
-        user={currentUser} 
-        onLogout={logout} 
+      <AdminDashboard
+        user={currentUser}
+        onLogout={logout}
         appointments={appointments}
         barbers={barbers}
         COLORS={COLORS}
@@ -60,9 +60,9 @@ export default function AppNavigator() {
         onAddAppointment={createAppointment}
       />
     );
-  } else if (currentUser.role === 'barber' || currentUser.role === 3) {
+  } else if (currentUser.role === 'barber') {
     return (
-      <BarberDashboard 
+      <BarberDashboard
         role={currentUser.role}
         user={currentUser}
         appointments={appointments}
@@ -75,9 +75,9 @@ export default function AppNavigator() {
   } else {
     // Default: User Dashboard
     return (
-      <UserDashboard 
-        user={currentUser} 
-        onLogout={logout} 
+      <UserDashboard
+        user={currentUser}
+        onLogout={logout}
         appointments={appointments}
         barbers={barbers}
         COLORS={COLORS}

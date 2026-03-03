@@ -20,17 +20,17 @@ export const DataProvider = ({ children }) => {
     let qAppointments;
 
     // 🔥 Filtrado profesional según rol
-    if (currentUser.role === 'admin' || currentUser.role === 0 || currentUser.role === 2) {
+    if (currentUser.role === 'admin' || currentUser.role === 'reception') {
       // Admin y Recepción → pueden ver TODAS las citas
       qAppointments = query(collection(db, 'appointments'));
-    } 
-    else if (currentUser.role === 'barber' || currentUser.role === 3) {
+    }
+    else if (currentUser.role === 'barber') {
       // Barbero → solo sus citas
       qAppointments = query(
         collection(db, 'appointments'),
         where('barberId', '==', currentUser.id || currentUser.email)
       );
-    } 
+    }
     else {
       // Cliente → solo sus citas
       qAppointments = query(
