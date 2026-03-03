@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebaseClient';
 
-export default function BarberDashboard({ appointments, currentUser, COLORS, toggleTheme, isDarkMode }) {
+export default function BarberDashboard({ appointments, user, onLogout, COLORS, toggleTheme, isDarkMode }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
@@ -14,7 +12,7 @@ export default function BarberDashboard({ appointments, currentUser, COLORS, tog
   const myAppointments = appointments.filter(app => {
       // Normalización simple para comparar nombres
       const appBarber = (app.barberName || '').toLowerCase().trim();
-      const myName = (currentUser?.name || '').toLowerCase().trim();
+      const myName = (user?.name || '').toLowerCase().trim();
       return appBarber === myName;
   });
 
@@ -25,7 +23,7 @@ export default function BarberDashboard({ appointments, currentUser, COLORS, tog
   const todaysEarnings = todaysAppointments.reduce((sum, app) => sum + (app.price || 0), 0);
 
   const handleLogout = () => {
-    signOut(auth).catch(err => console.error("Error al salir:", err));
+    if (onLogout) onLogout();
   };
 
   return (
@@ -34,7 +32,7 @@ export default function BarberDashboard({ appointments, currentUser, COLORS, tog
       <View style={[styles.header, { borderBottomColor: COLORS.border }]}>
         <View>
           <Text style={[styles.title, { color: COLORS.primary }]}>Panel de Barbero</Text>
-          <Text style={[styles.subtitle, { color: COLORS.textSecondary }]}>Hola, {currentUser?.name || 'Barbero'}</Text>
+          <Text style={[styles.subtitle, { color: COLORS.textSecondary }]}>Hola, {user?.name || 'Barbero'}</Text>
         </View>
         <View style={styles.headerActions}>
             <TouchableOpacity onPress={toggleTheme} style={styles.iconBtn}>

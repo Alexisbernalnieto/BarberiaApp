@@ -1,14 +1,18 @@
+// TODO: Migrar sucursales, barberos y servicios a Firestore para gestión dinámica
+// Actualmente estos datos están hardcodeados. La colección 'services' ya tiene reglas
+// en Firebase Rules, y los barberos se cargan desde Firestore en DataContext,
+// pero el BookingWizard aún usa estos datos estáticos como fallback.
 export const BRANCHES = [
   { id: 'centro', name: 'Centro', address: 'Mariano Abasolo 59 B San Juan del Rio, Qro' },
   { id: 'lomas', name: 'Lomas', address: 'Av. Lomas de San Juan 1129 San Juan del Rio, Qro' }
 ];
 
 export const BARBERS = [
-  { 
-    id: 1, 
-    name: 'Carlos', 
-    specialty: 'Fade Master', 
-    rating: 4.9, 
+  {
+    id: 1,
+    name: 'Carlos',
+    specialty: 'Fade Master',
+    rating: 4.9,
     branch: 'Centro',
     schedule: {
       0: { start: '10:00', end: '15:00', active: true }, // Dom
@@ -20,11 +24,11 @@ export const BARBERS = [
       6: { start: '10:00', end: '19:00', active: true }  // Sab
     }
   },
-  { 
-    id: 2, 
-    name: 'Ana', 
-    specialty: 'Colorista & Estilo', 
-    rating: 4.8, 
+  {
+    id: 2,
+    name: 'Ana',
+    specialty: 'Colorista & Estilo',
+    rating: 4.8,
     branch: 'Lomas',
     schedule: {
       0: { start: '10:00', end: '15:00', active: true },
@@ -36,11 +40,11 @@ export const BARBERS = [
       6: { start: '10:00', end: '20:00', active: true }
     }
   },
-  { 
-    id: 3, 
-    name: 'Luis', 
-    specialty: 'Corte Clásico', 
-    rating: 4.7, 
+  {
+    id: 3,
+    name: 'Luis',
+    specialty: 'Corte Clásico',
+    rating: 4.7,
     branch: 'Centro',
     schedule: {
       0: { start: '10:00', end: '15:00', active: true },
@@ -52,11 +56,11 @@ export const BARBERS = [
       6: { start: '10:00', end: '19:00', active: true }
     }
   },
-  { 
-    id: 4, 
-    name: 'Roberto', 
-    specialty: 'Navaja Libre', 
-    rating: 4.8, 
+  {
+    id: 4,
+    name: 'Roberto',
+    specialty: 'Navaja Libre',
+    rating: 4.8,
     branch: 'Lomas',
     schedule: {
       0: { start: '10:00', end: '15:00', active: true },

@@ -7,9 +7,9 @@ import { DataProvider } from './src/context/DataContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
-// Cargar Stripe Web (clave pública)
+// Cargar Stripe Web (clave pública desde variable de entorno)
 const stripePromise = loadStripe(
-  "pk_test_51T21qHIRGD2V3YWwe2nfDLXSm3xaWpsxqS2ClDMzGmIvnsQhFYT20dVQuKyWOeM538lN34EA0zhOFbzLo2HJxmxa00wFtSw9Rb"
+  process.env.EXPO_PUBLIC_STRIPE_PK
 );
 
 export default function App() {
