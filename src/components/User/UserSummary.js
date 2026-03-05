@@ -190,7 +190,8 @@ const getStyles = (COLORS, isMobile) => StyleSheet.create({
   heroDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: isMobile ? 8 : 12,
+    flexWrap: 'wrap',
   },
   heroDetail: {
     flexDirection: 'row',

@@ -2,22 +2,30 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function AdminMetrics({ totalToday, totalWalkins, COLORS }) {
+export default function AdminMetrics({ totalToday, totalWalkins, dateLabel, COLORS, isMobile }) {
   return (
-    <View style={styles.metricRow}>
-      <View style={[styles.metricCard, { backgroundColor: COLORS.surface }]}>
+    <View style={[styles.metricRow, { gap: isMobile ? 12 : 20, marginBottom: isMobile ? 16 : 30 }]}>
+      <View style={[styles.metricCard, { backgroundColor: COLORS.surface, padding: isMobile ? 14 : 20 }]}>
         <View style={styles.metricHeader}>
-           <MaterialCommunityIcons name="cash-multiple" size={24} color={COLORS.primary} />
-           <Text style={[styles.metricLabel, { color: COLORS.textSecondary }]}>Ingresos hoy</Text>
+          <MaterialCommunityIcons name="cash-multiple" size={isMobile ? 20 : 24} color={COLORS.primary} />
+          <Text style={[styles.metricLabel, { color: COLORS.textSecondary, fontSize: isMobile ? 12 : 14 }]}>
+            Ingresos {dateLabel || 'hoy'}
+          </Text>
         </View>
-        <Text style={[styles.metricValue, { color: COLORS.text }]}>${totalToday}</Text>
+        <Text style={[styles.metricValue, { color: COLORS.text, fontSize: isMobile ? 22 : 28 }]}>
+          ${totalToday.toLocaleString()}
+        </Text>
       </View>
-      <View style={[styles.metricCard, { backgroundColor: COLORS.surface }]}>
+      <View style={[styles.metricCard, { backgroundColor: COLORS.surface, padding: isMobile ? 14 : 20 }]}>
         <View style={styles.metricHeader}>
-           <MaterialCommunityIcons name="walk" size={24} color={COLORS.primary} />
-           <Text style={[styles.metricLabel, { color: COLORS.textSecondary }]}>Walk-ins</Text>
+          <MaterialCommunityIcons name="walk" size={isMobile ? 20 : 24} color={COLORS.primary} />
+          <Text style={[styles.metricLabel, { color: COLORS.textSecondary, fontSize: isMobile ? 12 : 14 }]}>
+            Walk-ins
+          </Text>
         </View>
-        <Text style={[styles.metricValue, { color: COLORS.text }]}>{totalWalkins}</Text>
+        <Text style={[styles.metricValue, { color: COLORS.text, fontSize: isMobile ? 22 : 28 }]}>
+          {totalWalkins}
+        </Text>
       </View>
     </View>
   );
@@ -27,12 +35,9 @@ const styles = StyleSheet.create({
   metricRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
-    gap: 20,
   },
   metricCard: {
     flex: 1,
-    padding: 20,
     borderRadius: 16,
     elevation: 2,
     shadowColor: '#000',
@@ -43,15 +48,13 @@ const styles = StyleSheet.create({
   metricHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   metricLabel: {
-    marginLeft: 10,
-    fontSize: 14,
+    marginLeft: 8,
     fontWeight: '600',
   },
   metricValue: {
-    fontSize: 28,
     fontWeight: 'bold',
   },
 });

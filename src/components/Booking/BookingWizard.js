@@ -135,6 +135,11 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
   };
 
   const handleConfirm = () => {
+    // For kiosk mode: same-day = Walk-in, future = Online
+    const appointmentType = isWalkIn
+      ? (selectedDate === todayLocal ? 'Walk-in' : 'Online')
+      : 'Online';
+
     const appointmentData = {
       userId: user?.email || 'walkin-guest',
       userName: isWalkIn ? guestName : user.name,
@@ -148,7 +153,7 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
       price: selectedService.price,
       duration: selectedService.duration,
       status: 'Confirmado',
-      type: isWalkIn ? 'Walk-in' : 'Online'
+      type: appointmentType,
     };
 
     if (onConfirm) {

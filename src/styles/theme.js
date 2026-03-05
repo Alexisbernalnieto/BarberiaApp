@@ -81,16 +81,16 @@ export const LIGHT_THEME = {
   primary: '#D4AF37', // Metallic Gold
   primaryDark: '#AA8C2C',
   accent: '#1A1A1A', // Casi negro para alto contraste
-  background: '#F9FAFB', // Cool gray very light
-  surface: '#FFFFFF',
-  surfaceHighlight: '#F3F4F6',
-  text: '#111827', // Gray 900
-  textSecondary: '#4B5563', // Gray 600
-  textInverse: '#FFFFFF',
-  error: '#DC2626',
-  inputBg: '#FFFFFF',
-  border: '#E5E7EB', // Gray 200
-  overlay: 'rgba(0,0,0,0.05)',
+  background: '#F5F3EF', // Warm ivory — easy on the eyes
+  surface: '#FDFCF9', // Warm off-white
+  surfaceHighlight: '#EFECE6', // Warm highlight
+  text: '#2D2A24', // Warm dark brown (softer than pure black)
+  textSecondary: '#6B6560', // Warm gray
+  textInverse: '#FDFCF9',
+  error: '#C53030',
+  inputBg: '#FDFCF9',
+  border: '#E2DFDA', // Warm border
+  overlay: 'rgba(0,0,0,0.04)',
 
   ...COMMON_COLORS,
   spacing: SPACING,

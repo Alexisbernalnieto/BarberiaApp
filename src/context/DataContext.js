@@ -70,7 +70,7 @@ export const DataProvider = ({ children }) => {
   }, [currentUser]);
 
   return (
-    <DataContext.Provider value={{ appointments, barbers }}>
+    <DataContext.Provider value={{ appointments, barbers, setBarbers }}>
       {children}
     </DataContext.Provider>
   );

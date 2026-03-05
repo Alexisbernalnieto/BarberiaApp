@@ -15,7 +15,7 @@ import { createAppointment } from '../services/appointments';
 export default function AppNavigator() {
   const { currentUser, loading, logout } = useAuth();
   const { theme, COLORS, toggleTheme, isDarkMode } = useTheme();
-  const { appointments, barbers } = useData();
+  const { appointments, barbers, setBarbers } = useData();
 
   if (loading) {
     return (
@@ -37,6 +37,7 @@ export default function AppNavigator() {
         onLogout={logout}
         appointments={appointments}
         barbers={barbers}
+        setBarbers={setBarbers}
         COLORS={COLORS}
         toggleTheme={toggleTheme}
         isDarkMode={isDarkMode}
@@ -52,6 +53,7 @@ export default function AppNavigator() {
         onLogout={logout}
         appointments={appointments}
         barbers={barbers}
+        setBarbers={setBarbers}
         COLORS={COLORS}
         toggleTheme={toggleTheme}
         isDarkMode={isDarkMode}
@@ -83,9 +85,6 @@ export default function AppNavigator() {
         COLORS={COLORS}
         toggleTheme={toggleTheme}
         isDarkMode={isDarkMode}
-
-        // 🔥 Aquí es donde realmente lo necesitabas
-        onAddAppointment={createAppointment}
       />
     );
   }
