@@ -19,12 +19,17 @@ export const DataProvider = ({ children }) => {
 
     let qAppointments;
 
+    // Helper for role comparison (supports numeric and string roles)
+    const r = currentUser.role;
+    const isAdminOrRecep = r === 0 || r === 2 || r === 'admin' || r === 'reception';
+    const isBarber = r === 3 || r === 'barber';
+
     // 🔥 Filtrado profesional según rol
-    if (currentUser.role === 'admin' || currentUser.role === 'reception') {
+    if (isAdminOrRecep) {
       // Admin y Recepción → pueden ver TODAS las citas
       qAppointments = query(collection(db, 'appointments'));
     }
-    else if (currentUser.role === 'barber') {
+    else if (isBarber) {
       // Barbero → solo sus citas
       qAppointments = query(
         collection(db, 'appointments'),
