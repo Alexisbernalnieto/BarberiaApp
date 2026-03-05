@@ -29,8 +29,20 @@ export default function AppNavigator() {
     return <AuthScreen />;
   }
 
+  // Helper: roles can be numeric (0,1,2,3) or string ('admin','reception','barber','client')
+  const isRole = (roleName) => {
+    const r = currentUser.role;
+    switch (roleName) {
+      case 'admin': return r === 0 || r === 'admin';
+      case 'reception': return r === 2 || r === 'reception';
+      case 'barber': return r === 3 || r === 'barber';
+      case 'client': return r === 1 || r === 'client';
+      default: return false;
+    }
+  };
+
   // Render Dashboard based on Role
-  if (currentUser.role === 'admin') {
+  if (isRole('admin')) {
     return (
       <AdminDashboard
         user={currentUser}
@@ -41,15 +53,14 @@ export default function AppNavigator() {
         COLORS={COLORS}
         toggleTheme={toggleTheme}
         isDarkMode={isDarkMode}
-
-        // 🔥 Ahora AdminDashboard también puede crear citas
         onAddAppointment={createAppointment}
       />
     );
-  } else if (currentUser.role === 'reception') {
+  } else if (isRole('reception')) {
     return (
       <AdminDashboard
         user={currentUser}
+        role="reception"
         onLogout={logout}
         appointments={appointments}
         barbers={barbers}
@@ -57,12 +68,10 @@ export default function AppNavigator() {
         COLORS={COLORS}
         toggleTheme={toggleTheme}
         isDarkMode={isDarkMode}
-
-        // 🔥 Recepción también puede crear citas
         onAddAppointment={createAppointment}
       />
     );
-  } else if (currentUser.role === 'barber') {
+  } else if (isRole('barber')) {
     return (
       <BarberDashboard
         role={currentUser.role}
@@ -75,7 +84,7 @@ export default function AppNavigator() {
       />
     );
   } else {
-    // Default: User Dashboard
+    // Default: User Dashboard (client)
     return (
       <UserDashboard
         user={currentUser}
