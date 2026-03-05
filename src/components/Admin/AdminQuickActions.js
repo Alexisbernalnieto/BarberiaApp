@@ -2,37 +2,61 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function AdminQuickActions({ setViewMode, COLORS }) {
+export default function AdminQuickActions({ setViewMode, COLORS, isMobile }) {
+  const iconSize = isMobile ? 24 : 32;
+  const containerSize = isMobile ? 44 : 60;
+
   return (
-    <View style={styles.actionGrid}>
-      <TouchableOpacity 
-        style={[styles.actionCard, { backgroundColor: COLORS.surface }]} 
+    <View style={[styles.actionGrid, { gap: isMobile ? 10 : 15, marginBottom: isMobile ? 16 : 30 }]}>
+      <TouchableOpacity
+        style={[styles.actionCard, { backgroundColor: COLORS.surface, padding: isMobile ? 14 : 20 }]}
         onPress={() => setViewMode('finance')}
       >
-          <View style={[styles.actionIconContainer, { backgroundColor: COLORS.primary + '15' }]}>
-              <MaterialCommunityIcons name="finance" size={32} color={COLORS.primary} />
-          </View>
-          <Text style={[styles.actionText, { color: COLORS.text }]}>Finanzas</Text>
+        <View style={[styles.actionIconContainer, {
+          backgroundColor: COLORS.primary + '15',
+          width: containerSize,
+          height: containerSize,
+          borderRadius: containerSize / 2,
+        }]}>
+          <MaterialCommunityIcons name="finance" size={iconSize} color={COLORS.primary} />
+        </View>
+        <Text style={[styles.actionText, { color: COLORS.text, fontSize: isMobile ? 12 : 14 }]}>
+          Finanzas
+        </Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={[styles.actionCard, { backgroundColor: COLORS.surface }]} 
+
+      <TouchableOpacity
+        style={[styles.actionCard, { backgroundColor: COLORS.surface, padding: isMobile ? 14 : 20 }]}
         onPress={() => setViewMode('barbers')}
       >
-          <View style={[styles.actionIconContainer, { backgroundColor: COLORS.primary + '15' }]}>
-              <MaterialCommunityIcons name="content-cut" size={32} color={COLORS.primary} />
-          </View>
-          <Text style={[styles.actionText, { color: COLORS.text }]}>Barberos</Text>
+        <View style={[styles.actionIconContainer, {
+          backgroundColor: COLORS.primary + '15',
+          width: containerSize,
+          height: containerSize,
+          borderRadius: containerSize / 2,
+        }]}>
+          <MaterialCommunityIcons name="content-cut" size={iconSize} color={COLORS.primary} />
+        </View>
+        <Text style={[styles.actionText, { color: COLORS.text, fontSize: isMobile ? 12 : 14 }]}>
+          Barberos
+        </Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={[styles.actionCard, { backgroundColor: COLORS.surface }]} 
+
+      <TouchableOpacity
+        style={[styles.actionCard, { backgroundColor: COLORS.surface, padding: isMobile ? 14 : 20 }]}
         onPress={() => setViewMode('services')}
       >
-          <View style={[styles.actionIconContainer, { backgroundColor: COLORS.primary + '15' }]}>
-              <MaterialCommunityIcons name="tag-multiple" size={32} color={COLORS.primary} />
-          </View>
-          <Text style={[styles.actionText, { color: COLORS.text }]}>Servicios</Text>
+        <View style={[styles.actionIconContainer, {
+          backgroundColor: COLORS.primary + '15',
+          width: containerSize,
+          height: containerSize,
+          borderRadius: containerSize / 2,
+        }]}>
+          <MaterialCommunityIcons name="tag-multiple" size={iconSize} color={COLORS.primary} />
+        </View>
+        <Text style={[styles.actionText, { color: COLORS.text, fontSize: isMobile ? 12 : 14 }]}>
+          Servicios
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -42,12 +66,9 @@ const styles = StyleSheet.create({
   actionGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
-    gap: 15,
   },
   actionCard: {
     flex: 1,
-    padding: 20,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -58,15 +79,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   actionIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   actionText: {
-    fontSize: 14,
     fontWeight: '600',
   },
 });

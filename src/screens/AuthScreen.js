@@ -100,6 +100,23 @@ export default function AuthScreen() {
       setRegisterPasswordError('La contraseña es requerida');
       return;
     }
+    // Validación de fuerza de contraseña
+    if (registerPassword.length < 8) {
+      setRegisterPasswordError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    if (!/[A-Z]/.test(registerPassword)) {
+      setRegisterPasswordError('Debe incluir al menos una letra mayúscula');
+      return;
+    }
+    if (!/[a-z]/.test(registerPassword)) {
+      setRegisterPasswordError('Debe incluir al menos una letra minúscula');
+      return;
+    }
+    if (!/[0-9]/.test(registerPassword)) {
+      setRegisterPasswordError('Debe incluir al menos un número');
+      return;
+    }
     if (registerPassword !== confirmPassword) {
       setConfirmPasswordError('Las contraseñas no coinciden');
       return;
@@ -272,7 +289,7 @@ export default function AuthScreen() {
                     <MaterialCommunityIcons name="lock-outline" size={20} color={COLORS.textSecondary} />
                     <TextInput
                       style={splitStyles.input}
-                      placeholder="8+ caracteres"
+                      placeholder="8+ caracteres, mayúscula, número"
                       placeholderTextColor={COLORS.disabled}
                       secureTextEntry
                       value={registerPassword}

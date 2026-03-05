@@ -38,7 +38,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   font-family: var(--font-main);
@@ -51,6 +53,7 @@ html, body, #root {
   background-color: var(--gold);
   color: #000;
 }
+
 ::-moz-selection {
   background-color: var(--gold);
   color: #000;
@@ -61,20 +64,25 @@ html, body, #root {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--black-soft);
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(212, 175, 55, 0.3);
   border-radius: 10px;
   border: 2px solid var(--black-soft);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(212, 175, 55, 0.5);
 }
 
 /* ─── Focus Styles ─── */
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   outline: none;
   border-color: var(--gold) !important;
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15) !important;
@@ -93,6 +101,7 @@ a {
   text-decoration: none;
   transition: var(--transition-fast);
 }
+
 a:hover {
   color: var(--gold-light);
   text-shadow: 0 0 12px var(--gold-glow);
@@ -108,6 +117,7 @@ a:hover {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -116,26 +126,50 @@ a:hover {
 
 /* Fade In */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* Subtle Float */
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 /* Gold Shimmer */
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
 }
 
 /* Pulse Glow */
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
-  50% { box-shadow: 0 0 40px rgba(212, 175, 55, 0.4); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
+  }
 }
 
 /* Rotate in */
@@ -144,6 +178,7 @@ a:hover {
     opacity: 0;
     transform: rotate(-10deg) scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: rotate(0) scale(1);
@@ -156,6 +191,7 @@ a:hover {
     opacity: 0;
     transform: translateX(-30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -168,6 +204,7 @@ a:hover {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -180,7 +217,7 @@ a:hover {
 
 /* Brand side background with animated gradient */
 [data-brand-side="true"] {
-  background: 
+  background:
     radial-gradient(ellipse at 20% 50%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 20%, rgba(212, 175, 55, 0.04) 0%, transparent 40%),
     linear-gradient(180deg, #080808 0%, #0A0A0A 50%, #080808 100%) !important;
@@ -314,12 +351,29 @@ a:hover {
 }
 
 /* Card stagger animation */
-[data-card="true"]:nth-child(1) { animation-delay: 0.05s; }
-[data-card="true"]:nth-child(2) { animation-delay: 0.1s; }
-[data-card="true"]:nth-child(3) { animation-delay: 0.15s; }
-[data-card="true"]:nth-child(4) { animation-delay: 0.2s; }
-[data-card="true"]:nth-child(5) { animation-delay: 0.25s; }
-[data-card="true"]:nth-child(6) { animation-delay: 0.3s; }
+[data-card="true"]:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+[data-card="true"]:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+[data-card="true"]:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+[data-card="true"]:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+[data-card="true"]:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+[data-card="true"]:nth-child(6) {
+  animation-delay: 0.3s;
+}
 
 /* Active/Selected card */
 [data-card-active="true"] {
@@ -521,6 +575,69 @@ a:hover {
 }
 
 /* ============================================================
+   ADMIN CALENDAR — Agenda por Sucursal
+   ============================================================ */
+
+/* Branch tab hover */
+[data-branch-tab="true"] {
+  transition: var(--transition-smooth);
+  cursor: pointer;
+}
+
+[data-branch-tab="true"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.2);
+}
+
+/* Day cell hover */
+[data-day-cell="true"] {
+  transition: var(--transition-smooth);
+  cursor: pointer;
+}
+
+[data-day-cell="true"]:hover {
+  background-color: rgba(212, 175, 55, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+/* Calendar appointment card */
+[data-calendar-card="true"] {
+  transition: var(--transition-smooth);
+  animation: fadeInUp 0.3s ease-out both;
+}
+
+[data-calendar-card="true"]:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 60px rgba(212, 175, 55, 0.04) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Calendar card stagger */
+[data-calendar-card="true"]:nth-child(1) {
+  animation-delay: 0.03s;
+}
+
+[data-calendar-card="true"]:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+[data-calendar-card="true"]:nth-child(3) {
+  animation-delay: 0.09s;
+}
+
+[data-calendar-card="true"]:nth-child(4) {
+  animation-delay: 0.12s;
+}
+
+[data-calendar-card="true"]:nth-child(5) {
+  animation-delay: 0.15s;
+}
+
+[data-calendar-card="true"]:nth-child(6) {
+  animation-delay: 0.18s;
+}
+
+/* ============================================================
    THEME TOGGLE BUTTON
    ============================================================ */
 
@@ -590,6 +707,65 @@ a:hover {
    RESPONSIVE ADJUSTMENTS
    ============================================================ */
 
+/* === Small phones (< 400px) === */
+@media (max-width: 400px) {
+  [data-brand-title="true"] {
+    font-size: 24px !important;
+    letter-spacing: 3px !important;
+  }
+
+  [data-form-card="true"] {
+    padding: 24px !important;
+  }
+}
+
+/* === Mobile (< 768px) === */
+@media (max-width: 768px) {
+
+  /* Disable hover transforms on touch devices */
+  [data-card="true"]:hover,
+  [data-booking-card="true"]:hover,
+  [data-metric-card="true"]:hover,
+  [data-calendar-card="true"]:hover {
+    transform: none;
+  }
+
+  /* Smaller shadows on mobile */
+  [data-card="true"]:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  /* Touch-friendly tap targets */
+  [data-btn="true"],
+  [data-branch-tab="true"],
+  [data-day-cell="true"],
+  [data-time-slot="true"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Compact brand title */
+  [data-brand-title="true"] {
+    font-size: 32px !important;
+    letter-spacing: 4px !important;
+  }
+
+  /* Reduce card animation stagger on mobile */
+  [data-card="true"],
+  [data-calendar-card="true"] {
+    animation-duration: 0.25s !important;
+  }
+}
+
+/* === Tablet (768px - 1199px) === */
+@media (min-width: 768px) and (max-width: 1199px) {
+  [data-brand-title="true"] {
+    font-size: 48px !important;
+    letter-spacing: 6px !important;
+  }
+}
+
+/* === Large Desktop (1200px+) === */
 @media (min-width: 1200px) {
   [data-brand-title="true"] {
     font-size: 60px !important;
@@ -617,13 +793,14 @@ a:hover {
    ============================================================ */
 
 @media print {
+
   [data-header="true"],
   [data-footer="true"],
   [data-theme-toggle="true"],
   [data-logout-btn="true"] {
     display: none !important;
   }
-  
+
   [data-ticket="true"] {
     box-shadow: none !important;
     border: 2px solid #000 !important;

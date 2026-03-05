@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, FlatList, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BARBERS } from '../../data/mockData';
 
 export default function ServiceListView({
   styles,
@@ -17,9 +18,26 @@ export default function ServiceListView({
   setViewMode,
   getFilteredServices,
   getServicesByCategory,
+  getBarbersWithoutServices,
+  getRecommendedServicesForBarber,
+  services,
+  setServices,
 }) {
   const filteredServices = getFilteredServices();
   const servicesByCategory = getServicesByCategory(filteredServices);
+  const barbersWithoutServices = getBarbersWithoutServices();
+
+  // ✅ Función para asignar servicio rápidamente a un barbero
+  const handleQuickAssignService = (barberName, service) => {
+    const currentBarbers = service.assignedBarbers || [];
+    if (!currentBarbers.includes(barberName)) {
+      const updatedService = {
+        ...service,
+        assignedBarbers: [...currentBarbers, barberName],
+      };
+      setServices(services.map(s => s.id === service.id ? updatedService : s));
+    }
+  };
 
   return (
     <View style={styles.content}>
@@ -51,7 +69,7 @@ export default function ServiceListView({
         <View style={styles.filterRow}>
           <Text style={styles.filterLabel}>Sucursal:</Text>
           <View style={styles.filterOptions}>
-            {['Todas', 'Ambas', 'Centro', 'Lomas'].map(branch => (
+            {['Ambas', 'Centro', 'Lomas'].map(branch => (
               <TouchableOpacity
                 key={branch}
                 style={[
@@ -118,6 +136,61 @@ export default function ServiceListView({
           </Text>
         </View>
       </View>
+
+      {/* ✅ ALERTA: Barberos sin servicios */}
+      {barbersWithoutServices.length > 0 && (
+        <View style={styles.warningPanel}>
+          <View style={styles.warningHeader}>
+            <MaterialCommunityIcons
+              name="alert-circle"
+              size={24}
+              color="#FFA500"
+            />
+            <Text style={styles.warningTitle}>
+              {barbersWithoutServices.length} Barbero{barbersWithoutServices.length !== 1 ? 's' : ''} sin Servicios
+            </Text>
+          </View>
+          <Text style={styles.warningDescription}>
+            Asigna servicios a estos barberos para que puedan recibir citas
+          </Text>
+          
+          <FlatList
+            data={barbersWithoutServices}
+            scrollEnabled={false}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item: barber }) => {
+              const recommendedServices = getRecommendedServicesForBarber(barber.name);
+              return (
+                <View style={styles.barberWarningItem}>
+                  <View style={styles.barberWarningInfo}>
+                    <Text style={styles.barberWarningName}>{barber.name}</Text>
+                    <Text style={styles.barberWarningSpecialty}>{barber.specialty}</Text>
+                  </View>
+                  <View style={styles.barberWarningActions}>
+                    <Text style={styles.suggestionsLabel}>Sugerencias:</Text>
+                    <View style={styles.suggestedServices}>
+                      {recommendedServices.map((service, idx) => (
+                        <TouchableOpacity
+                          key={idx}
+                          style={styles.suggestedServiceBadge}
+                          onPress={() => handleQuickAssignService(barber.name, service)}
+                        >
+                          <MaterialCommunityIcons
+                            name="plus-circle"
+                            size={14}
+                            color={COLORS.primary}
+                          />
+                          <Text style={styles.suggestedServiceText}>{service.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              );
+            }}
+          />
+        </View>
+      )}
 
       <TouchableOpacity
         style={styles.addButton}
@@ -205,9 +278,29 @@ export default function ServiceListView({
                       <View style={styles.cardRow}>
                         <View style={styles.mainInfo}>
                           <Text style={styles.serviceName}>{service.name}</Text>
-                          <Text style={styles.serviceDetails}>
-                            {service.duration} min • {service.assignedTo}
-                          </Text>
+                          <View style={styles.durationRow}>
+                            <MaterialCommunityIcons
+                              name="clock-outline"
+                              size={14}
+                              color={COLORS.primary}
+                              style={{ marginRight: 4 }}
+                            />
+                            <Text style={styles.durationText}>
+                              {service.duration}Min
+                            </Text>
+                            <MaterialCommunityIcons
+                              name="plus"
+                              size={12}
+                              color={COLORS.textSecondary}
+                              style={{ marginHorizontal: 4 }}
+                            />
+                            <Text style={styles.bufferText}>
+                              {service.bufferTime || 5}Min limpieza
+                            </Text>
+                            <Text style={styles.totalTimeText}>
+                              = {(service.duration || 0) + (service.bufferTime || 5)}Min total
+                            </Text>
+                          </View>
                           <View style={styles.branchBadge}>
                             <MaterialCommunityIcons
                               name="office-building"

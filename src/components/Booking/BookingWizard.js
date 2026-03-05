@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Animated, useWindowDimensions } from 'react-native';
-import { SERVICES, BRANCHES } from '../../data/mockData';
+import { SERVICES, BRANCHES, BARBERS as MOCK_BARBERS } from '../../data/mockData';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import BookingProgressBar from './BookingProgressBar';
 import BookingStepBranch from './BookingStepBranch';
@@ -37,7 +37,7 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState(null);
   const [guestName, setGuestName] = useState(user?.name || '');
-  const barberList = barbers && barbers.length ? barbers : [];
+  const barberList = barbers && barbers.length ? barbers : MOCK_BARBERS;
 
   const goToStep = (step) => {
     Animated.sequence([
@@ -135,6 +135,11 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
   };
 
   const handleConfirm = () => {
+    // For kiosk mode: same-day = Walk-in, future = Online
+    const appointmentType = isWalkIn
+      ? (selectedDate === todayLocal ? 'Walk-in' : 'Online')
+      : 'Online';
+
     const appointmentData = {
       userId: user?.email || 'walkin-guest',
       userName: isWalkIn ? guestName : user.name,
@@ -148,7 +153,7 @@ export default function BookingWizard({ user, existingAppointments, onConfirm, o
       price: selectedService.price,
       duration: selectedService.duration,
       status: 'Confirmado',
-      type: isWalkIn ? 'Walk-in' : 'Online'
+      type: appointmentType,
     };
 
     if (onConfirm) {

@@ -52,7 +52,18 @@ export default function UserDashboard({ user, appointments, onLogout, COLORS, to
       });
   }, [appointments, user.email]);
 
-  const nextAppointment = myAppointments.length > 0 ? myAppointments[0] : null;
+  // Solo citas futuras (hoy o después) para "Próxima Cita"
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }, []);
+
+  const nextAppointment = useMemo(() => {
+    return myAppointments.find(app => app.date >= todayStr) || null;
+  }, [myAppointments, todayStr]);
 
   // Cuando el usuario termina el wizard → NO guardamos aún, solo preparamos pago
   const handleNewBooking = async (data) => {
@@ -218,6 +229,7 @@ export default function UserDashboard({ user, appointments, onLogout, COLORS, to
                     itemWidth={itemWidth}
                     fadeAnim={fadeAnim}
                     onBookNow={() => setActiveTab('book')}
+                    isMobile={isMobile}
                   />
                 )
               )}

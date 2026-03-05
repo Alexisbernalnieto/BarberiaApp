@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Animated, StyleSheet, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AppointmentDetail from './AppointmentDetail';
 
-export default function UserAppointments({ appointments, COLORS, numColumns, gap, itemWidth, fadeAnim, onBookNow }) {
+export default function UserAppointments({ appointments, COLORS, numColumns, gap, itemWidth, fadeAnim, onBookNow, isMobile }) {
+  const [selectedAppt, setSelectedAppt] = useState(null);
   const styles = getStyles(COLORS, itemWidth);
 
   const renderAppointmentItem = ({ item }) => (
-    <View style={styles.card} dataSet={{ card: 'true' }}>
+    <TouchableOpacity
+      style={styles.card}
+      dataSet={{ card: 'true' }}
+      onPress={() => setSelectedAppt(item)}
+      activeOpacity={0.7}
+    >
       {/* Gold accent bar */}
       <View style={styles.cardAccent} dataSet={{ accentBar: 'true' }} />
       <View style={styles.cardContent}>
@@ -43,8 +50,13 @@ export default function UserAppointments({ appointments, COLORS, numColumns, gap
             <Text style={styles.priceValue}>${item.price}</Text>
           </View>
         </View>
+
+        {/* Tap hint */}
+        <View style={styles.tapHint}>
+          <MaterialCommunityIcons name="chevron-right" size={16} color={COLORS.textSecondary} />
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -73,6 +85,15 @@ export default function UserAppointments({ appointments, COLORS, numColumns, gap
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Appointment Detail Modal */}
+      <AppointmentDetail
+        visible={!!selectedAppt}
+        appointment={selectedAppt}
+        onClose={() => setSelectedAppt(null)}
+        COLORS={COLORS}
+        isMobile={isMobile}
+      />
     </Animated.View>
   );
 }
@@ -165,6 +186,7 @@ const getStyles = (COLORS, itemWidth) => StyleSheet.create({
       web: {
         boxShadow: COLORS.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)',
         transition: 'all 0.3s ease',
+        cursor: 'pointer',
       },
       default: COLORS.shadows.light,
     }),
@@ -175,6 +197,7 @@ const getStyles = (COLORS, itemWidth) => StyleSheet.create({
   },
   cardContent: {
     flex: 1,
+    position: 'relative',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -249,5 +272,11 @@ const getStyles = (COLORS, itemWidth) => StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '800',
     fontSize: 18,
+  },
+  tapHint: {
+    position: 'absolute',
+    right: 8,
+    top: '50%',
+    opacity: 0.3,
   },
 });

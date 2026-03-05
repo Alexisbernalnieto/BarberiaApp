@@ -3,217 +3,246 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensio
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function BarberDashboard({ appointments, user, onLogout, COLORS, toggleTheme, isDarkMode }) {
-  const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+    const { width } = useWindowDimensions();
+    const isMobile = width < 768;
+    const isSmall = width < 400;
 
-  // Filtrar citas asignadas a este barbero
-  // Asumimos que el nombre del barbero está en currentUser.name o se busca coincidencia
-  // Si no hay nombre asignado, mostramos advertencia
-  const myAppointments = appointments.filter(app => {
-      // Normalización simple para comparar nombres
-      const appBarber = (app.barberName || '').toLowerCase().trim();
-      const myName = (user?.name || '').toLowerCase().trim();
-      return appBarber === myName;
-  });
+    const styles = getStyles(COLORS, isMobile, isSmall);
 
-  const today = new Date().toISOString().split('T')[0];
-  const todaysAppointments = myAppointments.filter(app => app.date === today);
-  
-  // Calcular ganancias del día (comisiones o total, aquí total por simplicidad)
-  const todaysEarnings = todaysAppointments.reduce((sum, app) => sum + (app.price || 0), 0);
+    // Filtrar citas asignadas a este barbero
+    const myAppointments = appointments.filter(app => {
+        const appBarber = (app.barberName || '').toLowerCase().trim();
+        const myName = (user?.name || '').toLowerCase().trim();
+        return appBarber === myName;
+    });
 
-  const handleLogout = () => {
-    if (onLogout) onLogout();
-  };
+    const today = new Date().toISOString().split('T')[0];
+    const todaysAppointments = myAppointments.filter(app => app.date === today);
+    const todaysEarnings = todaysAppointments.reduce((sum, app) => sum + (app.price || 0), 0);
 
-  return (
-    <View style={[styles.container, { backgroundColor: COLORS.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: COLORS.border }]}>
-        <View>
-          <Text style={[styles.title, { color: COLORS.primary }]}>Panel de Barbero</Text>
-          <Text style={[styles.subtitle, { color: COLORS.textSecondary }]}>Hola, {user?.name || 'Barbero'}</Text>
-        </View>
-        <View style={styles.headerActions}>
-            <TouchableOpacity onPress={toggleTheme} style={styles.iconBtn}>
-              <MaterialCommunityIcons name={isDarkMode ? "weather-sunny" : "weather-night"} size={24} color={COLORS.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-                <MaterialCommunityIcons name="logout" size={20} color={COLORS.error} style={{ marginRight: 5 }} />
-                <Text style={{ color: COLORS.error, fontWeight: 'bold' }}>Salir</Text>
-            </TouchableOpacity>
-        </View>
-      </View>
+    const handleLogout = () => {
+        if (onLogout) onLogout();
+    };
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
-        {/* Métricas Rápidas */}
-        <View style={styles.metricsContainer}>
-            <View style={[styles.metricCard, { backgroundColor: COLORS.surface }]}>
-                <MaterialCommunityIcons name="calendar-check" size={30} color={COLORS.primary} />
-                <View>
-                    <Text style={[styles.metricValue, { color: COLORS.text }]}>{todaysAppointments.length}</Text>
-                    <Text style={[styles.metricLabel, { color: COLORS.textSecondary }]}>Citas Hoy</Text>
+    return (
+        <View style={styles.container}>
+            {/* Header */}
+            <View style={styles.header}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.title}>Panel de Barbero</Text>
+                    <Text style={styles.subtitle}>Hola, {user?.name || 'Barbero'}</Text>
+                </View>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity onPress={toggleTheme} style={styles.iconBtn}>
+                        <MaterialCommunityIcons name={isDarkMode ? "weather-sunny" : "weather-night"} size={isMobile ? 20 : 24} color={COLORS.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+                        <MaterialCommunityIcons name="logout" size={isMobile ? 18 : 20} color={COLORS.error} />
+                        {!isMobile && <Text style={styles.logoutText}>Salir</Text>}
+                    </TouchableOpacity>
                 </View>
             </View>
-            <View style={[styles.metricCard, { backgroundColor: COLORS.surface }]}>
-                <MaterialCommunityIcons name="cash" size={30} color="#10B981" />
-                <View>
-                    <Text style={[styles.metricValue, { color: COLORS.text }]}>${todaysEarnings}</Text>
-                    <Text style={[styles.metricLabel, { color: COLORS.textSecondary }]}>Generado Hoy</Text>
-                </View>
-            </View>
-        </View>
 
-        {/* Lista de Citas */}
-        <Text style={[styles.sectionTitle, { color: COLORS.text }]}>Tu Agenda de Hoy</Text>
-        
-        {todaysAppointments.length === 0 ? (
-            <View style={styles.emptyState}>
-                <MaterialCommunityIcons name="calendar-blank" size={50} color={COLORS.textSecondary} />
-                <Text style={{ color: COLORS.textSecondary, marginTop: 10 }}>No tienes citas programadas para hoy.</Text>
-            </View>
-        ) : (
-            todaysAppointments.map((app) => (
-                <View key={app.id} style={[styles.appointmentCard, { backgroundColor: COLORS.surface, borderLeftColor: COLORS.primary }]}>
-                    <View style={styles.appTime}>
-                        <Text style={[styles.timeText, { color: COLORS.white }]}>{app.time}</Text>
+            <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+                {/* Métricas Rápidas */}
+                <View style={styles.metricsContainer}>
+                    <View style={styles.metricCard}>
+                        <MaterialCommunityIcons name="calendar-check" size={isMobile ? 24 : 30} color={COLORS.primary} />
+                        <View>
+                            <Text style={styles.metricValue}>{todaysAppointments.length}</Text>
+                            <Text style={styles.metricLabel}>Citas Hoy</Text>
+                        </View>
                     </View>
-                    <View style={styles.appInfo}>
-                        <Text style={[styles.clientName, { color: COLORS.text }]}>{app.clientName || 'Cliente'}</Text>
-                        <Text style={[styles.serviceName, { color: COLORS.textSecondary }]}>{app.serviceName} • ${app.price}</Text>
-                    </View>
-                    <View style={styles.appStatus}>
-                        <View style={[styles.statusBadge, { backgroundColor: '#10B981' }]}>
-                            <Text style={styles.statusText}>Confirmada</Text>
+                    <View style={styles.metricCard}>
+                        <MaterialCommunityIcons name="cash" size={isMobile ? 24 : 30} color="#10B981" />
+                        <View>
+                            <Text style={styles.metricValue}>${todaysEarnings.toLocaleString()}</Text>
+                            <Text style={styles.metricLabel}>Generado Hoy</Text>
                         </View>
                     </View>
                 </View>
-            ))
-        )}
 
-        <Text style={[styles.sectionTitle, { color: COLORS.text, marginTop: 30 }]}>Próximas Citas</Text>
-        {myAppointments.filter(app => app.date > today).slice(0, 5).map((app) => (
-             <View key={app.id} style={[styles.appointmentCard, { backgroundColor: COLORS.surface, borderLeftColor: COLORS.textSecondary, opacity: 0.8 }]}>
-                <View style={[styles.appTime, { backgroundColor: COLORS.textSecondary }]}>
-                    <Text style={[styles.timeText, { color: COLORS.white }]}>{app.date}</Text>
-                </View>
-                <View style={styles.appInfo}>
-                    <Text style={[styles.clientName, { color: COLORS.text }]}>{app.time}</Text>
-                    <Text style={[styles.serviceName, { color: COLORS.textSecondary }]}>{app.serviceName}</Text>
-                </View>
-            </View>
-        ))}
+                {/* Lista de Citas */}
+                <Text style={styles.sectionTitle}>Tu Agenda de Hoy</Text>
 
-      </ScrollView>
-    </View>
-  );
+                {todaysAppointments.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <MaterialCommunityIcons name="calendar-blank" size={isMobile ? 40 : 50} color={COLORS.textSecondary} />
+                        <Text style={styles.emptyText}>No tienes citas programadas para hoy.</Text>
+                    </View>
+                ) : (
+                    todaysAppointments.map((app) => (
+                        <View key={app.id} style={styles.appointmentCard}>
+                            <View style={[styles.appTime, { backgroundColor: COLORS.primary }]}>
+                                <Text style={styles.timeText}>{app.time}</Text>
+                            </View>
+                            <View style={styles.appInfo}>
+                                <Text style={styles.clientName}>{app.userName || app.clientName || 'Cliente'}</Text>
+                                <Text style={styles.serviceName}>{app.serviceName} • ${app.price}</Text>
+                            </View>
+                            <View style={styles.appStatus}>
+                                <View style={styles.statusBadge}>
+                                    <Text style={styles.statusText}>Confirmada</Text>
+                                </View>
+                            </View>
+                        </View>
+                    ))
+                )}
+
+                <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Próximas Citas</Text>
+                {myAppointments.filter(app => app.date > today).length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyText}>No hay citas próximas.</Text>
+                    </View>
+                ) : (
+                    myAppointments.filter(app => app.date > today).slice(0, 5).map((app) => (
+                        <View key={app.id} style={[styles.appointmentCard, { borderLeftColor: COLORS.textSecondary, opacity: 0.8 }]}>
+                            <View style={[styles.appTime, { backgroundColor: COLORS.textSecondary }]}>
+                                <Text style={styles.timeText}>{app.date}</Text>
+                            </View>
+                            <View style={styles.appInfo}>
+                                <Text style={styles.clientName}>{app.time}</Text>
+                                <Text style={styles.serviceName}>{app.serviceName}</Text>
+                            </View>
+                        </View>
+                    ))
+                )}
+            </ScrollView>
+        </View>
+    );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    marginBottom: 20,
-  },
-  headerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 15
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: 14,
-  },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.5)',
-    borderRadius: 8,
-  },
-  iconBtn: {
-      padding: 8,
-  },
-  metricsContainer: {
-      flexDirection: 'row',
-      gap: 15,
-      marginBottom: 30,
-  },
-  metricCard: {
-      flex: 1,
-      padding: 20,
-      borderRadius: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 15,
-      elevation: 2,
-  },
-  metricValue: {
-      fontSize: 24,
-      fontWeight: 'bold',
-  },
-  metricLabel: {
-      fontSize: 12,
-  },
-  sectionTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      marginBottom: 15,
-  },
-  emptyState: {
-      alignItems: 'center',
-      padding: 40,
-      opacity: 0.6,
-  },
-  appointmentCard: {
-      flexDirection: 'row',
-      padding: 15,
-      borderRadius: 12,
-      marginBottom: 10,
-      borderLeftWidth: 4,
-      alignItems: 'center',
-      elevation: 1,
-  },
-  appTime: {
-      backgroundColor: '#3B82F6',
-      paddingVertical: 5,
-      paddingHorizontal: 10,
-      borderRadius: 6,
-      marginRight: 15,
-  },
-  timeText: {
-      fontWeight: 'bold',
-      fontSize: 14,
-  },
-  appInfo: {
-      flex: 1,
-  },
-  clientName: {
-      fontWeight: 'bold',
-      fontSize: 16,
-  },
-  serviceName: {
-      fontSize: 14,
-  },
-  statusBadge: {
-      paddingVertical: 4,
-      paddingHorizontal: 8,
-      borderRadius: 4,
-  },
-  statusText: {
-      color: 'white',
-      fontSize: 10,
-      fontWeight: 'bold',
-  }
+const getStyles = (COLORS, isMobile, isSmall) => StyleSheet.create({
+    container: {
+        flex: 1,
+        padding: isMobile ? 16 : 40,
+        backgroundColor: COLORS.background,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: isMobile ? 14 : 20,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+        marginBottom: isMobile ? 16 : 20,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: isMobile ? 8 : 15,
+    },
+    title: {
+        fontSize: isMobile ? 20 : 24,
+        fontWeight: 'bold',
+        color: COLORS.primary,
+    },
+    subtitle: {
+        fontSize: isMobile ? 13 : 14,
+        color: COLORS.textSecondary,
+    },
+    logoutBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.5)',
+        borderRadius: 8,
+        gap: 5,
+    },
+    logoutText: {
+        color: COLORS.error,
+        fontWeight: 'bold',
+        fontSize: 13,
+    },
+    iconBtn: {
+        padding: 8,
+    },
+    metricsContainer: {
+        flexDirection: isSmall ? 'column' : 'row',
+        gap: isMobile ? 12 : 15,
+        marginBottom: isMobile ? 20 : 30,
+    },
+    metricCard: {
+        flex: isSmall ? undefined : 1,
+        padding: isMobile ? 16 : 20,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: isMobile ? 12 : 15,
+        elevation: 2,
+        backgroundColor: COLORS.surface,
+    },
+    metricValue: {
+        fontSize: isMobile ? 20 : 24,
+        fontWeight: 'bold',
+        color: COLORS.text,
+    },
+    metricLabel: {
+        fontSize: isMobile ? 11 : 12,
+        color: COLORS.textSecondary,
+    },
+    sectionTitle: {
+        fontSize: isMobile ? 16 : 18,
+        fontWeight: 'bold',
+        marginBottom: isMobile ? 12 : 15,
+        color: COLORS.text,
+    },
+    emptyState: {
+        alignItems: 'center',
+        padding: isMobile ? 30 : 40,
+        opacity: 0.6,
+    },
+    emptyText: {
+        color: COLORS.textSecondary,
+        marginTop: 10,
+        fontSize: isMobile ? 13 : 14,
+        textAlign: 'center',
+    },
+    appointmentCard: {
+        flexDirection: 'row',
+        padding: isMobile ? 12 : 15,
+        borderRadius: 12,
+        marginBottom: 10,
+        borderLeftWidth: 4,
+        borderLeftColor: COLORS.primary,
+        alignItems: 'center',
+        elevation: 1,
+        backgroundColor: COLORS.surface,
+    },
+    appTime: {
+        paddingVertical: 5,
+        paddingHorizontal: isMobile ? 8 : 10,
+        borderRadius: 6,
+        marginRight: isMobile ? 10 : 15,
+    },
+    timeText: {
+        fontWeight: 'bold',
+        fontSize: isMobile ? 12 : 14,
+        color: COLORS.white || '#FFFFFF',
+    },
+    appInfo: {
+        flex: 1,
+    },
+    clientName: {
+        fontWeight: 'bold',
+        fontSize: isMobile ? 14 : 16,
+        color: COLORS.text,
+    },
+    serviceName: {
+        fontSize: isMobile ? 12 : 14,
+        color: COLORS.textSecondary,
+    },
+    appStatus: {},
+    statusBadge: {
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 4,
+        backgroundColor: '#10B981',
+    },
+    statusText: {
+        color: 'white',
+        fontSize: isMobile ? 9 : 10,
+        fontWeight: 'bold',
+    },
 });

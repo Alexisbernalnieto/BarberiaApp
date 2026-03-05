@@ -110,7 +110,7 @@ export const getSplitStyles = (COLORS, isMobile) =>
     formSide: {
       flex: isMobile ? 1 : 0.8,
       maxWidth: isMobile ? '100%' : 560,
-      backgroundColor: COLORS.mode === 'dark' ? '#0C0C0C' : '#FAFAFA',
+      backgroundColor: COLORS.mode === 'dark' ? '#0C0C0C' : '#F5F3EF',
       justifyContent: 'center',
       borderLeftWidth: isMobile ? 0 : 1,
       borderLeftColor: 'rgba(212, 175, 55, 0.15)',
