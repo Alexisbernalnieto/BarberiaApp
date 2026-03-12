@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 import { db } from '../../firebaseClient';
 import { DEFAULT_SCHEDULE } from './BarberManagementStyles';
+import { logActivity } from '../../services/logs';
 
 export default function UserManagement({ COLORS }) {
   const [users, setUsers] = useState([]);
@@ -38,9 +39,15 @@ export default function UserManagement({ COLORS }) {
     return () => unsubscribe();
   }, []);
 
-  const changeRole = async (userId, newRole, roleName) => {
+  const changeRole = async (userId, newRole, roleName, userEmail) => {
     try {
       await updateDoc(doc(db, 'users', userId), { role: newRole });
+      await logActivity(
+        'Cambió el rol de un usuario',
+        `Usuario: ${userEmail}\nNuevo Rol: ${roleName}`,
+        'admin@admin.com', // Asumido por ahora, en un sistema real vendría del auth context
+        0
+      );
       Alert.alert('Éxito', `Usuario actualizado a rol: ${roleName}`);
     } catch (error) {
       console.error(error);
@@ -62,6 +69,12 @@ export default function UserManagement({ COLORS }) {
         active: true,
         schedule: DEFAULT_SCHEDULE,
       });
+      await logActivity(
+        'Asignó usuario como Barbero',
+        `Usuario: ${branchModalUser.email}\nSucursal: ${branchSelection}`,
+        'admin@admin.com',
+        0
+      );
       setBranchModalUser(null);
       Alert.alert('Éxito', `Usuario actualizado a rol: BARBERO`);
     } catch (error) {
@@ -70,9 +83,15 @@ export default function UserManagement({ COLORS }) {
     }
   };
 
-  const performDelete = async (userId) => {
+  const performDelete = async (userEmail, userId) => {
     try {
       await deleteDoc(doc(db, 'users', userId));
+      await logActivity(
+        'Eliminó un usuario',
+        `Usuario eliminado: ${userEmail}`,
+        'admin@admin.com',
+        0
+      );
       if (Platform.OS === 'web') {
         window.alert('Usuario eliminado correctamente.');
       } else {
@@ -99,7 +118,7 @@ export default function UserManagement({ COLORS }) {
 
     if (Platform.OS === 'web') {
       if (window.confirm(confirmMessage)) {
-        performDelete(user.id);
+        performDelete(user.email, user.id);
       }
     } else {
       Alert.alert(
@@ -110,7 +129,7 @@ export default function UserManagement({ COLORS }) {
           { 
             text: 'Eliminar', 
             style: 'destructive',
-            onPress: () => performDelete(user.id)
+            onPress: () => performDelete(user.email, user.id)
           }
         ]
       );
@@ -130,6 +149,12 @@ export default function UserManagement({ COLORS }) {
         name: editName,
         phone: editPhone
       });
+      await logActivity(
+        'Editó un perfil de usuario',
+        `Usuario: ${editingUser.email}\nNuevo Nombre: ${editName}`,
+        'admin@admin.com',
+        0
+      );
       setEditingUser(null);
       Alert.alert('Éxito', 'Datos actualizados correctamente.');
     } catch (error) {
@@ -171,14 +196,14 @@ export default function UserManagement({ COLORS }) {
       <View style={styles.actions}>
         <TouchableOpacity 
           style={[styles.btn, { backgroundColor: item.role === 0 ? COLORS.primary : COLORS.border }]}
-          onPress={() => changeRole(item.id, 0, 'ADMIN')}
+          onPress={() => changeRole(item.id, 0, 'ADMIN', item.email)}
         >
           <Text style={styles.btnText}>Admin</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.btn, { backgroundColor: item.role === 2 ? '#F59E0B' : COLORS.border }]} 
-          onPress={() => changeRole(item.id, 2, 'RECEPCIÓN')}
+          onPress={() => changeRole(item.id, 2, 'RECEPCIÓN', item.email)}
         >
           <Text style={styles.btnText}>Recep</Text>
         </TouchableOpacity>
@@ -192,7 +217,7 @@ export default function UserManagement({ COLORS }) {
 
         <TouchableOpacity 
           style={[styles.btn, { backgroundColor: item.role === 1 ? '#10B981' : COLORS.border }]}
-          onPress={() => changeRole(item.id, 1, 'CLIENTE')}
+          onPress={() => changeRole(item.id, 1, 'CLIENTE', item.email)}
         >
           <Text style={styles.btnText}>Cliente</Text>
         </TouchableOpacity>

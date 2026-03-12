@@ -6,6 +6,7 @@ import BarberListView from './BarberListView';
 import BarberFormView from './BarberFormView';
 import BarberDetailsView from './BarberDetailsView';
 import { DAYS, DEFAULT_SCHEDULE, getBarberManagementStyles } from './BarberManagementStyles';
+import { logActivity } from '../../services/logs';
 
 export default function BarberManagement({ appointments, onClose, COLORS, barbers, setBarbers }) {
   const { width } = useWindowDimensions();
@@ -52,6 +53,12 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
                 await updateDoc(doc(db, 'users', editingBarber.id), barberToSave);
                 // Optimistic update
                 setBarbers(barbers.map(b => b.id === editingBarber.id ? barberToSave : b));
+                await logActivity(
+                    'Actualizó perfil de un barbero',
+                    `Barbero: ${editingBarber.name}`,
+                    'admin@admin.com',
+                    0
+                );
                 Alert.alert('Éxito', 'Barbero actualizado correctamente');
             } catch (error) {
                 console.error("Error updating barber:", error);
@@ -68,6 +75,7 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
   };
 
   const handleDelete = (barberId) => {
+      const barberNameToDelete = barbers.find(b => b.id === barberId)?.name || 'Desconocido';
       Alert.alert(
           'Eliminar Barbero',
           '¿Estás seguro de que quieres eliminar este barbero?',
@@ -76,8 +84,14 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
               { 
                   text: 'Eliminar', 
                   style: 'destructive',
-                  onPress: () => {
+                  onPress: async () => {
                       setBarbers(barbers.filter(b => b.id !== barberId));
+                      await logActivity(
+                          'Eliminó un barbero',
+                          `Barbero eliminado: ${barberNameToDelete}`,
+                          'admin@admin.com',
+                          0
+                      );
                       setViewMode('list');
                   }
               }

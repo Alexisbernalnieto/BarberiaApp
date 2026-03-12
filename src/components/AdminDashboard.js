@@ -19,6 +19,7 @@ import BarberManagement from './Admin/BarberManagement';
 import ServiceManagement from './Admin/ServiceManagement';
 import UserManagement from './Admin/UserManagement';
 import BookingWizard from './Booking/BookingWizard';
+import AdminLogsViewer from './Admin/AdminLogsViewer';
 
 export default function AdminDashboard({ appointments, onLogout, onAddAppointment, role = 'admin', COLORS, toggleTheme, isDarkMode, barbers, setBarbers }) {
   const { width } = useWindowDimensions();
@@ -215,6 +216,20 @@ export default function AdminDashboard({ appointments, onLogout, onAddAppointmen
           </View>
           <View style={{ flex: 1, padding: 20 }}>
             <UserManagement COLORS={COLORS} />
+          </View>
+        </View>
+      )}
+
+      {viewMode === 'logs' && (
+        <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+          <View style={{ padding: 20, paddingBottom: 0 }}>
+            <TouchableOpacity onPress={() => setViewMode('dashboard')} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.primary} />
+              <Text style={{ color: COLORS.primary, marginLeft: 5, fontSize: 16 }}>Volver al Panel</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ flex: 1 }}>
+            <AdminLogsViewer COLORS={COLORS} isMobile={isMobile} />
           </View>
         </View>
       )}

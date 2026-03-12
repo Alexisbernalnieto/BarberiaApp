@@ -58,6 +58,23 @@ export default function AdminQuickActions({ setViewMode, COLORS, isMobile }) {
           Servicios
         </Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.actionCard, { backgroundColor: COLORS.surface, padding: isMobile ? 14 : 20 }]}
+        onPress={() => setViewMode('logs')}
+      >
+        <View style={[styles.actionIconContainer, {
+          backgroundColor: COLORS.primary + '15',
+          width: containerSize,
+          height: containerSize,
+          borderRadius: containerSize / 2,
+        }]}>
+          <MaterialCommunityIcons name="history" size={iconSize} color={COLORS.primary} />
+        </View>
+        <Text style={[styles.actionText, { color: COLORS.text, fontSize: isMobile ? 12 : 14 }]}>
+          Historial
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
