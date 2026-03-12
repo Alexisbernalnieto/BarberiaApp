@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { collection, query, onSnapshot, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, where, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseClient';
 import { useAuth } from './AuthContext';
 
@@ -17,6 +17,11 @@ export const DataProvider = ({ children }) => {
       return;
     }
 
+    // Calcular fecha de hace 30 días para limitar carga inicial en Admin
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
     let qAppointments;
 
     // Helper for role comparison (supports numeric and string roles)
@@ -26,14 +31,21 @@ export const DataProvider = ({ children }) => {
 
     // 🔥 Filtrado profesional según rol
     if (isAdminOrRecep) {
-      // Admin y Recepción → pueden ver TODAS las citas
-      qAppointments = query(collection(db, 'appointments'));
-    }
-    else if (isBarber) {
-      // Barbero → solo sus citas
+      // Admin y Recepción → Ver citas recientes (últimos 30 días + futuras)
       qAppointments = query(
         collection(db, 'appointments'),
-        where('barberId', '==', currentUser.id || currentUser.email)
+        where('date', '>=', thirtyDaysAgoStr),
+        orderBy('date', 'desc'),
+        limit(500) // Límite de seguridad para evitar crashes en móviles
+      );
+    }
+    else if (isBarber) {
+      // Barbero → solo sus citas recientes
+      qAppointments = query(
+        collection(db, 'appointments'),
+        where('barberId', '==', currentUser.uid || currentUser.email),
+        where('date', '>=', thirtyDaysAgoStr),
+        orderBy('date', 'desc')
       );
     }
     else {

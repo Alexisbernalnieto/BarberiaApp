@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, useWindowD
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import BookingWizard from '../Booking/BookingWizard';
 import AdminNotifications from './AdminNotifications';
+import CheckoutManager from './CheckoutManager';
 
 // ─── Helpers ──────────────────────────────────────────────
 const getTodayStr = () => {
@@ -182,7 +183,7 @@ export default function AdminKiosk({
 
           <TouchableOpacity
             style={[styles.actionCard, { borderColor: COLORS.primary }]}
-            onPress={() => setViewMode('walkin')}
+            onPress={() => setViewMode('checkout')}
           >
             <View style={[styles.actionIconWrap, { backgroundColor: COLORS.primary + '15' }]}>
               <MaterialCommunityIcons name="credit-card-outline" size={isMobile ? 24 : 28} color={COLORS.primary} />
@@ -327,6 +328,16 @@ export default function AdminKiosk({
           onCancel={() => setViewMode('dashboard')}
           COLORS={COLORS}
           barbers={barbers}
+        />
+      </Modal>
+
+      <Modal visible={viewMode === 'checkout'} animationType="slide">
+        <CheckoutManager
+          appointments={appointments}
+          onClose={() => setViewMode('dashboard')}
+          COLORS={COLORS}
+          isMobile={isMobile}
+          branch={selectedBranch}
         />
       </Modal>
 
