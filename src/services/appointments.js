@@ -1,6 +1,7 @@
 // src/services/appointments.js
 import { db } from '../firebaseClient';
 import { doc, runTransaction, Timestamp } from 'firebase/firestore';
+import { logActivity } from './logs';
 
 /**
  * Crea una cita de forma segura usando Transacciones para evitar doble reserva.
@@ -54,6 +55,12 @@ export const createAppointment = async ({
       };
 
       transaction.set(appointmentRef, payload);
+      logActivity(
+        'Reservó una cita',
+        `Cliente: ${userName}\nBarbero: ${barberName}\nServicio: ${serviceName}\nFecha: ${date} a las ${time}`,
+        userId,
+        1
+      );
       return { id: uniqueId, ...payload };
     });
   } catch (error) {

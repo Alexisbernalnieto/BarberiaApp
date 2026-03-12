@@ -4,6 +4,7 @@ import { SERVICES as INITIAL_SERVICES, BARBERS } from '../../data/mockData';
 import ServiceListView from './ServiceListView';
 import ServiceFormView from './ServiceFormView';
 import { CATEGORIES, getServiceManagementStyles } from './ServiceManagementStyles';
+import { logActivity } from '../../services/logs';
 
 export default function ServiceManagement({ onClose, COLORS }) {
   const { width } = useWindowDimensions();
@@ -99,7 +100,7 @@ export default function ServiceManagement({ onClose, COLORS }) {
       .slice(0, 3);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingService.name || editingService.name.trim() === '') {
       Alert.alert('Error', 'El nombre del servicio es requerido');
       return;
@@ -124,6 +125,12 @@ export default function ServiceManagement({ onClose, COLORS }) {
     if (editingService.id) {
         // Edit existing
         setServices(services.map(s => s.id === editingService.id ? editingService : s));
+        await logActivity(
+            'Actualizó un servicio',
+            `Servicio: ${editingService.name}\nPrecio: $${editingService.price}`,
+            'admin@admin.com',
+            0
+        );
         Alert.alert('Éxito', 'Servicio actualizado correctamente');
     } else {
         // Add new
@@ -132,6 +139,12 @@ export default function ServiceManagement({ onClose, COLORS }) {
             id: Math.max(...services.map(s => s.id), 0) + 1
         };
         setServices([...services, newService]);
+        await logActivity(
+            'Creó un servicio',
+            `Servicio: ${editingService.name}\nPrecio: $${editingService.price}`,
+            'admin@admin.com',
+            0
+        );
         Alert.alert('Éxito', 'Servicio creado correctamente');
     }
     setViewMode('list');
@@ -146,8 +159,14 @@ export default function ServiceManagement({ onClose, COLORS }) {
         {
           text: 'Eliminar',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             setServices(services.filter(s => s.id !== editingService.id));
+            await logActivity(
+                'Eliminó un servicio',
+                `Servicio eliminado: ${editingService.name}`,
+                'admin@admin.com',
+                0
+            );
             Alert.alert('Éxito', 'Servicio eliminado correctamente');
             setViewMode('list');
           }
