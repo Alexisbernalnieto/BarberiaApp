@@ -111,6 +111,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    // HISTORIAL / LOGS
+    match /logs/{logId} {
+      // Para pruebas, permitir lectura/escritura si está autenticado
+      allow read, write: if isSignedIn();
+    }
+    
     // Regla por defecto: Bloquear todo lo demás
     match /{document=**} {
       allow read, write: if false;
