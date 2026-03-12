@@ -1,10 +1,17 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { StatusBar, Platform } from 'react-native';
 import { LIGHT_THEME, DARK_THEME } from '../styles/theme';
 
-const ThemeContext = createContext();
+interface ThemeContextType {
+  theme: string;
+  toggleTheme: () => void;
+  COLORS: any;
+  isDarkMode: boolean;
+}
 
-export const ThemeProvider = ({ children }) => {
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState('dark');
   const COLORS = theme === 'dark' ? DARK_THEME : LIGHT_THEME;
   const isDarkMode = theme === 'dark';
@@ -28,4 +35,10 @@ export const ThemeProvider = ({ children }) => {
   );
 };
 
-export const useTheme = () => useContext(ThemeContext);
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};

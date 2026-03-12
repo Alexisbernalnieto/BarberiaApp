@@ -1,0 +1,111 @@
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { DollarSign, Users, TrendingUp } from 'lucide-react';
+
+interface AdminMetricsProps {
+  totalToday: number;
+  totalWalkins: number;
+  dateLabel: string;
+  COLORS: any;
+  isMobile: boolean;
+}
+
+export default function AdminMetrics({ totalToday, totalWalkins, dateLabel, COLORS, isMobile }: AdminMetricsProps) {
+  return (
+    <View style={[styles.metricRow, { gap: isMobile ? 16 : 24 }]}>
+      <View style={[styles.glassCard, { flex: 1 }]} data-metric-card="true">
+        <View style={styles.metricHeader}>
+          <View style={[styles.iconContainer, { backgroundColor: 'var(--gold-subtle)' }]}>
+            <DollarSign size={20} color="var(--gold)" strokeWidth={2.5} />
+          </View>
+          <Text style={styles.metricLabel}>Ingresos {dateLabel || 'hoy'}</Text>
+        </View>
+        <View style={styles.valueRow}>
+          <Text style={styles.metricValue}>${totalToday.toLocaleString()}</Text>
+          <View style={styles.trendBadge}>
+             <TrendingUp size={12} color="#10B981" />
+             <Text style={styles.trendText}>+12%</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.glassCard, { flex: 1 }]} data-metric-card="true">
+        <View style={styles.metricHeader}>
+          <View style={[styles.iconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+            <Users size={20} color="#3B82F6" strokeWidth={2.5} />
+          </View>
+          <Text style={styles.metricLabel}>Walk-ins</Text>
+        </View>
+        <View style={styles.valueRow}>
+          <Text style={styles.metricValue}>{totalWalkins}</Text>
+          <Text style={styles.subValue}>Clientes</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  metricRow: {
+    flexDirection: 'row',
+  },
+  glassCard: {
+    backgroundColor: 'var(--bg-card)',
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'var(--glass-border)',
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  metricLabel: {
+    color: 'var(--text-secondary)',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 12,
+  },
+  metricValue: {
+    color: '#FFF',
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -1,
+  },
+  trendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  trendText: {
+    color: '#10B981',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  subValue: {
+    color: 'var(--text-muted)',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  trendingUp: {
+      marginLeft: 'auto'
+  }
+});

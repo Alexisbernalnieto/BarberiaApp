@@ -1,6 +1,21 @@
-// src/services/appointments.js
 import { db } from '../firebaseClient';
 import { doc, runTransaction, Timestamp } from 'firebase/firestore';
+
+interface CreateAppointmentParams {
+  userId: string;
+  userName: string;
+  branch: string;
+  barberId: string;
+  barberName: string;
+  date: string;
+  time: string;
+  serviceId: string;
+  serviceName: string;
+  price: number;
+  duration: number;
+  type?: string;
+  paymentIntentId?: string;
+}
 
 /**
  * Crea una cita de forma segura usando Transacciones para evitar doble reserva.
@@ -20,9 +35,8 @@ export const createAppointment = async ({
   duration,
   type,
   paymentIntentId,
-}) => {
+}: CreateAppointmentParams) => {
   // ID Único para evitar duplicidad a nivel de base de datos
-  // Formato: app_BARBERID_YYYY-MM-DD_HH-MM
   const uniqueId = `app_${barberId}_${date}_${time}`.replace(/:/g, '-');
   const appointmentRef = doc(db, 'appointments', uniqueId);
 
@@ -47,7 +61,7 @@ export const createAppointment = async ({
         price,
         duration,
         type: type || 'Online',
-        paid: !!paymentIntentId, // Solo se marca como pagado si hay un ID de intención de pago
+        paid: !!paymentIntentId,
         paymentIntentId: paymentIntentId || null,
         status: 'confirmed',
         createdAt: Timestamp.now(),
@@ -61,10 +75,3 @@ export const createAppointment = async ({
     throw error;
   }
 };
-
-// TODO: Implementar cancelación de citas con reembolso Stripe
-// Se necesita:
-// 1. Una Cloud Function que llame a stripe.refunds.create({ payment_intent: paymentIntentId })
-// 2. Un método cancelAppointment() aquí que actualice el status a 'cancelled' en Firestore
-// 3. UI en UserDashboard/AdminDashboard para permitir cancelaciones
-

@@ -1,14 +1,21 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { collection, query, onSnapshot, where, orderBy, limit, Timestamp } from 'firebase/firestore';
+import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import { collection, query, onSnapshot, where, orderBy, limit, Unsubscribe } from 'firebase/firestore';
 import { db } from '../firebaseClient';
 import { useAuth } from './AuthContext';
+import { Appointment, User as AppUser } from '../types';
 
-const DataContext = createContext();
+interface DataContextType {
+  appointments: Appointment[];
+  barbers: AppUser[];
+  setBarbers: React.Dispatch<React.SetStateAction<AppUser[]>>;
+}
 
-export const DataProvider = ({ children }) => {
+const DataContext = createContext<DataContextType | undefined>(undefined);
+
+export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
-  const [appointments, setAppointments] = useState([]);
-  const [barbers, setBarbers] = useState([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [barbers, setBarbers] = useState<AppUser[]>([]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -17,39 +24,32 @@ export const DataProvider = ({ children }) => {
       return;
     }
 
-    // Calcular fecha de hace 30 días para limitar carga inicial en Admin
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-    let qAppointments;
-
-    // Helper for role comparison (supports numeric and string roles)
+    // Role check helper
     const r = currentUser.role;
     const isAdminOrRecep = r === 0 || r === 2 || r === 'admin' || r === 'reception';
     const isBarber = r === 3 || r === 'barber';
 
-    // 🔥 Filtrado profesional según rol
+    let qAppointments;
+
     if (isAdminOrRecep) {
-      // Admin y Recepción → Ver citas recientes (últimos 30 días + futuras)
       qAppointments = query(
         collection(db, 'appointments'),
         where('date', '>=', thirtyDaysAgoStr),
         orderBy('date', 'desc'),
-        limit(500) // Límite de seguridad para evitar crashes en móviles
+        limit(500)
       );
-    }
-    else if (isBarber) {
-      // Barbero → solo sus citas recientes
+    } else if (isBarber) {
       qAppointments = query(
         collection(db, 'appointments'),
         where('barberId', '==', currentUser.uid || currentUser.email),
         where('date', '>=', thirtyDaysAgoStr),
         orderBy('date', 'desc')
       );
-    }
-    else {
-      // Cliente → solo sus citas
+    } else {
       qAppointments = query(
         collection(db, 'appointments'),
         where('userId', '==', currentUser.email)
@@ -59,7 +59,7 @@ export const DataProvider = ({ children }) => {
     const unsubAppointments = onSnapshot(
       qAppointments,
       (snapshot) => {
-        const apps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const apps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
         setAppointments(apps);
       },
       (error) => {
@@ -67,16 +67,18 @@ export const DataProvider = ({ children }) => {
       }
     );
 
-    // 🔥 Cargar barberos — buscar por role numérico (3) o string ('barber')
     const qBarbers = query(collection(db, 'users'), where('role', 'in', [3, 'barber']));
     const unsubBarbers = onSnapshot(
       qBarbers,
       (snapshot) => {
-        const b = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const b = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { uid: doc.id, ...data } as AppUser;
+        });
         setBarbers(b);
       },
       () => {
-        // Si no tiene permisos, ignoramos
+        // Ignore permission errors
       }
     );
 
@@ -93,4 +95,10 @@ export const DataProvider = ({ children }) => {
   );
 };
 
-export const useData = () => useContext(DataContext);
+export const useData = () => {
+  const context = useContext(DataContext);
+  if (context === undefined) {
+    throw new Error('useData must be used within a DataProvider');
+  }
+  return context;
+};

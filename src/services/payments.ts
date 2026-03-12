@@ -1,16 +1,20 @@
-// src/services/payments.js
+// src/services/payments.ts
 const PAYMENT_ENDPOINT = "https://us-central1-barberia-app-c4c2b.cloudfunctions.net/createPaymentIntentWeb";
+
+interface PaymentResponse {
+  clientSecret: string;
+}
 
 /**
  * Crea un PaymentIntent en Stripe para el monto dado.
- * @param {number} price — Precio en MXN (ej: 300 para $300 MXN)
- * @returns {{ clientSecret: string }} — El client secret del PaymentIntent
+ * @param price — Precio en MXN (ej: 300 para $300 MXN)
+ * @returns El client secret del PaymentIntent
  */
-export const createPaymentIntentWeb = async (price) => {
+export const createPaymentIntentWeb = async (price: number): Promise<PaymentResponse> => {
     const res = await fetch(PAYMENT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: price }), // Enviar precio en pesos, la Cloud Function convierte a centavos
+        body: JSON.stringify({ amount: price }),
     });
 
     if (!res.ok) {

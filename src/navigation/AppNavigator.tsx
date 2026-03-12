@@ -9,12 +9,12 @@ import UserDashboard from '../components/UserDashboard';
 import AdminDashboard from '../components/AdminDashboard';
 import BarberDashboard from '../components/BarberDashboard';
 
-// 🔥 Importamos el servicio oficial para crear citas
 import { createAppointment } from '../services/appointments';
+import { UserRole } from '../types';
 
 export default function AppNavigator() {
   const { currentUser, loading, logout } = useAuth();
-  const { theme, COLORS, toggleTheme, isDarkMode } = useTheme();
+  const { COLORS, toggleTheme, isDarkMode } = useTheme();
   const { appointments, barbers, setBarbers } = useData();
 
   if (loading) {
@@ -29,8 +29,7 @@ export default function AppNavigator() {
     return <AuthScreen />;
   }
 
-  // Helper: roles can be numeric (0,1,2,3) or string ('admin','reception','barber','client')
-  const isRole = (roleName) => {
+  const isRole = (roleName: 'admin' | 'reception' | 'barber' | 'client'): boolean => {
     const r = currentUser.role;
     switch (roleName) {
       case 'admin': return r === 0 || r === 'admin';
@@ -41,7 +40,6 @@ export default function AppNavigator() {
     }
   };
 
-  // Render Dashboard based on Role
   if (isRole('admin')) {
     return (
       <AdminDashboard
@@ -74,7 +72,7 @@ export default function AppNavigator() {
   } else if (isRole('barber')) {
     return (
       <BarberDashboard
-        role={currentUser.role}
+        role={currentUser.role as UserRole}
         user={currentUser}
         appointments={appointments}
         onLogout={logout}
@@ -84,7 +82,6 @@ export default function AppNavigator() {
       />
     );
   } else {
-    // Default: User Dashboard (client)
     return (
       <UserDashboard
         user={currentUser}
