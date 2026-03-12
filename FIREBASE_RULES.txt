@@ -58,30 +58,35 @@ service cloud.firestore {
 
     // CITAS (Appointments)
     match /appointments/{appointmentId} {
-      // Crear: Cualquier usuario autenticado
-      allow create: if isSignedIn();
-      
-      // Leer:
-      // - Dueño de la cita (verifica por email o uid)
-      // - Staff (Admin, Recepción, Barbero)
-      // Nota: El Barbero filtra visualmente, pero tiene permiso de lectura general
+      // Leer: Dueño o Staff
       allow read: if isSignedIn() && (
         resource.data.userId == request.auth.token.email || 
         resource.data.userId == request.auth.uid || 
         isStaff()
       );
-      
-      // Actualizar:
-      // - Dueño de la cita
-      // - Staff
-      allow update: if isSignedIn() && (
-        resource.data.userId == request.auth.token.email || 
-        resource.data.userId == request.auth.uid || 
+
+      // Crear: 
+      allow create: if isSignedIn() && (
+        // Regla 1: Si es un cliente, NO puede marcarse como pagado sin un paymentIntentId
+        (getUserRole() == 1 && 
+         request.resource.data.paid == true && 
+         request.resource.data.paymentIntentId != null &&
+         request.resource.data.userId == request.auth.token.email) ||
+        
+        // Regla 2: Staff puede crear citas (ej. Walk-ins)
         isStaff()
       );
       
-      // Eliminar:
-      // - Solo Admin o Recepción
+      // Actualizar:
+      allow update: if isSignedIn() && (
+        // Solo Admin o Recepción pueden marcar como pagado o completar
+        (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paid', 'paymentMethod', 'status', 'paidAt'])) ||
+        
+        // El dueño puede cancelar? (A implementar después)
+        (isOwner(resource.data.userId) && request.resource.data.status == 'cancelled')
+      );
+      
+      // Eliminar: Solo Admin o Recepción
       allow delete: if isAdmin() || isReception();
     }
 

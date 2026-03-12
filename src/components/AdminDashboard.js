@@ -118,7 +118,7 @@ export default function AdminDashboard({ appointments, onLogout, onAddAppointmen
   const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const dateLabel = `${selectedDate.getDate()} ${MONTHS_SHORT[selectedDate.getMonth()]}`;
 
-  const handleWalkIn = (data) => {
+  const handleWalkIn = async (data) => {
     // Today's date for comparison
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -128,13 +128,17 @@ export default function AdminDashboard({ appointments, onLogout, onAddAppointmen
       userId: data.userId || 'admin-walkin',
       status: data.date === todayStr ? 'En Local' : 'Confirmado',
       // type already set by BookingWizard (Walk-in if same day, Online if future)
-      isPaid: true
+      paid: true // Walk-ins created by admin are marked as paid (or handled in checkout)
     };
-    onAddAppointment(walkInData);
-    if (role === 'reception') {
-      // En modo kiosco, el BookingWizard lo maneja con onConfirm
-    } else {
-      setViewMode('dashboard');
+
+    try {
+      await onAddAppointment(walkInData);
+      if (role !== 'reception') {
+        setViewMode('dashboard');
+      }
+    } catch (error) {
+      console.error("Error creating walk-in:", error);
+      Alert.alert("Error", error.message || "No se pudo agendar la cita. Verifique el horario.");
     }
   };
 

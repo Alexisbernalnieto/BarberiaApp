@@ -65,19 +65,32 @@ export default function UserDashboard({ user, appointments, onLogout, COLORS, to
     return myAppointments.find(app => app.date >= todayStr) || null;
   }, [myAppointments, todayStr]);
 
-  // Cuando el usuario termina el wizard → NO guardamos aún, solo preparamos pago
+  // Cuando el usuario termina el wizard → Soft-reserve del slot antes del pago
   const handleNewBooking = async (data) => {
-    setPendingAppointment(data);
     setPaymentMessage("");
+    setLoading(true);
 
     try {
-      // Enviar precio en pesos (la Cloud Function convierte a centavos)
+      // 1. Intentar crear la cita con estado 'Pending' para bloquear el slot
+      // Esto fallará si alguien más lo ganó mientras el usuario navegaba el wizard
+      const newApp = await createAppointment({
+        ...data,
+        status: 'pending_payment',
+        paid: false
+      });
+
+      setPendingAppointment(newApp);
+
+      // 2. Si el slot se bloqueó con éxito, preparamos el pago
       const json = await createPaymentIntentWeb(data.price || 0);
       setClientSecret(json.clientSecret);
       setShowPayment(true);
     } catch (error) {
-      console.error("Error creando PaymentIntent:", error);
-      setPaymentMessage("Error al preparar el pago: " + error.message);
+      console.error("Error al iniciar reserva:", error);
+      setPaymentMessage(error.message || "Error al preparar la reserva.");
+      Alert.alert("Error", error.message || "No se pudo reservar el horario.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,24 +111,21 @@ export default function UserDashboard({ user, appointments, onLogout, COLORS, to
     if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
       setPaymentMessage("Pago completado con éxito 🎉");
 
-      // Guardar cita en Firestore DESPUÉS del pago
-      await createAppointment({
-        userId: pendingAppointment.userId,
-        userName: pendingAppointment.userName,
-        branch: pendingAppointment.branch,
-        barberId: pendingAppointment.barberId,
-        barberName: pendingAppointment.barberName,
-        date: pendingAppointment.date,
-        time: pendingAppointment.time,
-        serviceId: pendingAppointment.serviceId,
-        serviceName: pendingAppointment.serviceName,
-        price: pendingAppointment.price,
-        duration: pendingAppointment.duration,
-        type: pendingAppointment.type,
-        paymentIntentId: result.paymentIntent.id,
-      });
+      // 3. Confirmar la cita que ya estaba en 'Pending'
+      try {
+        const appRef = doc(db, 'appointments', pendingAppointment.id);
+        await updateDoc(appRef, {
+          paid: true,
+          status: 'confirmed',
+          paymentIntentId: result.paymentIntent.id,
+          paidAt: Timestamp.now()
+        });
+      } catch (e) {
+        console.error("Error al confirmar pago en Firestore:", e);
+        // La cita ya está en 'pending_payment' con el userId, así que es rastreable
+      }
 
-      // Limpiar estado de pago y cita pendiente
+      // Limpiar estado
       setShowPayment(false);
       setPendingAppointment(null);
       setClientSecret(null);
