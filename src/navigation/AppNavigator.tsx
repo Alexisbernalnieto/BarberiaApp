@@ -11,11 +11,64 @@ import BarberDashboard from '../components/BarberDashboard';
 
 import { createAppointment } from '../services/appointments';
 import { UserRole } from '../types';
+import { SidebarProvider } from '../context/SidebarContext';
 
 export default function AppNavigator() {
   const { currentUser, loading, logout } = useAuth();
   const { COLORS, toggleTheme, isDarkMode } = useTheme();
   const { appointments, barbers, setBarbers } = useData();
+
+  const isRole = (roleName: 'admin' | 'reception' | 'barber' | 'client'): boolean => {
+    if (!currentUser) return false;
+    const r = currentUser.role;
+    switch (roleName) {
+      case 'admin': return r === 0 || r === 'admin';
+      case 'reception': return r === 2 || r === 'reception';
+      case 'barber': return r === 3 || r === 'barber';
+      case 'client': return r === 1 || r === 'client';
+      default: return false;
+    }
+  };
+
+  const renderDashboard = () => {
+    if (isRole('admin')) {
+      return (
+        <AdminDashboard
+          appointments={appointments}
+          onLogout={logout}
+          onAddAppointment={createAppointment}
+          barbers={barbers}
+          setBarbers={setBarbers}
+          COLORS={COLORS}
+          toggleTheme={toggleTheme}
+          isDarkMode={isDarkMode}
+        />
+      );
+    } else if (isRole('barber')) {
+      return (
+        <BarberDashboard
+          user={currentUser}
+          appointments={appointments}
+          onLogout={logout}
+          COLORS={COLORS}
+          toggleTheme={toggleTheme}
+          isDarkMode={isDarkMode}
+        />
+      );
+    } else {
+      return (
+        <UserDashboard
+          user={currentUser}
+          appointments={appointments}
+          onLogout={logout}
+          COLORS={COLORS}
+          toggleTheme={toggleTheme}
+          isDarkMode={isDarkMode}
+          barbers={barbers}
+        />
+      );
+    }
+  };
 
   if (loading) {
     return (
@@ -29,54 +82,11 @@ export default function AppNavigator() {
     return <AuthScreen />;
   }
 
-  const isRole = (roleName: 'admin' | 'reception' | 'barber' | 'client'): boolean => {
-    const r = currentUser.role;
-    switch (roleName) {
-      case 'admin': return r === 0 || r === 'admin';
-      case 'reception': return r === 2 || r === 'reception';
-      case 'barber': return r === 3 || r === 'barber';
-      case 'client': return r === 1 || r === 'client';
-      default: return false;
-    }
-  };
-
-  if (isRole('admin')) {
-    return (
-      <AdminDashboard
-        appointments={appointments}
-        onLogout={logout}
-        onAddAppointment={createAppointment}
-        barbers={barbers}
-        setBarbers={setBarbers}
-        COLORS={COLORS}
-        toggleTheme={toggleTheme}
-        isDarkMode={isDarkMode}
-      />
-    );
-  } else if (isRole('barber')) {
-    return (
-      <BarberDashboard
-        user={currentUser}
-        appointments={appointments}
-        onLogout={logout}
-        COLORS={COLORS}
-        toggleTheme={toggleTheme}
-        isDarkMode={isDarkMode}
-      />
-    );
-  } else {
-    return (
-      <UserDashboard
-        user={currentUser}
-        appointments={appointments}
-        onLogout={logout}
-        COLORS={COLORS}
-        toggleTheme={toggleTheme}
-        isDarkMode={isDarkMode}
-        barbers={barbers}
-      />
-    );
-  }
+  return (
+    <SidebarProvider>
+      {renderDashboard()}
+    </SidebarProvider>
+  );
 }
 
 const styles = StyleSheet.create({

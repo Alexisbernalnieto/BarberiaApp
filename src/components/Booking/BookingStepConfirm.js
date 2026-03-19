@@ -14,6 +14,7 @@ export default function BookingStepConfirm({
   selectedBarber,
   selectedDate,
   selectedTime,
+  isPaid,
 }) {
   return (
     <ScrollView
@@ -104,7 +105,7 @@ export default function BookingStepConfirm({
       </View>
 
       <Text style={styles.paymentNote}>
-        * El pago se realizará en el establecimiento.
+        {isPaid ? 'Pago confirmado con éxito vía Stripe.' : '* El pago se realizará en el establecimiento.'}
       </Text>
     </ScrollView>
   );

@@ -1,71 +1,64 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { PlusCircle, MonitorPlay, Users, Settings, Scissors } from 'lucide-react';
+import { TrendingUp, Scissors, Tag, History } from 'lucide-react';
 
 const AdminQuickActions = ({ setViewMode, COLORS, isMobile }: any) => {
   const actions = [
-    { id: 'walkin', label: 'Nuevo Walk-in', icon: PlusCircle, color: 'var(--gold)' },
-    { id: 'queue', label: 'Monitor de Turnos', icon: MonitorPlay, color: '#10B981' },
-    { id: 'barbers', label: 'Gestionar Barberos', icon: Scissors, color: '#3B82F6' },
+    { id: 'finances', label: 'Finanzas', icon: TrendingUp },
+    { id: 'barbers', label: 'Barberos', icon: Scissors },
+    { id: 'services', label: 'Servicios', icon: Tag },
+    { id: 'history', label: 'Historial', icon: History },
   ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Acciones Rápidas</Text>
-      <View style={styles.grid}>
-        {actions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <TouchableOpacity 
-              key={action.id} 
-              style={styles.actionCard}
-              onPress={() => setViewMode(action.id)}
-            >
-              <View style={[styles.iconBox, { backgroundColor: `${action.color}15` }]}>
-                <Icon size={24} color={action.color} />
-              </View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+    <View style={styles.grid}>
+      {actions.map((action) => {
+        const Icon = action.icon;
+        return (
+          <TouchableOpacity 
+            key={action.id} 
+            style={[styles.actionCard, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.1)' }]}
+            onPress={() => setViewMode(action.id)}
+          >
+            <View style={[styles.iconBox, { backgroundColor: 'rgba(255,255,255,0.03)' }]}>
+              <Icon size={24} color={COLORS.primary} />
+            </View>
+            <Text style={[styles.actionLabel, { color: COLORS.text }]}>{action.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 16,
-  },
-  title: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
   grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
+    justifyContent: 'space-between',
   },
   actionCard: {
-    backgroundColor: 'var(--bg-card)',
-    borderRadius: 20,
+    width: '48%', // Approx half for 2x2 grid
+    aspectRatio: 1, // Square cards
+    borderRadius: 24,
     padding: 16,
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    justifyContent: 'center',
+    gap: 12,
     borderWidth: 1,
-    borderColor: 'var(--glass-border)',
   },
   iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionLabel: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
 

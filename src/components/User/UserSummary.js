@@ -1,9 +1,11 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function UserSummary({ nextAppointment, activeTab, setActiveTab, COLORS, isMobile }) {
-  const styles = getStyles(COLORS, isMobile);
+export default function UserSummary({ nextAppointment, activeTab, setActiveTab, COLORS }) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const styles = getStyles(COLORS, isMobile, width);
 
   return (
     <View style={styles.dashboardSummary}>
@@ -82,13 +84,12 @@ export default function UserSummary({ nextAppointment, activeTab, setActiveTab, 
   );
 }
 
-const getStyles = (COLORS, isMobile) => StyleSheet.create({
+const getStyles = (COLORS, isMobile, width) => StyleSheet.create({
   dashboardSummary: {
     paddingHorizontal: isMobile ? 20 : 48,
     paddingTop: 0,
-    backgroundColor: COLORS.background,
+    gap: 32,
   },
-
   // TAB BAR
   tabBar: {
     flexDirection: 'row',
@@ -105,9 +106,6 @@ const getStyles = (COLORS, isMobile) => StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: isMobile ? 16 : 24,
     position: 'relative',
-    ...Platform.select({
-      web: { cursor: 'pointer', transition: 'all 0.2s ease' },
-    }),
   },
   tabActive: {},
   tabText: {
@@ -129,68 +127,68 @@ const getStyles = (COLORS, isMobile) => StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 1,
   },
-
   // HERO CARD
   heroCard: {
-    flexDirection: 'row',
+    borderRadius: 24,
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.12)' : 'rgba(0,0,0,0.06)',
+    borderColor: 'rgba(212, 175, 55, 0.2)',
     overflow: 'hidden',
     marginBottom: 8,
     ...Platform.select({
       web: {
-        boxShadow: COLORS.mode === 'dark'
-          ? '0 4px 24px rgba(0,0,0,0.3), 0 0 60px rgba(212, 175, 55, 0.03)'
-          : '0 4px 16px rgba(0,0,0,0.06)',
-      },
-      default: {
-        ...COLORS.shadows.medium,
+        boxShadow: COLORS.mode === 'dark' ? '0 20px 40px rgba(0,0,0,0.4)' : '0 10px 20px rgba(0,0,0,0.05)',
       },
     }),
   },
   heroAccent: {
     width: 4,
     backgroundColor: COLORS.primary,
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
   },
   heroContent: {
     flex: 1,
-    flexDirection: isMobile ? 'column' : 'row',
-    alignItems: isMobile ? 'flex-start' : 'center',
-    padding: isMobile ? 16 : 20,
-    gap: isMobile ? 12 : 24,
+    flexDirection: width < 600 ? 'column' : 'row',
+    alignItems: 'center',
+    padding: width < 600 ? 16 : 24,
+    gap: 20,
+    marginLeft: 4,
   },
   heroLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    flex: isMobile ? undefined : 1,
+    gap: 16,
+    flex: width < 600 ? undefined : 1,
   },
   heroIconWrap: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(212, 175, 55, 0.08)',
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
   },
   heroLabel: {
     color: COLORS.textSecondary,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 1.5,
     marginBottom: 2,
   },
   heroService: {
     color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
   },
   heroDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: isMobile ? 8 : 12,
+    gap: 12,
     flexWrap: 'wrap',
   },
   heroDetail: {
@@ -211,16 +209,14 @@ const getStyles = (COLORS, isMobile) => StyleSheet.create({
     opacity: 0.4,
   },
   heroPriceBadge: {
-    backgroundColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(212, 175, 55, 0.08)',
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(212, 175, 55, 0.15)',
   },
   heroPrice: {
     color: COLORS.primary,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
   },
 });

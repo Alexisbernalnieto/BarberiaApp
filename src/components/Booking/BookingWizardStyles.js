@@ -146,7 +146,7 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
           transition: 'all 0.3s ease',
           boxShadow: COLORS.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)',
         },
-        default: COLORS.shadows.light,
+        default: COLORS.shadows?.light || {},
       }),
     },
     activeBranchCard: {
@@ -157,7 +157,7 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
           transform: [{ scale: 1.02 }],
         },
         default: {
-          ...COLORS.shadows.strong,
+          ...(COLORS.shadows?.strong || {}),
           transform: [{ scale: 1.02 }],
         },
       }),
@@ -208,7 +208,7 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
           transition: 'all 0.25s ease',
           boxShadow: COLORS.mode === 'dark' ? '0 2px 12px rgba(0,0,0,0.2)' : '0 1px 6px rgba(0,0,0,0.04)',
         },
-        default: COLORS.shadows.light,
+        default: COLORS.shadows?.light || {},
       }),
     },
     activeServiceCard: {
@@ -217,7 +217,7 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
         web: {
           boxShadow: '0 4px 20px rgba(212, 175, 55, 0.15)',
         },
-        default: COLORS.shadows.medium,
+        default: COLORS.shadows?.medium || {},
       }),
     },
     serviceRow: {
@@ -270,7 +270,7 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
           transition: 'all 0.3s ease',
           boxShadow: COLORS.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)',
         },
-        default: COLORS.shadows.light,
+        default: COLORS.shadows?.light || {},
       }),
     },
     activeBarberCard: {
@@ -279,7 +279,7 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
         web: {
           boxShadow: '0 8px 32px rgba(212, 175, 55, 0.2)',
         },
-        default: COLORS.shadows.medium,
+        default: COLORS.shadows?.medium || {},
       }),
     },
     avatarBig: {
@@ -342,7 +342,7 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
         web: {
           boxShadow: COLORS.mode === 'dark' ? '0 4px 24px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)',
         },
-        default: COLORS.shadows.light,
+        default: COLORS.shadows?.light || {},
       }),
     },
     calendar: {
@@ -451,7 +451,7 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
             ? '0 20px 50px rgba(0,0,0,0.4), 0 0 80px rgba(212, 175, 55, 0.05)'
             : '0 10px 40px rgba(0,0,0,0.1)',
         },
-        default: COLORS.shadows.strong,
+        default: COLORS.shadows?.strong || {},
       }),
     },
     ticketHeader: {
@@ -579,42 +579,64 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
     nextBtn: {
       ...Platform.select({
         web: {
-          background: 'linear-gradient(135deg, #D4AF37 0%, #AA8C2C 100%)',
-          boxShadow: '0 8px 24px rgba(212, 175, 55, 0.3)',
+          backgroundImage: 'linear-gradient(135deg, #FFD700 0%, #D4AF37 50%, #AA8C2C 100%)',
+          boxShadow: '0 8px 16px rgba(212, 175, 55, 0.25), 0 12px 24px rgba(0,0,0,0.3)',
+          transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          borderWidth: 0,
         },
         default: {
           backgroundColor: COLORS.primary,
-          ...COLORS.shadows.medium,
+          ...(COLORS.shadows?.medium || {}),
         },
       }),
     },
     nextBtnText: {
       color: '#000',
-      fontWeight: '800',
-      letterSpacing: 1,
+      fontWeight: '900',
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      fontSize: 15,
+      ...Platform.select({
+          web: {
+              textShadow: '0 1px 1px rgba(255,255,255,0.3)',
+          }
+      })
     },
     confirmBtn: {
-      backgroundColor: COLORS.success,
       ...Platform.select({
         web: {
-          boxShadow: '0 8px 24px rgba(46, 125, 50, 0.3)',
+          backgroundImage: 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)',
+          boxShadow: '0 8px 16px rgba(46, 204, 113, 0.25), 0 12px 24px rgba(0,0,0,0.3)',
+          transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          borderWidth: 0,
+          transform: 'scale(1.02)',
         },
-        default: COLORS.shadows.medium,
+        default: {
+          backgroundColor: COLORS.success,
+          ...(COLORS.shadows?.medium || {}),
+        },
       }),
     },
     confirmBtnText: {
       color: '#FFF',
-      fontWeight: '800',
-      letterSpacing: 1,
+      fontWeight: '900',
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      fontSize: 15,
+      ...Platform.select({
+          web: {
+              textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+          }
+      })
     },
     disabledBtn: {
       opacity: 0.4,
-      backgroundColor: COLORS.disabled,
-      borderColor: COLORS.disabled,
+      backgroundColor: COLORS.disabled || '#999',
+      borderColor: COLORS.disabled || '#999',
       ...Platform.select({
         web: {
           boxShadow: 'none',
-          background: COLORS.disabled,
+          background: COLORS.disabled || '#999',
         },
       }),
     },

@@ -9,6 +9,7 @@ export interface AppUser {
   role: UserRole;
   phone?: string;
   branch?: string;
+  stripeCustomerId?: string;
 }
 
 export interface Service {
@@ -41,3 +42,23 @@ export interface Appointment {
   paidAt?: any;
   createdAt: any;
 }
+
+export interface Branch {
+  id: string;
+  name: string;
+  address: string;
+  phone?: string;
+  image?: string;
+}
+export interface ActivityLog {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  adminRole: 'admin' | 'reception';
+  action: string; // e.g., 'Cambió el rol de un usuario'
+  targetUserId?: string;
+  targetUserEmail?: string;
+  details: string; // e.g., 'Nuevo Rol: CLIENTE'
+  timestamp: any;
+}
+

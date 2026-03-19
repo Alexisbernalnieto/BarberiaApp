@@ -41,6 +41,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  const getRoleLabel = (r: string | number | undefined) => {
+    if (r === 0 || r === 'admin') return 'Administrador';
+    if (r === 2 || r === 'reception') return 'Recepción';
+    if (r === 3 || r === 'barber') return 'Barbero';
+    return 'Cliente';
+  };
+
   useEffect(() => {
     if (isMobile) {
       if (isOpen) {
@@ -68,10 +75,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
   ];
 
   const clientItems = [
+    { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
     { id: 'book', label: 'Agendar Cita', icon: PlusCircle },
     { id: 'appointments', label: 'Mis Citas', icon: Calendar },
+    { id: 'payments', label: 'Métodos de Pago', icon: CreditCard },
     { id: 'profile', label: 'Mi Perfil', icon: Users },
-    { id: 'settings', label: 'Ajustes', icon: Settings },
   ];
 
   const barberItems = [
@@ -92,15 +100,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
   };
 
   const renderContent = () => (
-    <View style={[styles.sidebarInner, { backgroundColor: 'var(--bg-sidebar)' }]}>
+    <View style={[styles.sidebarInner, { backgroundColor: COLORS.background }]}>
       <View style={styles.brandContainer}>
-        <View style={[styles.logo, { borderColor: 'var(--gold)' }]}>
-          <Text style={[styles.logoText, { color: 'var(--gold)' }]}>B</Text>
+        <View style={[styles.logo, { borderColor: COLORS.primary }]}>
+          <Text style={[styles.logoText, { color: COLORS.primary }]}>B</Text>
         </View>
         <Text style={styles.brandName}>EL CORONEL</Text>
         {isMobile && (
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <X size={24} color="#FFF" />
+            <X size={24} color={COLORS.text} />
           </TouchableOpacity>
         )}
       </View>
@@ -121,19 +129,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
             >
               <Icon 
                 size={20} 
-                color={isActive ? 'var(--gold)' : 'var(--text-secondary)'} 
+                color={isActive ? COLORS.primary : COLORS.textSecondary} 
                 strokeWidth={isActive ? 2.5 : 2}
               />
               <Text 
                 style={[
                   styles.menuLabel, 
-                  { color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)' },
+                  { color: isActive ? COLORS.text : COLORS.textSecondary },
                   isActive && styles.activeLabel
                 ]}
               >
                 {item.label}
               </Text>
-              {isActive && <View style={[styles.indicator, { backgroundColor: 'var(--gold)' }]} />}
+              {isActive && <View style={[styles.indicator, { backgroundColor: COLORS.primary }]} />}
             </TouchableOpacity>
           );
         })}
@@ -147,11 +155,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
           </View>
           <View style={styles.userDetails}>
             <Text style={styles.userName} numberOfLines={1}>{currentUser?.name || 'Usuario'}</Text>
-            <Text style={styles.userRole} numberOfLines={1}>{currentUser?.role}</Text>
+            <Text style={styles.userRole} numberOfLines={1}>{getRoleLabel(role)}</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <LogOut size={18} color="#EF4444" />
+          <LogOut size={18} color={COLORS.error} />
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
       </View>
@@ -182,7 +190,7 @@ const styles = StyleSheet.create({
   sidebarDesktop: {
     width: 280,
     borderRightWidth: 1,
-    borderColor: 'var(--glass-border)',
+    borderColor: 'rgba(212, 175, 55, 0.1)',
     height: Platform.OS === 'web' ? ('100vh' as any) : '100%',
     position: Platform.OS === 'web' ? ('fixed' as any) : 'relative',
     left: 0,
@@ -269,7 +277,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'var(--glass-border)',
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
     marginBottom: 24,
   },
   userSection: {
@@ -281,14 +289,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'var(--glass-surface)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'var(--glass-border)',
+    borderColor: 'rgba(212, 175, 55, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    color: 'var(--gold)',
+    color: '#D4AF37',
     fontWeight: 'bold',
   },
   userDetails: {
@@ -301,7 +309,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   userRole: {
-    color: 'var(--text-secondary)',
+    color: 'rgba(255,255,255,0.5)',
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1,

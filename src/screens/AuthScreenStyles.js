@@ -143,24 +143,24 @@ export const getSplitStyles = (COLORS, isMobile) =>
     formCard: {
       width: '100%',
       maxWidth: 420,
-      backgroundColor: COLORS.mode === 'dark' ? 'rgba(26,26,26,0.8)' : 'rgba(255,255,255,0.95)',
-      padding: 40,
-      borderRadius: 24,
+      backgroundColor: COLORS.mode === 'dark' ? 'rgba(26,26,26,0.85)' : 'rgba(255,255,255,0.98)',
+      padding: isMobile ? 32 : 48,
+      borderRadius: 32,
       borderWidth: 1,
-      borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.12)' : 'rgba(0,0,0,0.06)',
+      borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.15)' : 'rgba(0,0,0,0.08)',
       ...Platform.select({
         web: {
-          backdropFilter: 'blur(20px)',
+          backdropFilter: 'blur(30px)',
           boxShadow: COLORS.mode === 'dark'
-            ? '0 25px 50px rgba(0,0,0,0.5), 0 0 80px rgba(212, 175, 55, 0.03)'
-            : '0 25px 50px rgba(0,0,0,0.08)',
+            ? '0 30px 60px rgba(0,0,0,0.6), 0 0 100px rgba(212, 175, 55, 0.05)'
+            : '0 20px 40px rgba(0,0,0,0.1)',
         },
         default: {
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 20 },
-          shadowOpacity: 0.15,
-          shadowRadius: 30,
-          elevation: 15,
+          shadowOpacity: 0.2,
+          shadowRadius: 40,
+          elevation: 20,
         },
       }),
     },
@@ -194,15 +194,16 @@ export const getSplitStyles = (COLORS, isMobile) =>
     inputWrapper: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-      borderRadius: 14,
+      backgroundColor: COLORS.mode === 'dark' ? '#121212' : '#FFFFFF', // More solid background
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-      paddingHorizontal: 18,
-      height: 56,
+      borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(0,0,0,0.1)',
+      paddingHorizontal: 20,
+      height: 60,
+      overflow: 'hidden',
       ...Platform.select({
         web: {
-          transition: 'all 0.3s ease',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         },
       }),
     },
@@ -210,12 +211,14 @@ export const getSplitStyles = (COLORS, isMobile) =>
       flex: 1,
       marginLeft: 14,
       color: COLORS.text,
-      fontSize: 15,
+      fontSize: 16,
       height: '100%',
+      paddingVertical: Platform.OS === 'web' ? 12 : 0,
       backgroundColor: 'transparent',
       ...Platform.select({
         web: {
           outline: 'none',
+          boxShadow: 'none',
         },
       }),
     },
@@ -235,33 +238,33 @@ export const getSplitStyles = (COLORS, isMobile) =>
 
     // === BUTTONS ===
     primaryBtn: {
-      borderRadius: 14,
-      height: 56,
+      borderRadius: 18,
+      height: 60,
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: 12,
-      marginBottom: 28,
+      marginTop: 18,
+      marginBottom: 32,
+      backgroundColor: '#D4AF37', // Solid Luxury Gold for best contrast
       ...Platform.select({
         web: {
-          background: 'linear-gradient(135deg, #D4AF37 0%, #AA8C2C 100%)',
+          background: 'linear-gradient(135deg, #FFD700 0%, #D4AF37 50%, #AA8C2C 100%)',
           cursor: 'pointer',
           transition: 'all 0.3s ease',
-          boxShadow: '0 8px 24px rgba(212, 175, 55, 0.3)',
+          boxShadow: '0 12px 32px rgba(212, 175, 55, 0.4)',
         },
         default: {
-          backgroundColor: COLORS.primary,
-          shadowColor: COLORS.primary,
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.35,
-          shadowRadius: 16,
-          elevation: 8,
+          shadowColor: '#D4AF37',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.4,
+          shadowRadius: 20,
+          elevation: 10,
         },
       }),
     },
     primaryBtnText: {
-      color: '#000',
-      fontSize: 14,
-      fontWeight: '800',
+      color: '#000', // Black text is much better on gold
+      fontSize: 15,
+      fontWeight: '900',
       letterSpacing: 2,
       textTransform: 'uppercase',
     },

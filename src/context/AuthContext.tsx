@@ -11,7 +11,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, getDocFromCache, setDoc, DocumentReference } from 'firebase/firestore';
 import { auth, db } from '../firebaseClient';
-import { User, UserRole } from '../types';
+import { AppUser, UserRole } from '../types';
 
 interface AuthContextType {
   currentUser: any;
@@ -30,17 +30,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          setCurrentUser({ ...userDoc.data(), uid: user.uid, email: user.email });
+      try {
+        if (user) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setCurrentUser({ ...userDoc.data(), uid: user.uid, email: user.email });
+          } else {
+            setCurrentUser({ uid: user.uid, email: user.email, role: 'client' });
+          }
         } else {
-          setCurrentUser({ uid: user.uid, email: user.email, role: 'client' });
+          setCurrentUser(null);
         }
-      } else {
+      } catch (error) {
+        console.error("Auth error:", error);
         setCurrentUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, []);

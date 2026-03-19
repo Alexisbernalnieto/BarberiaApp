@@ -2,10 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { Calendar, Clock, TrendingUp, Scissors, ChevronRight, Sun, Moon, LogOut, CheckCircle2, Menu } from 'lucide-react';
 import MainLayout from './Navigation/MainLayout';
+import { useSidebar } from '../context/SidebarContext';
 
-export default function BarberDashboard({ appointments, user, onLogout, COLORS, toggleTheme, isDarkMode, isMobile: isMobileProp, setSidebarOpen }: any) {
+export default function BarberDashboard({ appointments, user, onLogout, COLORS, toggleTheme, isDarkMode, isMobile: isMobileProp }: any) {
     const { width } = useWindowDimensions();
     const isMobile = isMobileProp ?? width < 768;
+    const { setIsOpen } = useSidebar();
     const [activeTab, setActiveTab] = useState('dashboard');
 
     const myAppointments = useMemo(() => {
@@ -19,7 +21,7 @@ export default function BarberDashboard({ appointments, user, onLogout, COLORS, 
                     <View style={styles.header}>
                         <View style={styles.headerTitleRow}>
                             {isMobile && (
-                                <TouchableOpacity onPress={() => setSidebarOpen?.(true)} style={styles.menuBtn}>
+                                <TouchableOpacity onPress={() => setIsOpen(true)} style={styles.menuBtn}>
                                     <Menu size={24} color="var(--gold)" />
                                 </TouchableOpacity>
                             )}

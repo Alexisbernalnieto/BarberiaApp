@@ -1,167 +1,272 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { Calendar, Clock, Scissors, User as UserIcon, CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, useWindowDimensions, TextInput } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '../../context/AuthContext';
+import { useData } from '../../context/DataContext';
+import { createAppointment } from '../../services/appointments';
 
-const BookingWizard = ({ user, existingAppointments, onConfirm, onCancel, COLORS, barbers, isWalkIn }: any) => {
-  const [step, setStep] = useState(1);
-  const [data, setData] = useState({
-    service: null as any,
-    barber: null as any,
-    date: null as any,
-    time: null as any,
-  });
+// Componentes de pasos originales (estilo retro-moderno)
+import BookingProgressBar from './BookingProgressBar';
+import BookingStepBranch from './BookingStepBranch';
+import BookingStepServices from './BookingStepServices';
+import BookingStepBarbers from './BookingStepBarbers';
+import BookingStepDateTime from './BookingStepDateTime';
+import BookingStepConfirm from './BookingStepConfirm';
+import BookingStepPayment from './BookingStepPayment';
+import { getBookingWizardStyles } from './BookingWizardStyles';
 
-  const nextStep = () => setStep(s => s + 1);
-  const prevStep = () => setStep(s => s - 1);
+export const STEPS = [
+  { id: 1, title: 'Sucursal', icon: 'office-building' },
+  { id: 2, title: 'Servicio', icon: 'content-cut' },
+  { id: 3, title: 'Barbero', icon: 'account-tie' },
+  { id: 4, title: 'Horario', icon: 'clock-outline' },
+  { id: 5, title: 'Pago', icon: 'credit-card' },
+  { id: 6, title: 'Confirmar', icon: 'check-decagram' }
+];
 
-  const services = [
-    { id: 1, name: 'Corte Clásico', price: 350, duration: 45 },
-    { id: 2, name: 'Barba Premium', price: 250, duration: 30 },
-    { id: 3, name: 'Servicio Completo', price: 500, duration: 75 },
-  ];
+const BookingWizard = ({ user, onConfirm, onCancel, COLORS, isWalkIn = false }: any) => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const styles = useMemo(() => getBookingWizardStyles(COLORS, isMobile), [COLORS, isMobile]);
+  
+  const { appointments: existingAppointments, barbers: dbBarbers, services: dbServices, branches: dbBranches } = useData();
+  const barberList = dbBarbers;
+  const serviceList = dbServices;
+  const branchList = dbBranches;
 
-  const times = ['10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '04:00 PM', '05:00 PM'];
+  const [currentStep, setCurrentStep] = useState(1);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  const handleFinish = () => {
-    onConfirm({
-      ...data,
-      userId: user.email,
-      userName: user.name || 'Invitado',
-      status: 'confirmed',
-      paid: false,
-      createdAt: new Date(),
-    });
+  // Estados originales
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedBarber, setSelectedBarber] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [guestName, setGuestName] = useState(user?.name || '');
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
+
+  const dToday = new Date();
+  const todayLocal = `${dToday.getFullYear()}-${String(dToday.getMonth() + 1).padStart(2, '0')}-${String(dToday.getDate()).padStart(2, '0')}`;
+
+  const goToStep = (step: number) => {
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true })
+    ]).start();
+    setTimeout(() => setCurrentStep(step), 150);
+  };
+
+  const handleNext = () => {
+    if (currentStep === 1 && selectedBranch) goToStep(2);
+    else if (currentStep === 2 && selectedService) goToStep(3);
+    else if (currentStep === 3 && selectedBarber) goToStep(4);
+    else if (currentStep === 4 && selectedDate && selectedTime) goToStep(5);
+    else if (currentStep === 5 && isPaid) goToStep(6);
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) goToStep(currentStep - 1);
+    else if (onCancel) onCancel();
+  };
+
+  // Lógica de validación de slots original
+  const isSlotTaken = (time: string) => {
+    if (!selectedBarber || !selectedDate) return false;
+    return existingAppointments.some((appt: any) =>
+      appt.date === selectedDate &&
+      appt.time === time &&
+      (appt.barberId === (selectedBarber.uid || selectedBarber.id)) &&
+      appt.status !== 'cancelled'
+    );
+  };
+
+  const generateTimeSlots = () => {
+    if (!selectedDate || !selectedBranch) return [];
+    
+    // Simplificación de la lógica original de slots
+    const slots = [];
+    const startHour = 10;
+    const endHour = 19;
+
+    for (let h = startHour; h < endHour; h++) {
+      slots.push(`${String(h).padStart(2, '0')}:00`);
+      slots.push(`${String(h).padStart(2, '0')}:30`);
+    }
+
+    const now = new Date();
+    const isToday = selectedDate === todayLocal;
+
+    if (isToday) {
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      return slots.filter(slot => {
+        const [slotH, slotM] = slot.split(':').map(Number);
+        return slotH > currentHour || (slotH === currentHour && slotM > currentMinute);
+      });
+    }
+    return slots;
+  };
+
+  const handleConfirm = async () => {
+    const appointmentData = {
+      userId: user?.email || 'walkin-guest',
+      userName: isWalkIn ? guestName : user.name,
+      branch: selectedBranch || 'Sucursal Matriz',
+      barberId: selectedBarber.uid || selectedBarber.id,
+      barberName: selectedBarber.name,
+      date: selectedDate,
+      time: selectedTime!,
+      serviceId: selectedService.id,
+      serviceName: selectedService.name,
+      price: selectedService.price,
+      duration: selectedService.duration,
+      type: isWalkIn ? 'Walk-in' : 'Online',
+      paymentIntentId: paymentIntentId,
+      paid: isPaid,
+      status: 'confirmed'
+    };
+
+    try {
+      const result = await createAppointment(appointmentData as any);
+      onConfirm(result);
+    } catch (error: any) {
+      alert(error.message || "Error al crear la cita");
+    }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.wizardHeader}>
-        <Text style={styles.wizardTitle}>{isWalkIn ? 'Registro de Walk-in' : 'Agendar Nueva Cita'}</Text>
-        <Text style={styles.wizardSubtitle}>Paso {step} de 4</Text>
-      </View>
+      <View style={styles.inner}>
+        <BookingProgressBar
+          styles={styles}
+          currentStep={currentStep}
+          STEPS={STEPS}
+          COLORS={COLORS}
+          isMobile={isMobile}
+        />
 
-      <View style={styles.progressTrack}>
-        {[1, 2, 3, 4].map(idx => (
-           <View key={idx} style={[styles.progressPoint, step >= idx && styles.activePoint]} />
-        ))}
-      </View>
+        <Animated.View style={[styles.contentContainer, { opacity: fadeAnim }]}>
+          {currentStep === 1 && (
+            <BookingStepBranch
+              styles={styles}
+              COLORS={COLORS}
+              BRANCHES={branchList}
+              selectedBranch={selectedBranch}
+              setSelectedBranch={setSelectedBranch}
+            />
+          )}
+          {currentStep === 2 && (
+            <BookingStepServices
+              styles={styles}
+              COLORS={COLORS}
+              SERVICES={serviceList.filter(s => s.branch === 'Ambas' || s.branch === selectedBranch)}
+              selectedBranch={selectedBranch}
+              selectedService={selectedService}
+              setSelectedService={setSelectedService}
+            />
+          )}
+          {currentStep === 3 && (
+            <BookingStepBarbers
+              styles={styles}
+              COLORS={COLORS}
+              BARBERS={barberList.filter(b => b.branch === selectedBranch || b.branch === 'Ambas')}
+              selectedBranch={selectedBranch}
+              selectedBarber={selectedBarber}
+              setSelectedBarber={setSelectedBarber}
+            />
+          )}
+          {currentStep === 4 && (
+            <BookingStepDateTime
+              styles={styles}
+              COLORS={COLORS}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              selectedTime={selectedTime}
+              setSelectedTime={setSelectedTime}
+              selectedService={selectedService}
+              todayLocal={todayLocal}
+              generateTimeSlots={generateTimeSlots}
+              isSlotTaken={isSlotTaken}
+            />
+          )}
+          {currentStep === 5 && (
+            <BookingStepPayment
+              styles={styles}
+              COLORS={COLORS}
+              selectedService={selectedService}
+              onPaymentSuccess={(id) => {
+                setPaymentIntentId(id);
+                setIsPaid(true);
+                goToStep(6);
+              }}
+              onPaymentError={(err) => alert(err)}
+            />
+          )}
+          {currentStep === 6 && (
+            <BookingStepConfirm
+              styles={styles}
+              COLORS={COLORS}
+              isWalkIn={isWalkIn}
+              guestName={guestName}
+              setGuestName={setGuestName}
+              user={user}
+              selectedBranch={selectedBranch}
+              selectedService={selectedService}
+              selectedBarber={selectedBarber}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              isPaid={isPaid}
+            />
+          )}
+        </Animated.View>
 
-      <View style={styles.stepContent}>
-        {step === 1 && (
-            <ScrollView gap={12}>
-                <Text style={styles.stepTitle}>Selecciona el Servicio</Text>
-                {services.map(s => (
-                  <TouchableOpacity 
-                    key={s.id} 
-                    style={[styles.optionCard, data.service?.id === s.id && styles.selectedCard]}
-                    onPress={() => { setData({...data, service: s}); nextStep(); }}
-                  >
-                    <Scissors size={20} color={data.service?.id === s.id ? 'var(--gold)' : 'var(--text-secondary)'} />
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.optionName}>{s.name}</Text>
-                        <Text style={styles.optionMeta}>{s.duration} min • ${s.price}</Text>
-                    </View>
-                    <ChevronRight size={20} color="var(--text-muted)" />
-                  </TouchableOpacity>
-                ))}
-            </ScrollView>
-        )}
+        <View style={styles.footerActions}>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.backBtn, currentStep === 1 && styles.disabledBtn]}
+            onPress={handleBack}
+            disabled={currentStep === 1 && !onCancel}
+          >
+            <Text style={styles.backBtnText}>{currentStep === 1 ? 'CANCELAR' : 'ATRÁS'}</Text>
+          </TouchableOpacity>
 
-        {step === 2 && (
-            <ScrollView gap={12}>
-                <Text style={styles.stepTitle}>Selecciona tu Barbero</Text>
-                {barbers.map((b: any) => (
-                    <TouchableOpacity 
-                        key={b.uid} 
-                        style={[styles.optionCard, data.barber?.uid === b.uid && styles.selectedCard]}
-                        onPress={() => { setData({...data, barber: b}); nextStep(); }}
-                    >
-                        <UserIcon size={20} color={data.barber?.uid === b.uid ? 'var(--gold)' : 'var(--text-secondary)'} />
-                        <Text style={styles.optionName}>{b.name}</Text>
-                        <ChevronRight size={20} color="var(--text-muted)" />
-                    </TouchableOpacity>
-                ))}
-                <TouchableOpacity style={styles.backBtn} onPress={prevStep}>
-                    <Text style={styles.backText}>Anterior</Text>
-                </TouchableOpacity>
-            </ScrollView>
-        )}
-
-        {step === 3 && (
-            <View gap={20}>
-                <Text style={styles.stepTitle}>Horario Disponible</Text>
-                <View style={styles.timeGrid}>
-                    {times.map(t => (
-                        <TouchableOpacity 
-                            key={t} 
-                            style={[styles.timeSlot, data.time === t && styles.selectedSlot]}
-                            onPress={() => { setData({...data, time: t}); nextStep(); }}
-                        >
-                            <Text style={[styles.slotText, data.time === t && styles.selectedSlotText]}>{t}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-                <TouchableOpacity style={styles.backBtn} onPress={prevStep}>
-                    <Text style={styles.backText}>Anterior</Text>
-                </TouchableOpacity>
-            </View>
-        )}
-
-        {step === 4 && (
-            <View gap={24} style={styles.summaryContainer}>
-                <CheckCircle2 size={64} color="var(--gold)" style={{ alignSelf: 'center' }} />
-                <View>
-                    <Text style={styles.summaryTitle}>Resumen de Cita</Text>
-                    <View style={styles.summaryBox}>
-                        <Text style={styles.summaryLabel}>Servicio:</Text>
-                        <Text style={styles.summaryText}>{data.service?.name}</Text>
-                        <Text style={styles.summaryLabel}>Barbero:</Text>
-                        <Text style={styles.summaryText}>{data.barber?.name}</Text>
-                        <Text style={styles.summaryLabel}>Hora:</Text>
-                        <Text style={styles.summaryText}>{data.time}</Text>
-                    </View>
-                </View>
-                <TouchableOpacity style={styles.confirmBtn} onPress={handleFinish}>
-                    <Text style={styles.confirmText}>Confirmar Cita</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.backBtn} onPress={prevStep}>
-                    <Text style={styles.backText}>Anterior</Text>
-                </TouchableOpacity>
-            </View>
-        )}
+          {currentStep < 6 ? (
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                styles.nextBtn,
+                ((currentStep === 1 && !selectedBranch) ||
+                  (currentStep === 2 && !selectedService) ||
+                  (currentStep === 3 && !selectedBarber) ||
+                  (currentStep === 4 && (!selectedDate || !selectedTime)) ||
+                  (currentStep === 5 && !isPaid)) && styles.disabledBtn
+              ]}
+              onPress={handleNext}
+              disabled={
+                (currentStep === 1 && !selectedBranch) ||
+                (currentStep === 2 && !selectedService) ||
+                (currentStep === 3 && !selectedBarber) ||
+                (currentStep === 4 && (!selectedDate || !selectedTime)) ||
+                (currentStep === 5 && !isPaid)
+              }
+            >
+              <Text style={styles.nextBtnText}>SIGUIENTE</Text>
+              <MaterialCommunityIcons name="arrow-right" size={16} color={COLORS.textInverse} style={{ marginLeft: 8 }} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.confirmBtn]}
+              onPress={handleConfirm}
+            >
+              <Text style={styles.confirmBtnText}>CONFIRMAR CITA</Text>
+              <MaterialCommunityIcons name="check-circle" size={16} color={COLORS.textInverse} style={{ marginLeft: 8 }} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { gap: 24 },
-  wizardHeader: { gap: 4 },
-  wizardTitle: { color: '#FFF', fontSize: 24, fontWeight: '800' },
-  wizardSubtitle: { color: 'var(--text-muted)', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 },
-  progressTrack: { flexDirection: 'row', gap: 6 },
-  progressPoint: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.05)' },
-  activePoint: { backgroundColor: 'var(--gold)' },
-  stepContent: { minHeight: 400 },
-  stepTitle: { color: '#FFF', fontSize: 18, fontWeight: '700', marginBottom: 20 },
-  optionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: 16, gap: 16, borderWidth: 1, borderColor: 'var(--glass-border)' },
-  selectedCard: { borderColor: 'var(--gold)', backgroundColor: 'rgba(212, 175, 55, 0.05)' },
-  optionName: { color: '#FFF', fontSize: 16, fontWeight: '600' },
-  optionMeta: { color: 'var(--text-secondary)', fontSize: 13, marginTop: 2 },
-  timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  timeSlot: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'var(--glass-border)', width: '30%' },
-  selectedSlot: { backgroundColor: 'var(--gold)', borderColor: 'var(--gold)' },
-  slotText: { color: '#FFF', fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  selectedSlotText: { color: '#000' },
-  summaryContainer: { justifyContent: 'center' },
-  summaryTitle: { color: '#FFF', fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 20 },
-  summaryBox: { backgroundColor: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 16, gap: 8 },
-  summaryLabel: { color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase' },
-  summaryText: { color: '#FFF', fontSize: 16, fontWeight: '600', marginBottom: 12 },
-  confirmBtn: { backgroundColor: 'var(--gold)', padding: 18, borderRadius: 16, alignItems: 'center' },
-  confirmText: { color: '#000', fontSize: 16, fontWeight: '800' },
-  backBtn: { padding: 12, alignItems: 'center' },
-  backText: { color: 'var(--text-muted)', fontSize: 14 },
-});
 
 export default BookingWizard;
