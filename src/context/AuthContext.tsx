@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, getDoc, getDocFromCache, setDoc, DocumentReference } from 'firebase/firestore';
+import { doc, getDoc, getDocFromCache, setDoc, DocumentReference, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebaseClient';
 import { AppUser, UserRole } from '../types';
 
@@ -29,17 +29,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribeSnapshot: (() => void) | null = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
-            setCurrentUser({ ...userDoc.data(), uid: user.uid, email: user.email });
+            const data = userDoc.data();
+            
+            if (data.status === 'suspended' || data.status === 'deleted') {
+              Alert.alert('Acceso Denegado', 'Tu cuenta ha sido restringida por la administración.');
+              await signOut(auth);
+              return;
+            }
+            
+            setCurrentUser({ ...data, uid: user.uid, email: user.email });
+
+            unsubscribeSnapshot = onSnapshot(doc(db, 'users', user.uid), async (docSnap) => {
+              if (docSnap.exists()) {
+                const newData = docSnap.data();
+                if (newData.status === 'suspended' || newData.status === 'deleted') {
+                  Alert.alert('Acceso Denegado', 'Tu cuenta ha sido restringida por la administración.');
+                  await signOut(auth);
+                } else {
+                  setCurrentUser((prev: any) => prev ? { ...prev, ...newData } : prev);
+                }
+              }
+            });
+
           } else {
             setCurrentUser({ uid: user.uid, email: user.email, role: 'client' });
           }
         } else {
           setCurrentUser(null);
+          if (unsubscribeSnapshot) {
+            unsubscribeSnapshot();
+            unsubscribeSnapshot = null;
+          }
         }
       } catch (error) {
         console.error("Auth error:", error);
@@ -48,7 +75,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLoading(false);
       }
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {

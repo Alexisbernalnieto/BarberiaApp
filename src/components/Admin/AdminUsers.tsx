@@ -23,8 +23,9 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
         ...doc.data()
       })) as AppUser[];
       setUsers(fetchedUsers);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching users:", error);
+      Alert.alert("Error de Conexión", "No se pudieron cargar los usuarios: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -59,10 +60,81 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    (u.name?.toLowerCase().includes(search.toLowerCase())) || 
-    (u.email?.toLowerCase().includes(search.toLowerCase()))
-  );
+  const handleToggleSuspend = async (user: AppUser) => {
+    const isSuspended = user.status === 'suspended';
+    const newStatus = isSuspended ? 'active' : 'suspended';
+    const actionText = isSuspended ? 'Activar' : 'Suspender';
+
+    const performToggle = async () => {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { status: newStatus });
+        setUsers(prev => prev.map(u => u.uid === user.uid ? { ...u, status: newStatus } as AppUser : u));
+        
+        await logActivity({
+          adminId: currentUser.uid,
+          adminEmail: currentUser.email,
+          adminRole: 'admin',
+          action: isSuspended ? 'Activó a un usuario' : 'Suspendió a un usuario',
+          targetUserId: user.uid,
+          targetUserEmail: user.email,
+          details: `Estado: ${newStatus.toUpperCase()}`,
+        });
+
+        Alert.alert('Éxito', `Usuario ${isSuspended ? 'activado' : 'suspendido'} correctamente.`);
+      } catch (error: any) {
+        Alert.alert('Error', `No se pudo ${actionText.toLowerCase()} el usuario: ` + error.message);
+      }
+    };
+
+    Alert.alert(
+      `${actionText} Usuario`,
+      `¿Estás seguro de ${actionText.toLowerCase()} a ${user.name || user.email}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: actionText, style: isSuspended ? 'default' : 'destructive', onPress: performToggle }
+      ]
+    );
+  };
+
+  const handleDelete = (user: AppUser) => {
+    const performDelete = async () => {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { status: 'deleted' });
+        setUsers(prev => prev.map(u => u.uid === user.uid ? { ...u, status: 'deleted' } as AppUser : u));
+
+        await logActivity({
+          adminId: currentUser.uid,
+          adminEmail: currentUser.email,
+          adminRole: 'admin',
+          action: 'Eliminó un usuario',
+          targetUserId: user.uid,
+          targetUserEmail: user.email,
+          details: 'Eliminación lógica del sistema.'
+        });
+
+        Alert.alert('Eliminado', 'Usuario eliminado lógicamente.');
+      } catch (error: any) {
+        Alert.alert('Error', 'No se pudo eliminar el usuario: ' + error.message);
+      }
+    };
+
+    Alert.alert(
+      'Eliminar Usuario',
+      `¿Estás seguro de eliminar a ${user.name || user.email}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: performDelete }
+      ]
+    );
+  };
+
+  const filteredUsers = users.filter(u => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    const n = u.name ? u.name.toLowerCase() : '';
+    const e = u.email ? u.email.toLowerCase() : '';
+    return n.includes(s) || e.includes(s);
+  });
 
   return (
     <View style={styles.container}>
@@ -97,7 +169,15 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
                 <View style={styles.userInfo}>
                   <Text style={[styles.userName, { color: COLORS.text }]}>{user.name || 'Sin Nombre'}</Text>
                   <Text style={[styles.userEmail, { color: COLORS.textSecondary }]}>{user.email}</Text>
-                  <Text style={[styles.roleBadge, { color: COLORS.primary }]}>{String(user.role || 'cliente').toUpperCase()}</Text>
+                  <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                    <Text style={[styles.roleBadge, { color: COLORS.primary }]}>{String(user.role || 'cliente').toUpperCase()}</Text>
+                    {user.status === 'suspended' && (
+                      <Text style={[styles.roleBadge, { color: '#EF4444', backgroundColor: 'rgba(239,68,68,0.1)', paddingHorizontal: 6, borderRadius: 4 }]}>SUSPENDIDO</Text>
+                    )}
+                    {user.status === 'deleted' && (
+                      <Text style={[styles.roleBadge, { color: '#6B7280', backgroundColor: 'rgba(107,114,128,0.1)', paddingHorizontal: 6, borderRadius: 4 }]}>ELIMINADO</Text>
+                    )}
+                  </View>
                 </View>
               </View>
 
@@ -123,18 +203,24 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
               </View>
 
               <View style={styles.quickActions}>
-                 <TouchableOpacity style={styles.actionItem}>
-                    <ShieldAlert size={18} color={COLORS.primary} />
-                    <Text style={[styles.actionLabel, { color: COLORS.primary }]}>Suspender</Text>
-                 </TouchableOpacity>
+                 {user.status !== 'deleted' && (
+                   <TouchableOpacity style={styles.actionItem} onPress={() => handleToggleSuspend(user)}>
+                      <ShieldAlert size={18} color={user.status === 'suspended' ? "#10B981" : COLORS.primary} />
+                      <Text style={[styles.actionLabel, { color: user.status === 'suspended' ? "#10B981" : COLORS.primary }]}>
+                        {user.status === 'suspended' ? 'Activar' : 'Suspender'}
+                      </Text>
+                   </TouchableOpacity>
+                 )}
                  <TouchableOpacity style={styles.actionItem}>
                     <Edit2 size={18} color={COLORS.primary} />
                     <Text style={[styles.actionLabel, { color: COLORS.primary }]}>Editar</Text>
                  </TouchableOpacity>
-                 <TouchableOpacity style={styles.actionItem}>
-                    <Trash2 size={18} color="#EF4444" />
-                    <Text style={[styles.actionLabel, { color: "#EF4444" }]}>Eliminar</Text>
-                 </TouchableOpacity>
+                 {user.status !== 'deleted' && (
+                   <TouchableOpacity style={styles.actionItem} onPress={() => handleDelete(user)}>
+                      <Trash2 size={18} color="#EF4444" />
+                      <Text style={[styles.actionLabel, { color: "#EF4444" }]}>Eliminar</Text>
+                   </TouchableOpacity>
+                 )}
               </View>
             </View>
           ))}
