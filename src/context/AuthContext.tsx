@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -39,7 +39,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const data = userDoc.data();
             
             if (data.status === 'suspended' || data.status === 'deleted') {
-              Alert.alert('Acceso Denegado', 'Tu cuenta ha sido restringida por la administración.');
+              const msg = data.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
+              if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
+              else Alert.alert('Acceso Denegado', msg);
+              
               await signOut(auth);
               return;
             }
@@ -50,7 +53,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               if (docSnap.exists()) {
                 const newData = docSnap.data();
                 if (newData.status === 'suspended' || newData.status === 'deleted') {
-                  Alert.alert('Acceso Denegado', 'Tu cuenta ha sido restringida por la administración.');
+                  const msg = newData.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
+                  if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
+                  else Alert.alert('Acceso Denegado', msg);
+                  
                   await signOut(auth);
                 } else {
                   setCurrentUser((prev: any) => prev ? { ...prev, ...newData } : prev);

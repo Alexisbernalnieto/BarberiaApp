@@ -10,6 +10,7 @@ export interface AppUser {
   phone?: string;
   branch?: string;
   status?: 'active' | 'suspended' | 'deleted';
+  statusMessage?: string;
   stripeCustomerId?: string;
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, Platform, Modal } from 'react-native';
 import { Search, ArrowLeft, User, Shield, Scissors, UserCheck, Trash2, Edit2, ShieldAlert } from 'lucide-react';
 import { db } from '../../firebaseClient';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -12,6 +12,10 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  
+  const [suspendModalVisible, setSuspendModalVisible] = useState(false);
+  const [userToSuspend, setUserToSuspend] = useState<AppUser | null>(null);
+  const [suspendReason, setSuspendReason] = useState('');
 
   const fetchUsers = async () => {
     try {
@@ -61,39 +65,75 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
   };
 
   const handleToggleSuspend = async (user: AppUser) => {
-    const isSuspended = user.status === 'suspended';
-    const newStatus = isSuspended ? 'active' : 'suspended';
-    const actionText = isSuspended ? 'Activar' : 'Suspender';
+    if (user.status === 'suspended') {
+      const performToggle = async () => {
+        try {
+          await updateDoc(doc(db, 'users', user.uid), { status: 'active', statusMessage: '' });
+          setUsers(prev => prev.map(u => u.uid === user.uid ? { ...u, status: 'active', statusMessage: '' } as AppUser : u));
+          
+          await logActivity({
+            adminId: currentUser.uid,
+            adminEmail: currentUser.email,
+            adminRole: 'admin',
+            action: 'Activó a un usuario',
+            targetUserId: user.uid,
+            targetUserEmail: user.email,
+            details: `Estado: ACTIVE`,
+          });
 
-    const performToggle = async () => {
-      try {
-        await updateDoc(doc(db, 'users', user.uid), { status: newStatus });
-        setUsers(prev => prev.map(u => u.uid === user.uid ? { ...u, status: newStatus } as AppUser : u));
-        
-        await logActivity({
-          adminId: currentUser.uid,
-          adminEmail: currentUser.email,
-          adminRole: 'admin',
-          action: isSuspended ? 'Activó a un usuario' : 'Suspendió a un usuario',
-          targetUserId: user.uid,
-          targetUserEmail: user.email,
-          details: `Estado: ${newStatus.toUpperCase()}`,
-        });
+          Alert.alert('Éxito', `Usuario activado correctamente.`);
+        } catch (error: any) {
+          Alert.alert('Error', `No se pudo activar el usuario: ` + error.message);
+        }
+      };
 
-        Alert.alert('Éxito', `Usuario ${isSuspended ? 'activado' : 'suspendido'} correctamente.`);
-      } catch (error: any) {
-        Alert.alert('Error', `No se pudo ${actionText.toLowerCase()} el usuario: ` + error.message);
+      const confirmMessage = `¿Estás seguro de activar a ${user.name || user.email}?`;
+      if (Platform.OS === 'web') {
+        if (window.confirm(confirmMessage)) performToggle();
+      } else {
+        Alert.alert('Activar Usuario', confirmMessage, [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Activar', style: 'default', onPress: performToggle }
+        ]);
       }
-    };
+    } else {
+      // Show Modal to prompt for reason
+      setUserToSuspend(user);
+      setSuspendReason('');
+      setSuspendModalVisible(true);
+    }
+  };
 
-    Alert.alert(
-      `${actionText} Usuario`,
-      `¿Estás seguro de ${actionText.toLowerCase()} a ${user.name || user.email}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: actionText, style: isSuspended ? 'default' : 'destructive', onPress: performToggle }
-      ]
-    );
+  const confirmSuspendUser = async () => {
+    if (!userToSuspend) return;
+    try {
+      const finalReason = suspendReason.trim() || 'Tu cuenta ha sido restringida por la administración.';
+      await updateDoc(doc(db, 'users', userToSuspend.uid), { 
+        status: 'suspended',
+        statusMessage: finalReason
+      });
+      setUsers(prev => prev.map(u => u.uid === userToSuspend.uid ? { 
+        ...u, 
+        status: 'suspended',
+        statusMessage: finalReason
+      } as AppUser : u));
+      
+      await logActivity({
+        adminId: currentUser.uid,
+        adminEmail: currentUser.email,
+        adminRole: 'admin',
+        action: 'Suspendió a un usuario',
+        targetUserId: userToSuspend.uid,
+        targetUserEmail: userToSuspend.email,
+        details: `Motivo: ${finalReason}`,
+      });
+
+      Alert.alert('Éxito', `Usuario suspendido correctamente.`);
+      setSuspendModalVisible(false);
+      setUserToSuspend(null);
+    } catch (error: any) {
+      Alert.alert('Error', `No se pudo suspender el usuario: ` + error.message);
+    }
   };
 
   const handleDelete = (user: AppUser) => {
@@ -118,14 +158,22 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
       }
     };
 
-    Alert.alert(
-      'Eliminar Usuario',
-      `¿Estás seguro de eliminar a ${user.name || user.email}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: performDelete }
-      ]
-    );
+    const confirmMessage = `¿Estás seguro de eliminar a ${user.name || user.email}?`;
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(confirmMessage)) {
+        performDelete();
+      }
+    } else {
+      Alert.alert(
+        'Eliminar Usuario',
+        confirmMessage,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Eliminar', style: 'destructive', onPress: performDelete }
+        ]
+      );
+    }
   };
 
   const filteredUsers = users.filter(u => {
@@ -226,6 +274,42 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
           ))}
         </ScrollView>
       )}
+
+      {/* Modal para suspender usuario */}
+      <Modal visible={suspendModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: COLORS.surface }]}>
+            <Text style={[styles.modalTitle, { color: COLORS.text }]}>Suspender Usuario</Text>
+            <Text style={{ color: COLORS.textSecondary, marginBottom: 15 }}>
+              Escribe el motivo de la suspensión. Este mensaje se le mostrará al usuario al intentar acceder a la aplicación.
+            </Text>
+            
+            <TextInput
+              style={[styles.reasonInput, { color: COLORS.text, borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+              placeholder="Ej: Suspendido por faltar a 3 citas..."
+              placeholderTextColor={COLORS.textSecondary}
+              value={suspendReason}
+              onChangeText={setSuspendReason}
+              multiline
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                onPress={() => setSuspendModalVisible(false)}
+              >
+                <Text style={{ color: COLORS.text, fontWeight: 'bold' }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: '#EF4444' }]}
+                onPress={confirmSuspendUser}
+              >
+                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Suspender</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -253,6 +337,12 @@ const styles = StyleSheet.create({
   quickActions: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 16 },
   actionItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   actionLabel: { fontWeight: '700', fontSize: 14 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { width: '100%', maxWidth: 400, borderRadius: 24, padding: 24, elevation: 5 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
+  reasonInput: { borderWidth: 1, borderRadius: 12, padding: 16, height: 100, textAlignVertical: 'top', marginBottom: 20 },
+  modalActions: { flexDirection: 'row', gap: 12 },
+  modalBtn: { flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });
 
 export default AdminUsers;
