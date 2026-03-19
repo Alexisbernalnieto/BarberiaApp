@@ -63,4 +63,3 @@ export interface ActivityLog {
   details: string; // e.g., 'Nuevo Rol: CLIENTE'
   timestamp: any;
 }
-

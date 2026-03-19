@@ -20,6 +20,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
+  useEffect(() => {
+    StatusBar.setBarStyle(theme === 'dark' ? 'light-content' : 'dark-content');
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor('transparent');
+      StatusBar.setTranslucent(true);
+    }
+  }, [theme]);
+
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, COLORS, isDarkMode }}>
       {children}
@@ -29,6 +37,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
-  if (context === undefined) throw new Error('useTheme must be used within a ThemeProvider');
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
   return context;
 };

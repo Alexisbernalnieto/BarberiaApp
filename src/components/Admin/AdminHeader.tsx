@@ -1,115 +1,164 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Bell, Sun, Moon, LogOut, Menu, Users as UsersIcon } from 'lucide-react';
+import { Bell, Sun, Moon, LogOut, Users, Menu } from 'lucide-react';
 
-const AdminHeader = ({ onMenuPress, toggleTheme, isDarkMode, onLogout, COLORS, isMobile, setViewMode, setShowNotifications }: any) => {
+interface AdminHeaderProps {
+  notifications: any[];
+  setShowNotifications: (show: boolean) => void;
+  toggleTheme: () => void;
+  isDarkMode: boolean;
+  onLogout: () => void;
+  COLORS: any;
+  viewMode: string;
+  setViewMode: (mode: string) => void;
+  isMobile: boolean;
+  onMenuPress?: () => void;
+}
+
+export default function AdminHeader({
+  notifications,
+  setShowNotifications,
+  toggleTheme,
+  isDarkMode,
+  onLogout,
+  COLORS,
+  viewMode,
+  setViewMode,
+  isMobile,
+  onMenuPress
+}: AdminHeaderProps) {
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { marginBottom: isMobile ? 16 : 32 }]}>
       <View style={styles.leftSection}>
         {isMobile && (
           <TouchableOpacity onPress={onMenuPress} style={styles.menuBtn}>
-            <Menu size={24} color={COLORS.primary || "#D4AF37"} />
+            <Menu size={24} color={COLORS.primary || "var(--gold)"} />
           </TouchableOpacity>
         )}
-        <View>
-          <Text style={[styles.title, { color: COLORS.text || "#FFF" }]}>Barbería</Text>
-          <Text style={[styles.subtitle, { color: COLORS.textSecondary || "#888" }]}>Panel Administrador</Text>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[styles.title, { color: COLORS.text || '#FFF', fontSize: isMobile ? 20 : 28 }]} numberOfLines={1}>
+            El Coronel
+          </Text>
+          <Text style={[styles.subtitleHeader, { color: COLORS.textSecondary || 'var(--text-secondary)', fontSize: isMobile ? 12 : 16 }]}>
+            Panel Administrador
+          </Text>
         </View>
       </View>
 
-      <View style={styles.rightSection}>
+      <View style={[styles.actionsRow, { gap: isMobile ? 8 : 12 }]}>
         <TouchableOpacity 
-          style={[styles.iconBtn, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.1)' }]}
-          onPress={() => setShowNotifications(true)}
+            onPress={() => setViewMode(viewMode === 'users' ? 'appointments' : 'users')} 
+            style={[
+                styles.iconBtn, 
+                viewMode === 'users' && styles.activeBtn
+            ]}
         >
-          <Bell size={20} color={COLORS.textSecondary} />
-          <View style={[styles.notifBadge, { borderColor: COLORS.background || '#080808' }]} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.iconBtn, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.1)' }]} 
-          onPress={toggleTheme}
-        >
-          {isDarkMode ? <Sun size={20} color={COLORS.primary} /> : <Moon size={20} color={COLORS.textSecondary} />}
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.iconBtn, styles.logoutBtn, { backgroundColor: COLORS.surface, borderColor: 'rgba(239, 68, 68, 0.2)' }]} 
-          onPress={onLogout}
-        >
-          <LogOut size={20} color="#EF4444" />
+            <Users size={isMobile ? 20 : 24} color={viewMode === 'users' ? '#000' : (COLORS.primary || 'var(--gold)')} />
+            {!isMobile && (
+                <Text style={[styles.btnText, viewMode === 'users' && { color: '#000' }]}>
+                    Usuarios
+                </Text>
+            )}
         </TouchableOpacity>
 
-        <TouchableOpacity 
-            style={[styles.iconBtn, styles.usersBtn, { backgroundColor: 'rgba(212, 175, 55, 0.15)', borderColor: COLORS.primary }]}
-            onPress={() => setViewMode('users')}
-        >
-          <UsersIcon size={20} color={COLORS.primary} />
+        <TouchableOpacity onPress={() => setShowNotifications(true)} style={styles.iconBtn}>
+          <Bell size={isMobile ? 20 : 24} color={COLORS.primary || "var(--gold)"} />
+          {notifications.length > 0 && (
+            <View style={styles.smallBadge}>
+              <Text style={styles.smallBadgeText}>{notifications.length}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={toggleTheme} style={styles.iconBtn}>
+          {isDarkMode ? <Sun size={isMobile ? 20 : 24} color={COLORS.primary || "var(--gold)"} /> : <Moon size={isMobile ? 20 : 24} color={COLORS.textSecondary || "var(--text-secondary)"} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={onLogout} style={[styles.iconBtn, styles.logoutBtn]}>
+          <LogOut size={isMobile ? 18 : 22} color="#EF4444" />
         </TouchableOpacity>
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 32,
+    paddingVertical: 10,
   },
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
     gap: 16,
   },
   menuBtn: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'var(--glass-surface)',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
+    borderColor: 'var(--glass-border)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: -1,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  subtitle: {
-    fontSize: 14,
+  subtitleHeader: {
     marginTop: 2,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  rightSection: {
+  actionsRow: {
     flexDirection: 'row',
-    gap: 10,
+    alignItems: 'center',
   },
   iconBtn: {
     width: 44,
     height: 44,
     borderRadius: 12,
+    backgroundColor: 'var(--glass-surface)',
     borderWidth: 1,
+    borderColor: 'var(--glass-border)',
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+    gap: 8,
     position: 'relative',
   },
-  notifBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EF4444',
-    borderWidth: 2,
+  activeBtn: {
+    backgroundColor: 'var(--gold)',
+    borderColor: 'var(--gold)',
   },
-  logoutBtn: {},
-  usersBtn: {
-      marginLeft: 4,
-  }
+  btnText: {
+    color: 'var(--gold)',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  logoutBtn: {
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  smallBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  smallBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '800',
+  },
 });
-
-export default AdminHeader;

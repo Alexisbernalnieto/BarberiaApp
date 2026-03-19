@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, SafeAreaView } from 'react-native';
+import { View, StyleSheet, SafeAreaView, useWindowDimensions } from 'react-native';
 import Sidebar from './Sidebar';
 import { useSidebar } from '../../context/SidebarContext';
 
@@ -20,7 +20,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const { isOpen, setIsOpen, isMobile } = useSidebar();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: '#080808' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background || '#080808' }]}>
       <View style={styles.layout}>
         <Sidebar 
           activeTab={activeTab}
@@ -35,7 +35,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           styles.content, 
           !isMobile && styles.desktopPadding
         ]}>
-          {children}
+           {children}
         </View>
       </View>
     </SafeAreaView>

@@ -1,65 +1,86 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { TrendingUp, Scissors, Tag, History } from 'lucide-react';
+import { CreditCard, Scissors, Tag, PlusCircle, History, TrendingUp } from 'lucide-react';
 
-const AdminQuickActions = ({ setViewMode, COLORS, isMobile }: any) => {
+interface AdminQuickActionsProps {
+  setViewMode: (mode: string) => void;
+  COLORS: any;
+  isMobile: boolean;
+}
+
+export default function AdminQuickActions({ setViewMode, COLORS, isMobile }: AdminQuickActionsProps) {
   const actions = [
-    { id: 'finances', label: 'Finanzas', icon: TrendingUp },
-    { id: 'barbers', label: 'Barberos', icon: Scissors },
-    { id: 'services', label: 'Servicios', icon: Tag },
-    { id: 'history', label: 'Historial', icon: History },
+    { id: 'finance', label: 'Corte de Caja', icon: CreditCard, color: COLORS.primary || 'var(--gold)' },
+    { id: 'barbers', label: 'Barberos', icon: Scissors, color: '#3B82F6' },
+    { id: 'services', label: 'Servicios', icon: Tag, color: '#10B981' },
+    { id: 'walkin', label: 'Nueva Cita', icon: PlusCircle, color: '#F59E0B' },
   ];
 
   return (
-    <View style={styles.grid}>
-      {actions.map((action) => {
-        const Icon = action.icon;
-        return (
-          <TouchableOpacity 
-            key={action.id} 
-            style={[styles.actionCard, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.1)' }]}
-            onPress={() => setViewMode(action.id)}
-          >
-            <View style={[styles.iconBox, { backgroundColor: 'rgba(255,255,255,0.03)' }]}>
-              <Icon size={24} color={COLORS.primary} />
-            </View>
-            <Text style={[styles.actionLabel, { color: COLORS.text }]}>{action.label}</Text>
-          </TouchableOpacity>
-        );
-      })}
+    <View style={styles.container}>
+      <Text style={[styles.sectionTitle, { color: COLORS.text || '#FFF' }]}>Acciones Rápidas</Text>
+      <View style={[styles.grid, isMobile && styles.mobileGrid]}>
+        {actions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <TouchableOpacity
+              key={action.id}
+              style={[
+                styles.actionCard,
+                isMobile && { width: '48%' }
+              ]}
+              onPress={() => setViewMode(action.id)}
+              data-btn="true"
+            >
+              <View style={[styles.iconWrapper, { backgroundColor: `${action.color}15` }]}>
+                <Icon size={24} color={action.color} strokeWidth={2.5} />
+              </View>
+              <Text style={[styles.actionLabel, { color: COLORS.text || 'var(--text-primary)' }]}>{action.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
+  container: {
+    gap: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   grid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
+  },
+  mobileGrid: {
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   actionCard: {
-    width: '48%', // Approx half for 2x2 grid
-    aspectRatio: 1, // Square cards
-    borderRadius: 24,
-    padding: 16,
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    borderWidth: 1,
-  },
-  iconBox: {
-    width: 56,
-    height: 56,
+    backgroundColor: 'var(--bg-card)',
     borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'var(--glass-border)',
+  },
+  iconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 16,
   },
   actionLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
-
-export default AdminQuickActions;

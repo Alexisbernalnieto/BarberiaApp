@@ -14,19 +14,21 @@ import { auth, db } from '../firebaseClient';
 import { AppUser, UserRole } from '../types';
 
 interface AuthContextType {
-  currentUser: any;
+  currentUser: AppUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  offlineError: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [offlineError, setOfflineError] = useState(false);
 
   useEffect(() => {
     let unsubscribeSnapshot: (() => void) | null = null;
@@ -67,6 +69,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           } else {
             setCurrentUser({ uid: user.uid, email: user.email, role: 'client' });
           }
+        }
+
+        if (attempt < MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+        }
+      }
+    }
+
+    setOfflineError(true);
+    return null;
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
+      if (user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await fetchUserDoc(userDocRef);
+
+        if (userDoc && userDoc.exists()) {
+          const data = userDoc.data();
+          const finalRole = typeof data.role === 'number' ? mapRole(data.role) : (data.role as UserRole || 'client');
+
+          setCurrentUser({
+            ...data,
+            uid: user.uid,
+            email: user.email || '',
+            role: finalRole as UserRole,
+          } as AppUser);
+        } else if (userDoc && !userDoc.exists()) {
+          setCurrentUser({
+            email: user.email || '',
+            uid: user.uid,
+            role: 'client',
+          } as AppUser);
         } else {
           setCurrentUser(null);
           if (unsubscribeSnapshot) {
@@ -74,12 +110,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             unsubscribeSnapshot = null;
           }
         }
-      } catch (error) {
-        console.error("Auth error:", error);
+      } else {
         setCurrentUser(null);
-      } finally {
-        setLoading(false);
+        setOfflineError(false);
       }
+      setLoading(false);
     });
     return () => {
       unsubscribe();
@@ -87,27 +122,81 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
-    return true;
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      const isSystemAccount = user.email?.endsWith('@barberia.com');
+
+      if (!user.emailVerified && !isSystemAccount) {
+        try {
+          await sendEmailVerification(user);
+        } catch (e) {
+          console.error('Error re-sending verification email:', e);
+        }
+        Alert.alert(
+          'Verifica tu correo',
+          'Tu cuenta aún no está verificada. Te enviamos un enlace de verificación a tu correo.'
+        );
+        await signOut(auth);
+        return false;
+      }
+      return true;
+    } catch (error: any) {
+      console.error(error);
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        throw new Error('Credenciales incorrectas');
+      } else {
+        throw new Error(error.message);
+      }
+    }
   };
 
-  const register = async (email: string, password: string, name: string) => {
-    const res = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, 'users', res.user.uid), { email, name, role: 'client', createdAt: new Date().toISOString() });
-    return true;
+  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await setDoc(doc(db, 'users', user.uid), {
+        email: email,
+        name: name,
+        role: 1, // Default Client
+        createdAt: new Date().toISOString()
+      });
+
+      try {
+        await sendEmailVerification(user);
+      } catch (e) { console.error(e); }
+
+      Alert.alert('Revisa tu correo', 'Cuenta creada. Verifica tu email.');
+      await signOut(auth);
+      return true;
+    } catch (error: any) {
+      console.error(error);
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('Correo ya registrado');
+      } else {
+        throw new Error(error.message);
+      }
+    }
   };
 
-  const logout = async () => {
-    await signOut(auth);
+  const logout = async (): Promise<void> => {
+    try {
+      await signOut(auth);
+      setCurrentUser(null);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = async (email: string): Promise<void> => {
     await sendPasswordResetEmail(auth, email);
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, register, logout, resetPassword }}>
+    <AuthContext.Provider value={{ currentUser, loading, login, register, logout, resetPassword, offlineError }}>
       {children}
     </AuthContext.Provider>
   );
@@ -115,6 +204,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };

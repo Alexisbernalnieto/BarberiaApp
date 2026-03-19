@@ -1,69 +1,105 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { CreditCard, Zap } from 'lucide-react';
+import { DollarSign, Users, TrendingUp } from 'lucide-react';
 
-const AdminMetrics = ({ totalToday, totalWalkins, dateLabel, COLORS, isMobile }: any) => {
+interface AdminMetricsProps {
+  totalToday: number;
+  totalWalkins: number;
+  dateLabel: string;
+  COLORS: any;
+  isMobile: boolean;
+}
+
+export default function AdminMetrics({ totalToday, totalWalkins, dateLabel, COLORS, isMobile }: AdminMetricsProps) {
   return (
-    <View style={[styles.container, isMobile && styles.mobileContainer]}>
-      <View style={[styles.card, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.1)' }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.iconContainer, { backgroundColor: 'rgba(212, 175, 55, 0.15)' }]}>
-            <CreditCard size={20} color={COLORS.primary} />
+    <View style={[styles.metricRow, { gap: isMobile ? 16 : 24 }, isMobile && { flexDirection: 'column' }]}>
+      <View style={[styles.glassCard, { flex: 1 }]} data-metric-card="true">
+        <View style={styles.metricHeader}>
+          <View style={[styles.iconContainer, { backgroundColor: 'var(--gold-subtle)' }]}>
+            <DollarSign size={20} color={COLORS.primary || "var(--gold)"} strokeWidth={2.5} />
           </View>
-          <Text style={[styles.title, { color: COLORS.textSecondary }]}>Ingresos {dateLabel}</Text>
+          <Text style={[styles.metricLabel, { color: COLORS.textSecondary || 'var(--text-secondary)' }]}>Ingresos {dateLabel || 'hoy'}</Text>
         </View>
-        <Text style={[styles.value, { color: COLORS.text }]}>${totalToday.toLocaleString()}</Text>
+        <View style={styles.valueRow}>
+          <Text style={[styles.metricValue, { color: COLORS.text || '#FFF' }]}>${totalToday.toLocaleString()}</Text>
+          <View style={styles.trendBadge}>
+             <TrendingUp size={12} color="#10B981" />
+             <Text style={styles.trendText}>+12%</Text>
+          </View>
+        </View>
       </View>
 
-      <View style={[styles.card, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.1)' }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.iconContainer, { backgroundColor: 'rgba(212, 175, 55, 0.15)' }]}>
-            <Zap size={20} color={COLORS.primary} />
+      <View style={[styles.glassCard, { flex: 1 }]} data-metric-card="true">
+        <View style={styles.metricHeader}>
+          <View style={[styles.iconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+            <Users size={20} color="#3B82F6" strokeWidth={2.5} />
           </View>
-          <Text style={[styles.title, { color: COLORS.textSecondary }]}>Walk-ins</Text>
+          <Text style={[styles.metricLabel, { color: COLORS.textSecondary || 'var(--text-secondary)' }]}>Walk-ins</Text>
         </View>
-        <Text style={[styles.value, { color: COLORS.text }]}>{totalWalkins}</Text>
+        <View style={styles.valueRow}>
+          <Text style={[styles.metricValue, { color: COLORS.text || '#FFF' }]}>{totalWalkins}</Text>
+          <Text style={[styles.subValue, { color: COLORS.textMuted || 'var(--text-muted)' }]}>Clientes</Text>
+        </View>
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
+  metricRow: {
     flexDirection: 'row',
-    gap: 16,
   },
-  mobileContainer: {
-    flexDirection: 'column',
-  },
-  card: {
-    flex: 1,
-    borderRadius: 24,
+  glassCard: {
+    backgroundColor: 'var(--bg-card)',
+    borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    gap: 12,
+    borderColor: 'var(--glass-border)',
   },
-  cardHeader: {
+  metricHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    marginBottom: 16,
   },
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
-  value: {
-    fontSize: 32,
-    fontWeight: '800',
-    marginTop: 4,
-  },
-  title: {
+  metricLabel: {
     fontSize: 14,
     fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 12,
+  },
+  metricValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -1,
+  },
+  trendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  trendText: {
+    color: '#10B981',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  subValue: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
-
-export default AdminMetrics;
