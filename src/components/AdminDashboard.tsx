@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -7,9 +6,7 @@ import {
   TouchableOpacity, 
   Modal, 
   useWindowDimensions, 
-  Animated, 
   ScrollView,
-  Platform
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { db } from '../firebaseClient';
@@ -30,17 +27,15 @@ import MainLayout from './Navigation/MainLayout';
 import AdminHeader from './Admin/AdminHeader';
 import AdminMetrics from './Admin/AdminMetrics';
 import AdminQuickActions from './Admin/AdminQuickActions';
-import AdminCalendar from './Admin/AdminCalendar';
-import AdminNotifications from './Admin/AdminNotifications';
-import AdminKiosk from './Admin/AdminKiosk';
-
-// Modals/Features
-import QueueDisplay from './Admin/QueueDisplay';
-import FinancialReport from './Admin/FinancialReport';
-import BarberManagement from './Admin/BarberManagement';
-import ServiceManagement from './Admin/ServiceManagement';
-import UserManagement from './Admin/UserManagement';
+import AdminAgenda from './Admin/AdminAgenda';
+import AdminUsers from './Admin/AdminUsers';
+import AdminHistory from './Admin/AdminHistory';
+import AdminBarbers from './Admin/AdminBarbers';
+import AdminServices from './Admin/AdminServices';
+import AdminFinances from './Admin/AdminFinances';
+import CheckoutManager from './Admin/CheckoutManager';
 import BookingWizard from './Booking/BookingWizard';
+import NotificationsModal from './Admin/NotificationsModal';
 
 import { Appointment, AppUser, UserRole } from '../types';
 
@@ -55,7 +50,6 @@ interface AdminDashboardProps {
   barbers: AppUser[];
   setBarbers: React.Dispatch<React.SetStateAction<AppUser[]>>;
   isMobile?: boolean; // Passed by MainLayout
-  setSidebarOpen?: (open: boolean) => void; // Passed by MainLayout
 }
 
 export default function AdminDashboard({ 
@@ -68,12 +62,11 @@ export default function AdminDashboard({
   isDarkMode, 
   barbers, 
   setBarbers,
-  isMobile: isMobileProp,
-  setSidebarOpen
+  isMobile: isMobileProp
 }: AdminDashboardProps) {
   const { width } = useWindowDimensions();
   const { currentUser } = useAuth();
-  const isMobile = isMobileProp ?? width < 768;
+  const isMobile = isMobileProp ?? width < 1024;
   const [activeTab, setActiveTab] = useState('dashboard');
   
   // Notification Logic
@@ -121,75 +114,36 @@ export default function AdminDashboard({
     }
   };
 
-  // State for metrics and date and time
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
-
-  const selectedDateStr = useMemo(() => {
-    return selectedDate.toISOString().split('T')[0];
-  }, [selectedDate]);
-
+  // Metrics for dashboard
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const dayAppointments = useMemo(() => {
-    return appointments.filter(app => app.date === selectedDateStr);
-  }, [appointments, selectedDateStr]);
+    return appointments.filter(app => app.date === todayStr);
+  }, [appointments, todayStr]);
 
   const totalToday = dayAppointments.reduce((acc, app) => acc + (app.price || 0), 0);
   const totalWalkins = dayAppointments.filter(app => (app as any).type === 'Walk-in').length;
 
-  const dateLabel = useMemo(() => {
-    return selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-  }, [selectedDate]);
-
   const handleWalkIn = async (data: any) => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-
-    const walkInData = {
-      ...data,
-      userId: data.userId || 'admin-walkin',
-      status: data.date === todayStr ? 'En Local' : 'Confirmed',
-      paid: true 
-    };
-
     try {
-      await onAddAppointment(walkInData);
+      await onAddAppointment({
+        ...data,
+        type: 'Walk-in',
+        paid: true,
+        status: 'confirmed'
+      });
       setActiveTab('dashboard');
     } catch (error: any) {
       console.error("Error creating walk-in:", error);
     }
   };
 
-  if (role === 'reception' && isMobile) {
-    return (
-      <AdminKiosk
-        notifications={notifications}
-        setShowNotifications={setShowNotifications}
-        showNotifications={showNotifications}
-        handleMarkAsRead={handleMarkAsRead}
-        onLogout={onLogout}
-        appointments={appointments}
-        handleWalkIn={handleWalkIn}
-        COLORS={COLORS}
-        viewMode={activeTab}
-        setViewMode={setActiveTab}
-        barbers={barbers}
-        toggleTheme={toggleTheme}
-        isDarkMode={isDarkMode}
-      />
-    );
-  }
-
   return (
     <MainLayout
       activeTab={activeTab}
       setActiveTab={setActiveTab}
       COLORS={COLORS}
-      user={role}
+      user={currentUser}
     >
-      {/* Screens/Portals will receive setSidebarOpen and isMobile via cloneElement in MainLayout */}
       <View style={styles.contentWrapper}>
         <ScrollView 
           style={styles.contentArea} 
@@ -198,142 +152,41 @@ export default function AdminDashboard({
         >
           <AdminHeader 
             notifications={notifications}
-=======
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, Modal } from 'react-native';
-import { LayoutDashboard, Calendar, Users, CreditCard, TrendingUp, Settings, LogOut, PlusCircle, Menu } from 'lucide-react';
-import MainLayout from './Navigation/MainLayout';
-import { useSidebar } from '../context/SidebarContext';
-import AdminHeader from './Admin/AdminHeader';
-import AdminMetrics from './Admin/AdminMetrics';
-import AdminQuickActions from './Admin/AdminQuickActions';
-import AdminAgenda from './Admin/AdminAgenda';
-import AdminUsers from './Admin/AdminUsers';
-import AdminHistory from './Admin/AdminHistory';
-import AdminBarbers from './Admin/AdminBarbers';
-import AdminServices from './Admin/AdminServices';
-import AdminFinances from './Admin/AdminFinances';
-import NotificationsModal from './Admin/NotificationsModal';
-import BookingWizard from './Booking/BookingWizard';
-import CheckoutManager from './Admin/CheckoutManager';
-import { useAuth } from '../context/AuthContext';
-
-export default function AdminDashboard({ appointments, onLogout, onAddAppointment, COLORS, toggleTheme, isDarkMode, barbers, setBarbers, isMobile: isMobileProp }: any) {
-  const { width } = useWindowDimensions();
-  const isMobile = isMobileProp ?? width < 1024;
-  const { setIsOpen } = useSidebar();
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [showNotifications, setShowNotifications] = useState(false);
-  const { currentUser } = useAuth();
-
-  return (
-    <MainLayout activeTab={activeTab} setActiveTab={setActiveTab} COLORS={COLORS} user={currentUser}>
-      <View style={styles.contentWrapper}>
-        <ScrollView style={styles.contentArea} contentContainerStyle={[styles.scrollContent, { padding: isMobile ? 20 : 40 }]}>
-          <AdminHeader 
-            notifications={[]}
->>>>>>> main
             setShowNotifications={setShowNotifications}
             toggleTheme={toggleTheme}
             isDarkMode={isDarkMode}
             onLogout={onLogout}
             COLORS={COLORS}
-<<<<<<< HEAD
-            viewMode={activeTab}
             setViewMode={setActiveTab}
             isMobile={isMobile}
-            onMenuPress={setSidebarOpen ? () => setSidebarOpen(true) : undefined} 
-          />
-
-        {activeTab === 'dashboard' && (
-          <View style={styles.dashboardGrid}>
-            <AdminMetrics
-              totalToday={totalToday}
-              totalWalkins={totalWalkins}
-              dateLabel={dateLabel}
-              COLORS={COLORS}
-              isMobile={isMobile}
-            />
-
-            <View style={[styles.mainGridRow, isMobile && { flexDirection: 'column' }]}>
-                <View style={styles.calendarSection}>
-                    <AdminCalendar
-                        appointments={appointments}
-                        COLORS={COLORS}
-                        isMobile={isMobile}
-                        selectedDate={selectedDate}
-                        onDateChange={setSelectedDate}
-                    />
-                </View>
-                
-                <View style={styles.actionsSection}>
-                    <AdminQuickActions
-                        setViewMode={setActiveTab}
-                        COLORS={COLORS}
-                        isMobile={isMobile}
-                    />
-                </View>
-            </View>
-          </View>
-        )}
-
-        {activeTab === 'users' && (
-          <View style={styles.fullPane}>
-             <UserManagement COLORS={COLORS} />
-          </View>
-        )}
-
-         {/* Additional Tab implementations go here */}
-        </ScrollView>
-      </View>
-
-      {/* Modals & Overlays */}
-      <Modal visible={activeTab === 'queue'} animationType="fade" transparent={true}>
-        <View style={styles.modalOverlay} data-modal-overlay="true">
-            <QueueDisplay appointments={appointments} onClose={() => setActiveTab('dashboard')} COLORS={COLORS} />
-        </View>
-      </Modal>
-
-      <Modal visible={activeTab === 'walkin'} animationType="fade" transparent={true}>
-        <View style={styles.modalOverlay} data-modal-overlay="true">
-             <BookingWizard
-                user={currentUser}
-                existingAppointments={appointments}
-                onConfirm={handleWalkIn}
-                onCancel={() => setActiveTab('dashboard')}
-                COLORS={COLORS}
-                barbers={barbers}
-            />
-        </View>
-      </Modal>
-
-      <Modal visible={activeTab === 'finance'} animationType="fade" transparent={true}>
-        <View style={styles.modalOverlay} data-modal-overlay="true">
-            <FinancialReport appointments={appointments} onClose={() => setActiveTab('dashboard')} COLORS={COLORS} />
-        </View>
-      </Modal>
-
-      <AdminNotifications
-        showNotifications={showNotifications}
-        setShowNotifications={setShowNotifications}
-        notifications={notifications}
-        handleMarkAsRead={handleMarkAsRead}
-=======
-            setViewMode={setActiveTab}
-            isMobile={isMobile}
-            onMenuPress={() => setIsOpen(true)}
           />
 
           {activeTab === 'dashboard' && (
             <View style={styles.dashboardGrid}>
-              <AdminMetrics totalToday={0} totalWalkins={0} dateLabel="18 Mar" COLORS={COLORS} isMobile={isMobile} />
+              <AdminMetrics
+                totalToday={totalToday}
+                totalWalkins={totalWalkins}
+                dateLabel={new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                COLORS={COLORS}
+                isMobile={isMobile}
+              />
+
               <View style={[styles.mainGridRow, isMobile && { flexDirection: 'column' }]}>
-                <View style={styles.agendaSection}>
-                  <AdminAgenda appointments={appointments} COLORS={COLORS} isMobile={isMobile} />
-                </View>
-                <View style={styles.actionsSection}>
-                  <AdminQuickActions setViewMode={setActiveTab} COLORS={COLORS} isMobile={isMobile} />
-                </View>
+                  <View style={styles.agendaSection}>
+                      <AdminAgenda
+                          appointments={appointments}
+                          COLORS={COLORS}
+                          isMobile={isMobile}
+                      />
+                  </View>
+                  
+                  <View style={styles.actionsSection}>
+                      <AdminQuickActions
+                          setViewMode={setActiveTab}
+                          COLORS={COLORS}
+                          isMobile={isMobile}
+                      />
+                  </View>
               </View>
             </View>
           )}
@@ -395,21 +248,35 @@ export default function AdminDashboard({ appointments, onLogout, onAddAppointmen
                   <View style={styles.modalOverlay}>
                       <BookingWizard 
                         user={currentUser} 
-                        onConfirm={(data: any) => { onAddAppointment(data); setActiveTab('dashboard'); }} 
+                        onConfirm={handleWalkIn} 
                         onCancel={() => setActiveTab('dashboard')}
                         COLORS={COLORS} 
+                        barbers={barbers}
                         isWalkIn
                       />
                   </View>
               </Modal>
           )}
+
+          {activeTab === 'queue' && (
+            <Modal visible={true} animationType="fade" transparent={true}>
+              <View style={styles.modalOverlay}>
+                  {/* Placeholder for Queue Display if available, else just a close btn */}
+                  <TouchableOpacity onPress={() => setActiveTab('dashboard')} style={styles.backBtn}>
+                    <Text style={{ color: COLORS.primary }}>Cerrar Fila Virtual</Text>
+                  </TouchableOpacity>
+              </View>
+            </Modal>
+          )}
+
         </ScrollView>
       </View>
 
       <NotificationsModal 
         visible={showNotifications}
         onClose={() => setShowNotifications(false)}
->>>>>>> main
+        notifications={notifications}
+        handleMarkAsRead={handleMarkAsRead}
         COLORS={COLORS}
       />
     </MainLayout>
@@ -417,7 +284,6 @@ export default function AdminDashboard({ appointments, onLogout, onAddAppointmen
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
   contentWrapper: {
     flex: 1,
   },
@@ -425,60 +291,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFF',
-    letterSpacing: -0.5,
-  },
-  dateText: {
-    color: 'var(--text-secondary)',
-    fontSize: 14,
-    marginTop: 4,
-    textTransform: 'capitalize',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  notificationBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'var(--glass-surface)',
-    borderWidth: 1,
-    borderColor: 'var(--glass-border)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notifBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#EF4444',
-    borderWidth: 2,
-    borderColor: 'var(--bg-dark)',
-  },
-  themeBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'var(--glass-surface)',
-    borderWidth: 1,
-    borderColor: 'var(--glass-border)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 32,
   },
   dashboardGrid: {
     gap: 32,
@@ -487,15 +300,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 32,
   },
-  calendarSection: {
+  agendaSection: {
     flex: 2,
   },
   actionsSection: {
     flex: 1,
-  },
-  fullPane: {
-    flex: 1,
-    minHeight: 600,
+    gap: 24,
   },
   modalOverlay: {
     flex: 1,
@@ -503,19 +313,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
+  },
+  backBtn: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 16,
+    borderRadius: 12,
   }
-=======
-  contentWrapper: { flex: 1 },
-  contentArea: { flex: 1 },
-  scrollContent: { gap: 32 },
-  dashboardGrid: { gap: 32 },
-  mainGridRow: { flexDirection: 'row', gap: 32 },
-  agendaSection: { flex: 2 },
-  actionsSection: { flex: 1, gap: 24 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', padding: 40, justifyContent: 'center' },
-  placeholderContainer: { padding: 40, alignItems: 'center', gap: 12 },
-  placeholderTitle: { fontSize: 20, fontWeight: '800' },
-  backBtn: { marginTop: 20, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
-  backText: { fontWeight: '700' },
->>>>>>> main
 });
