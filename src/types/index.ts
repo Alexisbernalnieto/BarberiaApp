@@ -9,6 +9,8 @@ export interface AppUser {
   role: UserRole;
   phone?: string;
   branch?: string;
+  status?: 'active' | 'suspended' | 'deleted';
+  statusMessage?: string;
   stripeCustomerId?: string;
 }
 

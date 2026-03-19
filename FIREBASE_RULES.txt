@@ -4,8 +4,15 @@ service cloud.firestore {
     
     // --- FUNCIONES DE AYUDA ---
     
+    // Verifica que el documento del usuario no esté suspendido ni eliminado
+    function isActiveUser() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      // Permite si no existe doc (registro nuevo), no tiene status (cuentas antiguas) o si es 'active'
+      return userDoc == null || !('status' in userDoc.data) || userDoc.data.status == 'active';
+    }
+
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && isActiveUser();
     }
     
     // Obtiene el rol del usuario actual desde la colección 'users'
@@ -14,15 +21,15 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isSignedIn() && getUserRole() == 0;
+      return isSignedIn() && (getUserRole() == 0 || getUserRole() == 'admin');
     }
     
     function isReception() {
-      return isSignedIn() && getUserRole() == 2;
+      return isSignedIn() && (getUserRole() == 2 || getUserRole() == 'reception');
     }
     
     function isBarber() {
-      return isSignedIn() && getUserRole() == 3;
+      return isSignedIn() && (getUserRole() == 3 || getUserRole() == 'barber');
     }
     
     function isStaff() {
@@ -112,7 +119,7 @@ service cloud.firestore {
     }
     
     // HISTORIAL / LOGS
-    match /logs/{logId} {
+    match /activity_logs/{logId} {
       // Para pruebas, permitir lectura/escritura si está autenticado
       allow read, write: if isSignedIn();
     }

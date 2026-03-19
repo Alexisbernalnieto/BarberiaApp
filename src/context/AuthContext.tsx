@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, getDoc, getDocFromCache, setDoc, DocumentReference } from 'firebase/firestore';
+import { doc, getDoc, getDocFromCache, setDoc, DocumentReference, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebaseClient';
 import { AppUser, UserRole } from '../types';
 
@@ -30,36 +30,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [offlineError, setOfflineError] = useState(false);
 
-  // Helper to map numeric roles to strings
-  const mapRole = (r: number): UserRole => {
-    if (r === 0) return 'admin';
-    if (r === 2) return 'reception';
-    if (r === 3) return 'barber';
-    return 'client';
-  };
+  useEffect(() => {
+    let unsubscribeSnapshot: (() => void) | null = null;
 
-  // Fetch user document with retry and cache fallback
-  const fetchUserDoc = async (userDocRef: DocumentReference) => {
-    const MAX_RETRIES = 3;
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
-        const userDoc = await getDoc(userDocRef);
-        setOfflineError(false);
-        return userDoc;
-      } catch (error: any) {
-        console.warn(`[Auth] Server fetch attempt ${attempt}/${MAX_RETRIES} failed:`, error.message);
-
-        if (attempt === 1) {
-          try {
-            const cachedDoc = await getDocFromCache(userDocRef);
-            if (cachedDoc.exists()) {
-              console.log('[Auth] Using cached user data');
-              setOfflineError(true);
-              return cachedDoc;
+        if (user) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            
+            if (data.status === 'suspended' || data.status === 'deleted') {
+              const msg = data.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
+              if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
+              else Alert.alert('Acceso Denegado', msg);
+              
+              await signOut(auth);
+              return;
             }
-          } catch (cacheError: any) {
-            console.warn('[Auth] Cache also empty:', cacheError.message);
+            
+            setCurrentUser({ ...data, uid: user.uid, email: user.email });
+
+            unsubscribeSnapshot = onSnapshot(doc(db, 'users', user.uid), async (docSnap) => {
+              if (docSnap.exists()) {
+                const newData = docSnap.data();
+                if (newData.status === 'suspended' || newData.status === 'deleted') {
+                  const msg = newData.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
+                  if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
+                  else Alert.alert('Acceso Denegado', msg);
+                  
+                  await signOut(auth);
+                } else {
+                  setCurrentUser((prev: any) => prev ? { ...prev, ...newData } : prev);
+                }
+              }
+            });
+
+          } else {
+            setCurrentUser({ uid: user.uid, email: user.email, role: 'client' });
           }
         }
 
@@ -96,12 +104,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             role: 'client',
           } as AppUser);
         } else {
-          console.error('[Auth] Could not load user data after retries.');
-          setCurrentUser({
-            email: user.email || '',
-            uid: user.uid,
-            role: 'client',
-          } as AppUser);
+          setCurrentUser(null);
+          if (unsubscribeSnapshot) {
+            unsubscribeSnapshot();
+            unsubscribeSnapshot = null;
+          }
         }
       } else {
         setCurrentUser(null);
@@ -109,8 +116,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       setLoading(false);
     });
-
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
