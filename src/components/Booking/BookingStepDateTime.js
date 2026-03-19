@@ -16,10 +16,7 @@ export default function BookingStepDateTime({
   isSlotTaken,
 }) {
   return (
-    <ScrollView
-      contentContainerStyle={styles.stepContent}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.stepContent}>
       <Text style={styles.stepHeader}>FECHA Y HORA</Text>
 
       <View style={styles.calendarContainer}>
@@ -115,7 +112,7 @@ export default function BookingStepDateTime({
       ) : (
         <Text style={styles.hintText}>Selecciona una fecha en el calendario</Text>
       )}
-    </ScrollView>
+    </View>
   );
 }
 

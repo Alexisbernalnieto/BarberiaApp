@@ -73,9 +73,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (servicesSnap.empty) {
         console.log("Seeding initial services...");
         const initialServices = [
-          { id: '1', name: 'Corte Fade/Lavado', price: 300, duration: 60, branch: 'Ambas' },
-          { id: '2', name: 'Corte Fade', price: 229, duration: 45, branch: 'Ambas' },
-          { id: '6', name: 'Arreglo de Barba', price: 180, duration: 30, branch: 'Ambas' }
+          { id: '1', name: 'CORTE FADE/ LAVADO', price: 300, duration: 60, branch: 'Ambas' },
+          { id: '2', name: 'CORTE FADE', price: 229, duration: 45, branch: 'Ambas' },
+          { id: '3', name: 'CORTE CLASICO', price: 159, duration: 45, branch: 'Ambas' },
+          { id: '4', name: 'CORTE A TIJERA', price: 229, duration: 60, branch: 'Ambas' },
+          { id: '5', name: 'GRECAS', price: 50, duration: 20, branch: 'Ambas' },
+          { id: '6', name: 'ARREGLO DE BARBA', price: 180, duration: 30, branch: 'Ambas' },
+          { id: '7', name: 'DESVANECIDO DE BARBA', price: 210, duration: 45, branch: 'Ambas' },
+          { id: '8', name: 'TOALLAS CALIENTES', price: 180, duration: 30, branch: 'Ambas' },
+          { id: '9', name: 'EXFOLIACION FACIAL', price: 129, duration: 30, branch: 'Ambas' },
+          { id: '10', name: 'MASCARILLA NEGRA', price: 129, duration: 30, branch: 'Ambas' },
+          { id: '11', name: 'PERFILACION DE CEJAS', price: 30, duration: 15, branch: 'Ambas' },
+          { id: '12', name: 'LAVADO', price: 80, duration: 20, branch: 'Ambas' },
+          { id: '13', name: 'WAX FACIAL, OREJAS/ NARIZ', price: 0, duration: 20, branch: 'Ambas', status: 'Prox..' },
+          { id: '14', name: 'COLORIMETRIA', price: 0, duration: 60, branch: 'Ambas', status: 'Prox..' },
+          { id: '15', name: 'ONDULACION PERMANENTE', price: 0, duration: 90, branch: 'Ambas', status: 'Prox..' },
+          { id: '16', name: 'ALACIADO PERMANENTE', price: 0, duration: 90, branch: 'Ambas', status: 'Prox..' }
         ];
         for (const s of initialServices) {
           await setDoc(doc(db, 'services', s.id), s);

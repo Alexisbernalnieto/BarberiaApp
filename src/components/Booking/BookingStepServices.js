@@ -15,18 +15,17 @@ export default function BookingStepServices({
   );
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.stepContent}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.stepContent}>
       <Text style={styles.stepHeader}>SERVICIOS DISPONIBLES</Text>
       <View style={styles.gridContainer}>
         {filteredServices.map(item => (
           <TouchableOpacity
             key={item.id}
+            disabled={item.status === 'Prox..'}
             style={[
               styles.serviceCard,
               selectedService?.id === item.id && styles.activeServiceCard,
+              item.status === 'Prox..' && { opacity: 0.6 },
             ]}
             onPress={() => setSelectedService(item)}
             dataSet={{ bookingCard: 'true', cardActive: selectedService?.id === item.id ? 'true' : undefined }}
@@ -57,15 +56,16 @@ export default function BookingStepServices({
                 style={[
                   styles.servicePrice,
                   selectedService?.id === item.id && styles.activeText,
+                  item.status === 'Prox..' && { fontSize: 12, color: COLORS.textSecondary },
                 ]}
               >
-                ${item.price}
+                {item.status === 'Prox..' ? 'PROXIMAMENTE' : `$${item.price}`}
               </Text>
             </View>
           </TouchableOpacity>
         ))}
       </View>
-    </ScrollView>
+    </View>
   );
 }
 

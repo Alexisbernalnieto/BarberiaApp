@@ -3,11 +3,9 @@ import { StyleSheet, Platform } from 'react-native';
 export const getBookingWizardStyles = (COLORS, isMobile) =>
   StyleSheet.create({
     container: {
-      flex: 1,
-      backgroundColor: COLORS.background,
+      width: '100%',
     },
     inner: {
-      flex: 1,
       width: '100%',
       maxWidth: isMobile ? '100%' : 1100,
       alignSelf: 'center',
@@ -104,11 +102,11 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
 
     // === CONTENT ===
     contentContainer: {
-      flex: 1,
+      width: '100%',
     },
     stepContent: {
-      padding: isMobile ? 20 : 48,
-      paddingBottom: 120,
+      padding: isMobile ? 12 : 32,
+      paddingBottom: 40,
       alignItems: 'center',
     },
     stepHeader: {
@@ -541,16 +539,11 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
       flexDirection: 'row',
       padding: 20,
       paddingHorizontal: isMobile ? 20 : 40,
-      backgroundColor: COLORS.mode === 'dark' ? 'rgba(15,15,15,0.95)' : 'rgba(255,255,255,0.95)',
+      backgroundColor: 'transparent',
       borderTopWidth: 1,
       borderTopColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
       justifyContent: 'space-between',
       gap: 16,
-      ...Platform.select({
-        web: {
-          backdropFilter: 'blur(20px)',
-        },
-      }),
     },
     actionBtn: {
       flex: 1,

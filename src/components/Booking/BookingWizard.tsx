@@ -30,9 +30,29 @@ const BookingWizard = ({ user, onConfirm, onCancel, COLORS, isWalkIn = false }: 
   const styles = useMemo(() => getBookingWizardStyles(COLORS, isMobile), [COLORS, isMobile]);
   
   const { appointments: existingAppointments, barbers: dbBarbers, services: dbServices, branches: dbBranches } = useData();
-  const barberList = dbBarbers;
-  const serviceList = dbServices;
-  const branchList = dbBranches;
+  const barberList = dbBarbers?.length > 0 ? dbBarbers : [];
+  const serviceList = dbServices?.length > 0 ? dbServices : [
+    { id: '1', name: 'CORTE FADE/ LAVADO', price: 300, duration: 60, branch: 'Ambas' },
+    { id: '2', name: 'CORTE FADE', price: 229, duration: 45, branch: 'Ambas' },
+    { id: '3', name: 'CORTE CLASICO', price: 159, duration: 45, branch: 'Ambas' },
+    { id: '4', name: 'CORTE A TIJERA', price: 229, duration: 60, branch: 'Ambas' },
+    { id: '5', name: 'GRECAS', price: 50, duration: 20, branch: 'Ambas' },
+    { id: '6', name: 'ARREGLO DE BARBA', price: 180, duration: 30, branch: 'Ambas' },
+    { id: '7', name: 'DESVANECIDO DE BARBA', price: 210, duration: 45, branch: 'Ambas' },
+    { id: '8', name: 'TOALLAS CALIENTES', price: 180, duration: 30, branch: 'Ambas' },
+    { id: '9', name: 'EXFOLIACION FACIAL', price: 129, duration: 30, branch: 'Ambas' },
+    { id: '10', name: 'MASCARILLA NEGRA', price: 129, duration: 30, branch: 'Ambas' },
+    { id: '11', name: 'PERFILACION DE CEJAS', price: 30, duration: 15, branch: 'Ambas' },
+    { id: '12', name: 'LAVADO', price: 80, duration: 20, branch: 'Ambas' },
+    { id: '13', name: 'WAX FACIAL, OREJAS/ NARIZ', price: 0, duration: 20, branch: 'Ambas', status: 'Prox..' },
+    { id: '14', name: 'COLORIMETRIA', price: 0, duration: 60, branch: 'Ambas', status: 'Prox..' },
+    { id: '15', name: 'ONDULACION PERMANENTE', price: 0, duration: 90, branch: 'Ambas', status: 'Prox..' },
+    { id: '16', name: 'ALACIADO PERMANENTE', price: 0, duration: 90, branch: 'Ambas', status: 'Prox..' }
+  ];
+  const branchList = dbBranches?.length > 0 ? dbBranches : [
+    { id: 'centro', name: 'Centro', address: 'Mariano Abasolo 59 B San Juan del Rio, Qro' },
+    { id: 'lomas', name: 'Lomas', address: 'Av. Lomas de San Juan 1129 San Juan del Rio, Qro' }
+  ];
 
   const [currentStep, setCurrentStep] = useState(1);
   const fadeAnim = useRef(new Animated.Value(1)).current;

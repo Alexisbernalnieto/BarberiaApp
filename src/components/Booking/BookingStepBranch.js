@@ -10,10 +10,7 @@ export default function BookingStepBranch({
   setSelectedBranch,
 }) {
   return (
-    <ScrollView
-      contentContainerStyle={styles.stepContent}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.stepContent}>
       <Text style={styles.stepHeader}>SELECCIONA TU SUCURSAL</Text>
       <View style={styles.gridContainer}>
         {BRANCHES.map(branch => (
@@ -63,7 +60,7 @@ export default function BookingStepBranch({
           </TouchableOpacity>
         ))}
       </View>
-    </ScrollView>
+    </View>
   );
 }
 

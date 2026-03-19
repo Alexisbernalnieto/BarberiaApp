@@ -17,10 +17,7 @@ export default function BookingStepConfirm({
   isPaid,
 }) {
   return (
-    <ScrollView
-      contentContainerStyle={styles.stepContent}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.stepContent}>
       <Text style={styles.stepHeader}>CONFIRMACIÓN</Text>
 
       <View style={styles.ticketCard} dataSet={{ ticket: 'true' }}>
@@ -107,7 +104,7 @@ export default function BookingStepConfirm({
       <Text style={styles.paymentNote}>
         {isPaid ? 'Pago confirmado con éxito vía Stripe.' : '* El pago se realizará en el establecimiento.'}
       </Text>
-    </ScrollView>
+    </View>
   );
 }
 

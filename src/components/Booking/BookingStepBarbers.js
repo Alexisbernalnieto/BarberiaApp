@@ -13,12 +13,9 @@ export default function BookingStepBarbers({
   const filteredBarbers = BARBERS.filter(b => b.branch === selectedBranch || b.branch === 'Ambas');
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.stepContent}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.stepContent}>
       <Text style={styles.stepHeader}>
-        TU EXPERTO EN {selectedBranch.toUpperCase()}
+        TU EXPERTO EN {selectedBranch ? selectedBranch.toUpperCase() : ''}
       </Text>
       <View style={styles.barbersGrid}>
         {filteredBarbers.map(item => (
@@ -68,7 +65,7 @@ export default function BookingStepBarbers({
           </TouchableOpacity>
         ))}
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
