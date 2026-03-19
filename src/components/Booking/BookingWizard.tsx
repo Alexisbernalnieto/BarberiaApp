@@ -1,7 +1,6 @@
-import React, { useState, useRef, useMemo } from 'react';
-import { View, Text, TouchableOpacity, Animated, useWindowDimensions } from 'react-native';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, useWindowDimensions, TextInput } from 'react-native';
 import { 
-    OfficeBuilding, 
     Scissors, 
     User, 
     Clock, 
@@ -9,14 +8,20 @@ import {
     ArrowRight,
     Building2,
     CalendarCheck,
-    CheckSquare
+    CheckSquare,
+    CreditCard
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useData } from '../../context/DataContext';
+import { createAppointment } from '../../services/appointments';
+
 import BookingProgressBar from './BookingProgressBar';
 import BookingStepBranch from './BookingStepBranch';
 import BookingStepServices from './BookingStepServices';
 import BookingStepBarbers from './BookingStepBarbers';
 import BookingStepDateTime from './BookingStepDateTime';
 import BookingStepConfirm from './BookingStepConfirm';
+import BookingStepPayment from './BookingStepPayment';
 import { getBookingWizardStyles } from './BookingWizardStyles';
 import { AppUser, Appointment } from '../../types';
 
@@ -25,28 +30,23 @@ export const STEPS = [
   { id: 2, title: 'Servicio', icon: Scissors },
   { id: 3, title: 'Barbero', icon: User },
   { id: 4, title: 'Horario', icon: Clock },
-  { id: 5, title: 'Confirmar', icon: CheckSquare }
+  { id: 5, title: 'Pago', icon: CreditCard },
+  { id: 6, title: 'Confirmar', icon: CheckSquare }
 ];
-
-interface BookingWizardProps {
-  user: AppUser | null;
-  existingAppointments: Appointment[];
-  onConfirm: (data: any) => void;
-  onCancel?: () => void;
-  isWalkIn?: boolean;
-  COLORS: any;
-  barbers: AppUser[];
-}
 
 export default function BookingWizard({ 
     user, 
-    existingAppointments, 
     onConfirm, 
     onCancel, 
     isWalkIn = false, 
-    COLORS, 
-    barbers 
-}: BookingWizardProps) {
+    COLORS,
+}: {
+    user: AppUser | null;
+    onConfirm: (data: any) => void;
+    onCancel?: () => void;
+    isWalkIn?: boolean;
+    COLORS: any;
+}) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const styles = useMemo(
@@ -54,29 +54,30 @@ export default function BookingWizard({
     [COLORS, isMobile],
   );
   
-  const dToday = new Date();
-  const todayLocal = `${dToday.getFullYear()}-${String(dToday.getMonth() + 1).padStart(2, '0')}-${String(dToday.getDate()).padStart(2, '0')}`;
+  const { appointments: existingAppointments, barbers: dbBarbers, services: dbServices, branches: dbBranches } = useData();
+  
+  const branchList = dbBranches?.length > 0 ? dbBranches : [
+    { id: 'centro', name: 'Centro', address: 'Mariano Abasolo 59 B San Juan del Rio, Qro' },
+    { id: 'lomas', name: 'Lomas', address: 'Av. Lomas de San Juan 1129 San Juan del Rio, Qro' }
+  ];
+
+  const serviceList = dbServices?.length > 0 ? dbServices : [];
+  const barberList = dbBarbers?.length > 0 ? dbBarbers : [];
 
   const [currentStep, setCurrentStep] = useState(1);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedBarber, setSelectedBarber] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState(todayLocal);
+  const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [guestName, setGuestName] = useState(user?.name || '');
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
 
-  const BRANCHES = [
-    { name: 'Centro', address: 'Av. Juárez 100, Col. Centro' },
-    { name: 'Lomas', address: 'Blvd. Lomas 500, Suites' }
-  ];
-
-  const SERVICES = [
-    { id: '1', name: 'Corte Clásico', price: 250, duration: 45 },
-    { id: '2', name: 'Barba Executive', price: 180, duration: 30 },
-    { id: '3', name: 'Combo Coronel', price: 380, duration: 75 }
-  ];
+  const dToday = new Date();
+  const todayLocal = `${dToday.getFullYear()}-${String(dToday.getMonth() + 1).padStart(2, '0')}-${String(dToday.getDate()).padStart(2, '0')}`;
 
   const goToStep = (step: number) => {
     Animated.sequence([
@@ -87,24 +88,35 @@ export default function BookingWizard({
   };
 
   const handleNext = () => {
-    if (currentStep < 5) goToStep(currentStep + 1);
+    if (currentStep === 1 && selectedBranch) goToStep(2);
+    else if (currentStep === 2 && selectedService) goToStep(3);
+    else if (currentStep === 3 && selectedBarber) goToStep(4);
+    else if (currentStep === 4 && selectedDate && selectedTime) {
+      if (isWalkIn) goToStep(6);
+      else goToStep(5);
+    }
+    else if (currentStep === 5 && isPaid) goToStep(6);
   };
 
   const handleBack = () => {
-    if (currentStep > 1) goToStep(currentStep - 1);
+    if (currentStep === 6 && isWalkIn) goToStep(4);
+    else if (currentStep > 1) goToStep(currentStep - 1);
     else if (onCancel) onCancel();
   };
 
   const isSlotTaken = (time: string) => {
     if (!selectedBarber || !selectedDate) return false;
-    return existingAppointments.some(appt =>
+    return existingAppointments.some((appt: Appointment) =>
       appt.date === selectedDate &&
       appt.time === time &&
-      appt.barberId === selectedBarber.uid
+      (appt.barberId === (selectedBarber.uid || selectedBarber.id)) &&
+      appt.status !== 'cancelled'
     );
   };
 
   const generateTimeSlots = () => {
+    if (!selectedDate || !selectedBranch) return [];
+    
     const slots = [];
     const startHour = 10;
     const endHour = 20;
@@ -123,33 +135,41 @@ export default function BookingWizard({
 
       return slots.filter(slot => {
         const [slotH, slotM] = slot.split(':').map(Number);
-        if (slotH > currentHour) return true;
-        if (slotH === currentHour && slotM > currentMinute) return true;
-        return false;
+        return slotH > currentHour || (slotH === currentHour && slotM > currentMinute);
       });
     }
 
     return slots;
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const appointmentData = {
-      userId: user?.email || 'walkin-guest',
+      userId: user?.uid || 'walkin-guest',
       userName: isWalkIn ? guestName : user?.name,
-      branch: selectedBranch,
-      barberId: selectedBarber.uid,
+      userEmail: user?.email || '',
+      branch: selectedBranch?.name || 'Sucursal Matriz',
+      branchId: selectedBranch?.id || 'centro',
+      barberId: selectedBarber.uid || selectedBarber.id,
       barberName: selectedBarber.name,
       date: selectedDate,
-      time: selectedTime,
+      time: selectedTime!,
       serviceId: selectedService.id,
       serviceName: selectedService.name,
       price: selectedService.price,
       duration: selectedService.duration,
-      status: 'Confirmado',
       type: isWalkIn ? 'Walk-in' : 'Online',
+      paymentIntentId: paymentIntentId,
+      paid: isPaid,
+      status: 'confirmed',
+      createdAt: new Date().toISOString()
     };
 
-    onConfirm(appointmentData);
+    try {
+      const result = await createAppointment(appointmentData as any);
+      onConfirm(result);
+    } catch (error: any) {
+      alert(error.message || "Error al crear la cita");
+    }
   };
 
   return (
@@ -168,7 +188,7 @@ export default function BookingWizard({
             <BookingStepBranch
               styles={styles}
               COLORS={COLORS}
-              BRANCHES={BRANCHES}
+              BRANCHES={branchList}
               selectedBranch={selectedBranch}
               setSelectedBranch={setSelectedBranch}
             />
@@ -177,8 +197,8 @@ export default function BookingWizard({
             <BookingStepServices
               styles={styles}
               COLORS={COLORS}
-              SERVICES={SERVICES}
-              selectedBranch={selectedBranch}
+              SERVICES={serviceList.filter((s: any) => s.branch === 'Ambas' || s.branch === selectedBranch?.name)}
+              selectedBranch={selectedBranch?.name}
               selectedService={selectedService}
               setSelectedService={setSelectedService}
             />
@@ -187,8 +207,8 @@ export default function BookingWizard({
             <BookingStepBarbers
               styles={styles}
               COLORS={COLORS}
-              BARBERS={barbers}
-              selectedBranch={selectedBranch}
+              BARBERS={barberList.filter((b: any) => b.branch === selectedBranch?.name || b.branch === 'Ambas')}
+              selectedBranch={selectedBranch?.name}
               selectedBarber={selectedBarber}
               setSelectedBarber={setSelectedBarber}
             />
@@ -208,6 +228,19 @@ export default function BookingWizard({
             />
           )}
           {currentStep === 5 && (
+            <BookingStepPayment
+              styles={styles}
+              COLORS={COLORS}
+              selectedService={selectedService}
+              onPaymentSuccess={(id) => {
+                setPaymentIntentId(id);
+                setIsPaid(true);
+                goToStep(6);
+              }}
+              onPaymentError={(err) => alert(err)}
+            />
+          )}
+          {currentStep === 6 && (
             <BookingStepConfirm
               styles={styles}
               COLORS={COLORS}
@@ -215,7 +248,7 @@ export default function BookingWizard({
               guestName={guestName}
               setGuestName={setGuestName}
               user={user}
-              selectedBranch={selectedBranch}
+              selectedBranch={selectedBranch?.name}
               selectedService={selectedService}
               selectedBarber={selectedBarber}
               selectedDate={selectedDate}
@@ -226,14 +259,14 @@ export default function BookingWizard({
 
         <View style={styles.footerActions}>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.backBtn, currentStep === 1 && !onCancel && styles.disabledBtn]}
+            style={[styles.actionBtn, styles.backBtn, currentStep === 1 && styles.disabledBtn]}
             onPress={handleBack}
             disabled={currentStep === 1 && !onCancel}
           >
             <Text style={styles.backBtnText}>{currentStep === 1 ? 'CANCELAR' : 'ATRÁS'}</Text>
           </TouchableOpacity>
 
-          {currentStep < 5 ? (
+          {currentStep < 6 ? (
             <TouchableOpacity
               style={[
                 styles.actionBtn,
@@ -241,24 +274,25 @@ export default function BookingWizard({
                 ((currentStep === 1 && !selectedBranch) ||
                   (currentStep === 2 && !selectedService) ||
                   (currentStep === 3 && !selectedBarber) ||
-                  (currentStep === 4 && (!selectedDate || !selectedTime))) && styles.disabledBtn
+                  (currentStep === 4 && (!selectedDate || !selectedTime)) ||
+                  (currentStep === 5 && !isPaid)) && styles.disabledBtn
               ]}
               onPress={handleNext}
               disabled={
                 (currentStep === 1 && !selectedBranch) ||
                 (currentStep === 2 && !selectedService) ||
                 (currentStep === 3 && !selectedBarber) ||
-                (currentStep === 4 && (!selectedDate || !selectedTime))
+                (currentStep === 4 && (!selectedDate || !selectedTime)) ||
+                (currentStep === 5 && !isPaid)
               }
             >
               <Text style={styles.nextBtnText}>SIGUIENTE</Text>
-              <ArrowRight size={18} color="#000" style={{ marginLeft: 8 }} />
+              <ArrowRight size={18} color={COLORS.textInverse || "#000"} style={{ marginLeft: 8 }} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={[styles.actionBtn, styles.confirmBtn]}
               onPress={handleConfirm}
-              data-primary-btn="true"
             >
               <Text style={styles.confirmBtnText}>CONFIRMAR CITA</Text>
               <CheckCircle2 size={18} color="#FFF" style={{ marginLeft: 8 }} />

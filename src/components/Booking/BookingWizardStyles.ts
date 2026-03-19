@@ -406,6 +406,14 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       fontWeight: '800',
       letterSpacing: 1,
     } as TextStyle,
+    confirmBtn: {
+      backgroundColor: '#10B981',
+    } as ViewStyle,
+    confirmBtnText: {
+      color: '#FFF',
+      fontWeight: '800',
+      letterSpacing: 1,
+    } as TextStyle,
     disabledBtn: {
       opacity: 0.4,
     } as ViewStyle,

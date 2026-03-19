@@ -1,23 +1,13 @@
-/* ============================================================
-   EL CORONEL BARBÓN — Premium CSS Design System
-   Peluquería y Barbería de Alto Nivel
-   ============================================================ */
-
-/* ─── Google Fonts ─── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;700;800;900&display=swap');
-
-/* ─── CSS Custom Properties ─── */
 :root {
+  --bg-dark: #0B0B0C;
+  --bg-card: rgba(26, 26, 28, 0.7);
+  --bg-sidebar: rgba(15, 15, 17, 0.85);
   --gold: #D4AF37;
   --gold-vibrant: #FFBF00;
   --gold-glow: rgba(212, 175, 55, 0.2);
   --gold-subtle: rgba(212, 175, 55, 0.08);
   --gold-dim: rgba(212, 175, 55, 0.2);
-  
-  /* Deep Luxury Palette */
-  --bg-dark: #0B0B0C;
-  --bg-card: rgba(26, 26, 28, 0.7);
-  --bg-sidebar: rgba(15, 15, 17, 0.85);
+  --gold-border: rgba(212, 175, 55, 0.3);
   
   /* Glassmorphism */
   --glass-surface: rgba(255, 255, 255, 0.03);
@@ -38,16 +28,11 @@
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ─── Base Reset & Global ─── */
 * {
   box-sizing: border-box;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-html,
-body,
-#root {
+body {
   margin: 0;
   padding: 0;
   font-family: var(--font-main);
@@ -61,6 +46,13 @@ body,
   background: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-pane {
+  background: var(--glass-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
 }
 
@@ -86,26 +78,17 @@ body,
   color: #000;
 }
 
-::-moz-selection {
-  background-color: var(--gold);
-  color: #000;
-}
-
-/* ─── Custom Scrollbar ─── */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: var(--bg-dark);
+  background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
   background: var(--glass-border);
   border-radius: 10px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gold-soft);
 }
@@ -836,4 +819,7 @@ a:hover {
     box-shadow: none !important;
     border: 2px solid #000 !important;
   }
+=======
+  background: var(--text-muted);
+>>>>>>> main
 }

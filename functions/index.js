@@ -118,3 +118,123 @@ exports.createPaymentIntentWeb = onRequest(
   }
 );
 
+/* ============================================================
+   3) GESTIÓN DE MÉTODOS DE PAGO (SetupIntents)
+   ============================================================ */
+
+/**
+ * Obtiene o crea un Customer ID de Stripe para el usuario actual
+ */
+async function getOrCreateCustomer(userId, email, stripe) {
+  const userRef = admin.firestore().collection("users").doc(userId);
+  const userDoc = await userRef.get();
+  
+  if (userDoc.exists && userDoc.data().stripeCustomerId) {
+    return userDoc.data().stripeCustomerId;
+  }
+
+  const customer = await stripe.customers.create({
+    email: email,
+    metadata: { firebaseUID: userId },
+  });
+
+  await userRef.set({ stripeCustomerId: customer.id }, { merge: true });
+  return customer.id;
+}
+
+/**
+ * Crea un SetupIntent para que el cliente pueda guardar una tarjeta sin pagar
+ */
+exports.createSetupIntent = onCall(
+  { secrets: [stripeSecret] },
+  async (request) => {
+    try {
+      if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Debe iniciar sesión");
+      }
+
+      const stripe = require("stripe")(stripeSecret.value());
+      const customerId = await getOrCreateCustomer(
+        request.auth.uid,
+        request.auth.token.email,
+        stripe
+      );
+
+      const setupIntent = await stripe.setupIntents.create({
+        customer: customerId,
+        payment_method_types: ["card"],
+      });
+
+      return { clientSecret: setupIntent.client_secret };
+    } catch (error) {
+      console.error("SetupIntent error:", error);
+      throw new HttpsError("internal", error.message);
+    }
+  }
+);
+
+/**
+ * Lista las tarjetas guardadas del usuario
+ */
+exports.listPaymentMethods = onCall(
+  { secrets: [stripeSecret] },
+  async (request) => {
+    try {
+      if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Debe iniciar sesión");
+      }
+
+      const userDoc = await admin.firestore().collection("users").doc(request.auth.uid).get();
+      const customerId = userDoc.exists ? userDoc.data().stripeCustomerId : null;
+
+      if (!customerId) return { paymentMethods: [] };
+
+      const stripe = require("stripe")(stripeSecret.value());
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: "card",
+      });
+
+      return { paymentMethods: paymentMethods.data };
+    } catch (error) {
+       console.error("List PM error:", error);
+       throw new HttpsError("internal", error.message);
+    }
+  }
+);
+
+/**
+ * Elimina (desasocia) una tarjeta del cliente
+ */
+exports.detachPaymentMethod = onCall(
+  { secrets: [stripeSecret] },
+  async (request) => {
+    try {
+      if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Debe iniciar sesión");
+      }
+
+      const { paymentMethodId } = request.data;
+      if (!paymentMethodId) {
+        throw new HttpsError("invalid-argument", "paymentMethodId is required");
+      }
+
+      const stripe = require("stripe")(stripeSecret.value());
+      
+      // Verificación opcional: asegurar que el PM pertenece a este cliente
+      const customerPMs = await admin.firestore().collection("users").doc(request.auth.uid).get();
+      const customerId = customerPMs.data().stripeCustomerId;
+
+      const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+      if (pm.customer !== customerId) {
+        throw new HttpsError("permission-denied", "No tienes permiso para eliminar este método");
+      }
+
+      await stripe.paymentMethods.detach(paymentMethodId);
+      return { success: true };
+    } catch (error) {
+      console.error("Detach PM error:", error);
+      throw new HttpsError("internal", error.message);
+    }
+  }
+);

@@ -12,16 +12,16 @@ interface AdminMetricsProps {
 
 export default function AdminMetrics({ totalToday, totalWalkins, dateLabel, COLORS, isMobile }: AdminMetricsProps) {
   return (
-    <View style={[styles.metricRow, { gap: isMobile ? 16 : 24 }]}>
+    <View style={[styles.metricRow, { gap: isMobile ? 16 : 24 }, isMobile && { flexDirection: 'column' }]}>
       <View style={[styles.glassCard, { flex: 1 }]} data-metric-card="true">
         <View style={styles.metricHeader}>
           <View style={[styles.iconContainer, { backgroundColor: 'var(--gold-subtle)' }]}>
-            <DollarSign size={20} color="var(--gold)" strokeWidth={2.5} />
+            <DollarSign size={20} color={COLORS.primary || "var(--gold)"} strokeWidth={2.5} />
           </View>
-          <Text style={styles.metricLabel}>Ingresos {dateLabel || 'hoy'}</Text>
+          <Text style={[styles.metricLabel, { color: COLORS.textSecondary || 'var(--text-secondary)' }]}>Ingresos {dateLabel || 'hoy'}</Text>
         </View>
         <View style={styles.valueRow}>
-          <Text style={styles.metricValue}>${totalToday.toLocaleString()}</Text>
+          <Text style={[styles.metricValue, { color: COLORS.text || '#FFF' }]}>${totalToday.toLocaleString()}</Text>
           <View style={styles.trendBadge}>
              <TrendingUp size={12} color="#10B981" />
              <Text style={styles.trendText}>+12%</Text>
@@ -34,11 +34,11 @@ export default function AdminMetrics({ totalToday, totalWalkins, dateLabel, COLO
           <View style={[styles.iconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
             <Users size={20} color="#3B82F6" strokeWidth={2.5} />
           </View>
-          <Text style={styles.metricLabel}>Walk-ins</Text>
+          <Text style={[styles.metricLabel, { color: COLORS.textSecondary || 'var(--text-secondary)' }]}>Walk-ins</Text>
         </View>
         <View style={styles.valueRow}>
-          <Text style={styles.metricValue}>{totalWalkins}</Text>
-          <Text style={styles.subValue}>Clientes</Text>
+          <Text style={[styles.metricValue, { color: COLORS.text || '#FFF' }]}>{totalWalkins}</Text>
+          <Text style={[styles.subValue, { color: COLORS.textMuted || 'var(--text-muted)' }]}>Clientes</Text>
         </View>
       </View>
     </View>
@@ -70,7 +70,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   metricLabel: {
-    color: 'var(--text-secondary)',
     fontSize: 14,
     fontWeight: '600',
     letterSpacing: 0.5,
@@ -81,7 +80,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   metricValue: {
-    color: '#FFF',
     fontSize: 32,
     fontWeight: '800',
     letterSpacing: -1,
@@ -101,11 +99,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   subValue: {
-    color: 'var(--text-muted)',
     fontSize: 14,
     fontWeight: '500',
   },
-  trendingUp: {
-      marginLeft: 'auto'
-  }
 });

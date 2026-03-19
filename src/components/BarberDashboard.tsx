@@ -21,6 +21,7 @@ import {
     Menu
 } from 'lucide-react';
 import MainLayout from './Navigation/MainLayout';
+import { useSidebar } from '../context/SidebarContext';
 import { Appointment, AppUser, UserRole } from '../types';
 
 interface BarberDashboardProps {
@@ -32,7 +33,6 @@ interface BarberDashboardProps {
   isDarkMode: boolean;
   role?: UserRole;
   isMobile?: boolean;
-  setSidebarOpen?: (open: boolean) => void;
 }
 
 export default function BarberDashboard({ 
@@ -42,11 +42,11 @@ export default function BarberDashboard({
   COLORS, 
   toggleTheme, 
   isDarkMode,
-  isMobile: isMobileProp,
-  setSidebarOpen
+  isMobile: isMobileProp
 }: BarberDashboardProps) {
     const { width } = useWindowDimensions();
     const isMobile = isMobileProp ?? width < 768;
+    const { setIsOpen } = useSidebar();
     const [activeTab, setActiveTab] = useState('dashboard');
 
     // Filter appointments assigned to this barber
@@ -54,9 +54,10 @@ export default function BarberDashboard({
         const myName = (user?.name || '').toLowerCase().trim();
         return appointments.filter(app => {
             const appBarber = (app.barberName || '').toLowerCase().trim();
-            return appBarber === myName;
+            const appBarberId = app.barberId;
+            return appBarber === myName || appBarberId === user.uid;
         });
-    }, [appointments, user?.name]);
+    }, [appointments, user?.name, user?.uid]);
 
     const today = new Date().toISOString().split('T')[0];
     const todaysAppointments = myAppointments.filter(app => app.date === today);
@@ -78,7 +79,7 @@ export default function BarberDashboard({
                     <View style={styles.header}>
                         <View style={styles.headerTitleRow}>
                             {isMobile && (
-                                <TouchableOpacity onPress={() => setSidebarOpen?.(true)} style={styles.menuBtn}>
+                                <TouchableOpacity onPress={() => setIsOpen(true)} style={styles.menuBtn}>
                                     <Menu size={24} color="var(--gold)" />
                                 </TouchableOpacity>
                             )}
@@ -92,7 +93,7 @@ export default function BarberDashboard({
                             <TouchableOpacity style={styles.headerBtn} onPress={toggleTheme}>
                                 {isDarkMode ? <Sun size={20} color="var(--gold)" /> : <Moon size={20} color="var(--text-secondary)" />}
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.headerBtn, styles.logoutBtn]} onPress={onLogout}>
+                            <TouchableOpacity style={[styles.headerBtn, { borderColor: 'rgba(239, 68, 68, 0.2)' }]} onPress={onLogout}>
                                 <LogOut size={20} color="#EF4444" />
                             </TouchableOpacity>
                         </View>
@@ -232,9 +233,6 @@ const styles = StyleSheet.create({
     borderColor: 'var(--glass-border)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  logoutBtn: {
-    borderColor: 'rgba(239, 68, 68, 0.2)',
   },
   metricsRow: {
     flexDirection: 'row',

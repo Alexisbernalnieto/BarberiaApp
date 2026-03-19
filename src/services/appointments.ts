@@ -1,3 +1,4 @@
+// src/services/appointments.ts
 import { db } from '../firebaseClient';
 import { doc, runTransaction, Timestamp } from 'firebase/firestore';
 import { logActivity } from './logs';
@@ -8,8 +9,8 @@ interface CreateAppointmentParams {
   branch: string;
   barberId: string;
   barberName: string;
-  date: string;
-  time: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
   serviceId: string;
   serviceName: string;
   price: number;
@@ -38,6 +39,7 @@ export const createAppointment = async ({
   paymentIntentId,
 }: CreateAppointmentParams) => {
   // ID Único para evitar duplicidad a nivel de base de datos
+  // Formato: app_BARBERID_YYYY-MM-DD_HH-MM
   const uniqueId = `app_${barberId}_${date}_${time}`.replace(/:/g, '-');
   const appointmentRef = doc(db, 'appointments', uniqueId);
 
@@ -62,7 +64,7 @@ export const createAppointment = async ({
         price,
         duration,
         type: type || 'Online',
-        paid: !!paymentIntentId,
+        paid: !!paymentIntentId, // Solo se marca como pagado si hay un ID de intención de pago
         paymentIntentId: paymentIntentId || null,
         status: 'confirmed',
         createdAt: Timestamp.now(),
@@ -82,3 +84,47 @@ export const createAppointment = async ({
     throw error;
   }
 };
+
+/**
+ * Cancela una cita y actualiza su estado en Firestore.
+ * @param appointmentId ID único de la cita
+ * @param reason Motivo opcional de cancelación
+ */
+export const cancelAppointment = async (appointmentId: string, reason?: string) => {
+  const appointmentRef = doc(db, 'appointments', appointmentId);
+  
+  try {
+    await runTransaction(db, async (transaction) => {
+      const appDoc = await transaction.get(appointmentRef);
+      if (!appDoc.exists()) {
+        throw new Error('La cita no existe.');
+      }
+      
+      const appData = appDoc.data();
+      if (appData.status === 'cancelled') {
+        throw new Error('Esta cita ya ha sido cancelada.');
+      }
+
+      transaction.update(appointmentRef, {
+        status: 'cancelled',
+        cancelledAt: Timestamp.now(),
+        cancelReason: reason || 'Cancelada por el usuario',
+      });
+
+      logActivity(
+        'Canceló una cita',
+        `Cita ID: ${appointmentId}\nCliente: ${appData.userName}\nMotivo: ${reason || 'N/A'}`,
+        appData.userId,
+        1
+      );
+    });
+    return true;
+  } catch (error) {
+    console.error("Cancel transaction failed: ", error);
+    throw error;
+  }
+};
+
+// TODO: Implementar reembolso Stripe en Cloud Functions
+// Se necesita una Cloud Function que escuche cambios en Firestore (status: 'cancelled')
+// y ejecute stripe.refunds.create({ payment_intent: paymentIntentId })

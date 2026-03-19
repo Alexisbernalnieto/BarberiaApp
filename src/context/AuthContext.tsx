@@ -11,10 +11,10 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, getDocFromCache, setDoc, DocumentReference } from 'firebase/firestore';
 import { auth, db } from '../firebaseClient';
-import { User, UserRole } from '../types';
+import { AppUser, UserRole } from '../types';
 
 interface AuthContextType {
-  currentUser: User | null;
+  currentUser: AppUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string) => Promise<boolean>;
@@ -26,7 +26,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [offlineError, setOfflineError] = useState(false);
 
@@ -88,20 +88,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             uid: user.uid,
             email: user.email || '',
             role: finalRole as UserRole,
-          } as User);
+          } as AppUser);
         } else if (userDoc && !userDoc.exists()) {
           setCurrentUser({
             email: user.email || '',
             uid: user.uid,
             role: 'client',
-          } as User);
+          } as AppUser);
         } else {
           console.error('[Auth] Could not load user data after retries.');
           setCurrentUser({
             email: user.email || '',
             uid: user.uid,
             role: 'client',
-          } as User);
+          } as AppUser);
         }
       } else {
         setCurrentUser(null);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { CreditCard, Scissors, Tag, PlusCircle } from 'lucide-react';
+import { CreditCard, Scissors, Tag, PlusCircle, History, TrendingUp } from 'lucide-react';
 
 interface AdminQuickActionsProps {
   setViewMode: (mode: string) => void;
@@ -10,29 +10,32 @@ interface AdminQuickActionsProps {
 
 export default function AdminQuickActions({ setViewMode, COLORS, isMobile }: AdminQuickActionsProps) {
   const actions = [
-    { id: 'finance', label: 'Caja y Finanzas', icon: CreditCard, color: 'var(--gold)' },
-    { id: 'barbers', label: 'Gestión Barberos', icon: Scissors, color: '#3B82F6' },
+    { id: 'finance', label: 'Corte de Caja', icon: CreditCard, color: COLORS.primary || 'var(--gold)' },
+    { id: 'barbers', label: 'Barberos', icon: Scissors, color: '#3B82F6' },
     { id: 'services', label: 'Servicios', icon: Tag, color: '#10B981' },
     { id: 'walkin', label: 'Nueva Cita', icon: PlusCircle, color: '#F59E0B' },
   ];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
-      <View style={styles.grid}>
+      <Text style={[styles.sectionTitle, { color: COLORS.text || '#FFF' }]}>Acciones Rápidas</Text>
+      <View style={[styles.grid, isMobile && styles.mobileGrid]}>
         {actions.map((action) => {
           const Icon = action.icon;
           return (
             <TouchableOpacity
               key={action.id}
-              style={styles.actionCard}
+              style={[
+                styles.actionCard,
+                isMobile && { width: '48%' }
+              ]}
               onPress={() => setViewMode(action.id)}
               data-btn="true"
             >
               <View style={[styles.iconWrapper, { backgroundColor: `${action.color}15` }]}>
                 <Icon size={24} color={action.color} strokeWidth={2.5} />
               </View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
+              <Text style={[styles.actionLabel, { color: COLORS.text || 'var(--text-primary)' }]}>{action.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -46,15 +49,20 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   sectionTitle: {
-    color: '#FFF',
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   grid: {
+    flexDirection: 'row',
     gap: 12,
   },
+  mobileGrid: {
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
   actionCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'var(--bg-card)',
@@ -72,7 +80,6 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   actionLabel: {
-    color: 'var(--text-primary)',
     fontSize: 15,
     fontWeight: '600',
   },

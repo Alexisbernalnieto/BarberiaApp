@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Modal, ActivityIndicator, Alert, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { db } from '../../firebaseClient';
-import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, Timestamp, runTransaction } from 'firebase/firestore';
 
 export default function CheckoutManager({ appointments, onClose, COLORS, isMobile, branch }) {
   const [searchText, setSearchText] = useState('');
@@ -84,14 +84,7 @@ export default function CheckoutManager({ appointments, onClose, COLORS, isMobil
 
   return (
     <View style={[styles.container, { backgroundColor: COLORS.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: COLORS.border }]}>
-        <TouchableOpacity onPress={onClose} style={styles.backBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: COLORS.text }]}>Caja / Cobros</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      {/* Header removed for dashboard integration */}
 
       <View style={[styles.content, isMobile ? styles.contentMobile : styles.contentDesktop]}>
         {/* Left Side: List of pending appointments */}

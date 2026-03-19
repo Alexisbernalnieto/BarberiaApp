@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { cancelAppointment } from '../../services/appointments';
+import { Alert } from 'react-native';
 
 export default function AppointmentDetail({ visible, appointment, onClose, COLORS, isMobile }) {
     if (!appointment) return null;
@@ -164,6 +166,36 @@ export default function AppointmentDetail({ visible, appointment, onClose, COLOR
                     >
                         <Text style={[styles.closeBtnText, { color: COLORS.text }]}>Cerrar</Text>
                     </TouchableOpacity>
+
+                    {/* ═══ CANCEL BUTTON (Only for upcoming) ═══ */}
+                    {!isPast && appointment.status !== 'cancelled' && (
+                        <TouchableOpacity
+                            style={[styles.cancelBtn, { borderColor: '#EF444420' }]}
+                            onPress={() => {
+                                Alert.alert(
+                                    "Cancelar Cita",
+                                    "¿Estás seguro de que deseas cancelar esta reserva?",
+                                    [
+                                        { text: "No, mantener", style: "cancel" },
+                                        { 
+                                            text: "Sí, cancelar", 
+                                            style: "destructive",
+                                            onPress: async () => {
+                                                try {
+                                                    await cancelAppointment(appointment.id);
+                                                    onClose();
+                                                } catch (err) {
+                                                    Alert.alert("Error", err.message);
+                                                }
+                                            }
+                                        }
+                                    ]
+                                );
+                            }}
+                        >
+                            <Text style={styles.cancelBtnText}>Cancelar Cita</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         </Modal>
@@ -354,6 +386,21 @@ const styles = StyleSheet.create({
     closeBtnText: {
         fontSize: 14,
         fontWeight: '700',
+        letterSpacing: 0.5,
+    },
+    cancelBtn: {
+        marginHorizontal: 24,
+        marginBottom: 24,
+        paddingVertical: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+        alignItems: 'center',
+    },
+    cancelBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#EF4444',
         letterSpacing: 0.5,
     },
 });

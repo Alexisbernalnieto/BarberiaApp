@@ -28,18 +28,18 @@ export default function AdminHeader({
   onMenuPress
 }: AdminHeaderProps) {
   return (
-    <View style={[styles.header, { marginBottom: isMobile ? 16 : 30 }]}>
+    <View style={[styles.header, { marginBottom: isMobile ? 16 : 32 }]}>
       <View style={styles.leftSection}>
         {isMobile && (
           <TouchableOpacity onPress={onMenuPress} style={styles.menuBtn}>
-            <Menu size={24} color="var(--gold)" />
+            <Menu size={24} color={COLORS.primary || "var(--gold)"} />
           </TouchableOpacity>
         )}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[styles.title, { color: '#FFF', fontSize: isMobile ? 20 : 28 }]} numberOfLines={1}>
+          <Text style={[styles.title, { color: COLORS.text || '#FFF', fontSize: isMobile ? 20 : 28 }]} numberOfLines={1}>
             El Coronel
           </Text>
-          <Text style={[styles.subtitleHeader, { color: 'var(--text-secondary)', fontSize: isMobile ? 12 : 16 }]}>
+          <Text style={[styles.subtitleHeader, { color: COLORS.textSecondary || 'var(--text-secondary)', fontSize: isMobile ? 12 : 16 }]}>
             Panel Administrador
           </Text>
         </View>
@@ -53,7 +53,7 @@ export default function AdminHeader({
                 viewMode === 'users' && styles.activeBtn
             ]}
         >
-            <Users size={isMobile ? 20 : 24} color={viewMode === 'users' ? '#000' : 'var(--gold)'} />
+            <Users size={isMobile ? 20 : 24} color={viewMode === 'users' ? '#000' : (COLORS.primary || 'var(--gold)')} />
             {!isMobile && (
                 <Text style={[styles.btnText, viewMode === 'users' && { color: '#000' }]}>
                     Usuarios
@@ -62,7 +62,7 @@ export default function AdminHeader({
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setShowNotifications(true)} style={styles.iconBtn}>
-          <Bell size={isMobile ? 20 : 24} color="var(--gold)" />
+          <Bell size={isMobile ? 20 : 24} color={COLORS.primary || "var(--gold)"} />
           {notifications.length > 0 && (
             <View style={styles.smallBadge}>
               <Text style={styles.smallBadgeText}>{notifications.length}</Text>
@@ -71,7 +71,7 @@ export default function AdminHeader({
         </TouchableOpacity>
 
         <TouchableOpacity onPress={toggleTheme} style={styles.iconBtn}>
-          {isDarkMode ? <Sun size={isMobile ? 20 : 24} color="var(--gold)" /> : <Moon size={isMobile ? 20 : 24} color="var(--text-secondary)" />}
+          {isDarkMode ? <Sun size={isMobile ? 20 : 24} color={COLORS.primary || "var(--gold)"} /> : <Moon size={isMobile ? 20 : 24} color={COLORS.textSecondary || "var(--text-secondary)"} />}
         </TouchableOpacity>
 
         <TouchableOpacity onPress={onLogout} style={[styles.iconBtn, styles.logoutBtn]}>
@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 16,
   },
   menuBtn: {
     width: 44,
@@ -129,6 +130,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 8,
     gap: 8,
+    position: 'relative',
   },
   activeBtn: {
     backgroundColor: 'var(--gold)',
