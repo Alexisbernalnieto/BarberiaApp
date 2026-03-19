@@ -37,7 +37,7 @@ service cloud.firestore {
     }
     
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
 
     // --- REGLAS POR COLECCIÓN ---
@@ -55,9 +55,9 @@ service cloud.firestore {
       
       // Actualizar:
       // - Admin (puede cambiar roles)
-      // - Dueño (puede editar nombre/teléfono, pero NO puede cambiar su rol)
+      // - Dueño (puede editar nombre/teléfono, pero NO puede cambiar su rol, y debe estar activo)
       allow update: if isAdmin() || 
-        (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+        (isOwner(userId) && isActiveUser() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
       
       // Eliminar: Solo Admin
       allow delete: if isAdmin();
