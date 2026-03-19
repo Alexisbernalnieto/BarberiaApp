@@ -81,6 +81,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await setDoc(doc(db, 'services', s.id), s);
         }
       }
+
+      const barbersSnap = await getDocs(query(collection(db, 'users'), where('role', 'in', [3, 'barber'])));
+      if (barbersSnap.empty) {
+        console.log("Seeding initial barbers...");
+        const initialBarbers = [
+          { uid: 'barber1', name: 'Alex Bernal', email: 'alex@barber.com', role: 'barber', branch: 'Centro', rating: 4.9 },
+          { uid: 'barber2', name: 'Juan Perez', email: 'juan@barber.com', role: 'barber', branch: 'Lomas', rating: 4.8 },
+          { uid: 'barber3', name: 'Carlos Ruiz', email: 'carlos@barber.com', role: 'barber', branch: 'Ambas', rating: 5.0 }
+        ];
+        for (const b of initialBarbers) {
+          await setDoc(doc(db, 'users', b.uid), b);
+        }
+      }
     };
 
     seedData();

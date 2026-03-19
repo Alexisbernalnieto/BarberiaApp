@@ -21,10 +21,10 @@ export default function BookingStepBranch({
             key={branch.id}
             style={[
               styles.branchCard,
-              selectedBranch === branch.name && styles.activeBranchCard,
+              selectedBranch?.name === branch.name && styles.activeBranchCard,
             ]}
-            onPress={() => setSelectedBranch(branch.name)}
-            dataSet={{ bookingCard: 'true', cardActive: selectedBranch === branch.name ? 'true' : undefined }}
+            onPress={() => setSelectedBranch(branch)}
+            dataSet={{ bookingCard: 'true', cardActive: selectedBranch?.name === branch.name ? 'true' : undefined }}
           >
             <View
               style={[
@@ -36,7 +36,7 @@ export default function BookingStepBranch({
                 name="office-building"
                 size={40}
                 color={
-                  selectedBranch === branch.name
+                  selectedBranch?.name === branch.name
                     ? COLORS.primary
                     : COLORS.textSecondary
                 }
@@ -45,13 +45,13 @@ export default function BookingStepBranch({
             <Text
               style={[
                 styles.branchName,
-                selectedBranch === branch.name && styles.activeText,
+                selectedBranch?.name === branch.name && styles.activeText,
               ]}
             >
               {branch.name}
             </Text>
             <Text style={styles.branchAddress}>{branch.address}</Text>
-            {selectedBranch === branch.name && (
+            {selectedBranch?.name === branch.name && (
               <View style={styles.checkBadge}>
                 <MaterialCommunityIcons
                   name="check"

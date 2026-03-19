@@ -38,7 +38,7 @@ const BookingWizard = ({ user, onConfirm, onCancel, COLORS, isWalkIn = false }: 
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // Estados originales
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedBarber, setSelectedBarber] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -62,12 +62,16 @@ const BookingWizard = ({ user, onConfirm, onCancel, COLORS, isWalkIn = false }: 
     if (currentStep === 1 && selectedBranch) goToStep(2);
     else if (currentStep === 2 && selectedService) goToStep(3);
     else if (currentStep === 3 && selectedBarber) goToStep(4);
-    else if (currentStep === 4 && selectedDate && selectedTime) goToStep(5);
+    else if (currentStep === 4 && selectedDate && selectedTime) {
+      if (isWalkIn) goToStep(6);
+      else goToStep(5);
+    }
     else if (currentStep === 5 && isPaid) goToStep(6);
   };
 
   const handleBack = () => {
-    if (currentStep > 1) goToStep(currentStep - 1);
+    if (currentStep === 6 && isWalkIn) goToStep(4);
+    else if (currentStep > 1) goToStep(currentStep - 1);
     else if (onCancel) onCancel();
   };
 
@@ -113,7 +117,8 @@ const BookingWizard = ({ user, onConfirm, onCancel, COLORS, isWalkIn = false }: 
     const appointmentData = {
       userId: user?.email || 'walkin-guest',
       userName: isWalkIn ? guestName : user.name,
-      branch: selectedBranch || 'Sucursal Matriz',
+      branch: selectedBranch?.name || 'Sucursal Matriz',
+      branchId: selectedBranch?.id || 'centro',
       barberId: selectedBarber.uid || selectedBarber.id,
       barberName: selectedBarber.name,
       date: selectedDate,
@@ -161,8 +166,8 @@ const BookingWizard = ({ user, onConfirm, onCancel, COLORS, isWalkIn = false }: 
             <BookingStepServices
               styles={styles}
               COLORS={COLORS}
-              SERVICES={serviceList.filter(s => s.branch === 'Ambas' || s.branch === selectedBranch)}
-              selectedBranch={selectedBranch}
+              SERVICES={serviceList.filter(s => s.branch === 'Ambas' || s.branch === selectedBranch?.name)}
+              selectedBranch={selectedBranch?.name}
               selectedService={selectedService}
               setSelectedService={setSelectedService}
             />
@@ -171,8 +176,8 @@ const BookingWizard = ({ user, onConfirm, onCancel, COLORS, isWalkIn = false }: 
             <BookingStepBarbers
               styles={styles}
               COLORS={COLORS}
-              BARBERS={barberList.filter(b => b.branch === selectedBranch || b.branch === 'Ambas')}
-              selectedBranch={selectedBranch}
+              BARBERS={barberList.filter(b => b.branch === selectedBranch?.name || b.branch === 'Ambas')}
+              selectedBranch={selectedBranch?.name}
               selectedBarber={selectedBarber}
               setSelectedBarber={setSelectedBarber}
             />
@@ -212,7 +217,7 @@ const BookingWizard = ({ user, onConfirm, onCancel, COLORS, isWalkIn = false }: 
               guestName={guestName}
               setGuestName={setGuestName}
               user={user}
-              selectedBranch={selectedBranch}
+              selectedBranch={selectedBranch?.name}
               selectedService={selectedService}
               selectedBarber={selectedBarber}
               selectedDate={selectedDate}

@@ -133,9 +133,9 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
       width: isMobile ? '100%' : '46%',
       backgroundColor: COLORS.surface,
       padding: 32,
-      borderRadius: 20,
+      borderRadius: 24,
       borderWidth: 1,
-      borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+      borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.06)',
       alignItems: 'center',
       marginBottom: 10,
       position: 'relative',
@@ -143,10 +143,10 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
       ...Platform.select({
         web: {
           cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          boxShadow: COLORS.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)',
+          transition: 'all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)',
+          boxShadow: COLORS.mode === 'dark' ? '0 10px 30px rgba(0,0,0,0.4)' : '0 4px 15px rgba(0,0,0,0.05)',
         },
-        default: COLORS.shadows?.light || {},
+        default: COLORS.shadows?.medium || {},
       }),
     },
     activeBranchCard: {
@@ -197,16 +197,16 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
     serviceCard: {
       width: isMobile ? '100%' : '48%',
       backgroundColor: COLORS.surface,
-      padding: 20,
-      borderRadius: 16,
+      padding: 24,
+      borderRadius: 20,
       borderWidth: 1,
-      borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-      marginBottom: 10,
+      borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.05)',
+      marginBottom: 12,
       ...Platform.select({
         web: {
           cursor: 'pointer',
-          transition: 'all 0.25s ease',
-          boxShadow: COLORS.mode === 'dark' ? '0 2px 12px rgba(0,0,0,0.2)' : '0 1px 6px rgba(0,0,0,0.04)',
+          transition: 'all 0.3s ease',
+          boxShadow: COLORS.mode === 'dark' ? '0 4px 15px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.04)',
         },
         default: COLORS.shadows?.light || {},
       }),
@@ -260,17 +260,17 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
       width: isMobile ? '43%' : 190,
       backgroundColor: COLORS.surface,
       padding: 24,
-      borderRadius: 20,
+      borderRadius: 24,
       borderWidth: 1,
-      borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+      borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.06)',
       alignItems: 'center',
       ...Platform.select({
         web: {
           cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          boxShadow: COLORS.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)',
+          transition: 'all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1)',
+          boxShadow: COLORS.mode === 'dark' ? '0 8px 25px rgba(0,0,0,0.35)' : '0 4px 15px rgba(0,0,0,0.06)',
         },
-        default: COLORS.shadows?.light || {},
+        default: COLORS.shadows?.medium || {},
       }),
     },
     activeBarberCard: {
@@ -579,8 +579,9 @@ export const getBookingWizardStyles = (COLORS, isMobile) =>
     nextBtn: {
       ...Platform.select({
         web: {
-          backgroundImage: 'linear-gradient(135deg, #FFD700 0%, #D4AF37 50%, #AA8C2C 100%)',
-          boxShadow: '0 8px 16px rgba(212, 175, 55, 0.25), 0 12px 24px rgba(0,0,0,0.3)',
+          backgroundColor: COLORS.primary,
+          backgroundImage: 'linear-gradient(135deg, #D4AF37 0%, #F1C40F 50%, #B8860B 100%)',
+          boxShadow: '0 8px 24px rgba(212, 175, 55, 0.3), 0 2px 6px rgba(0,0,0,0.2)',
           transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
           borderWidth: 0,
         },

@@ -10,7 +10,7 @@ export default function BookingStepBarbers({
   selectedBarber,
   setSelectedBarber,
 }) {
-  const filteredBarbers = BARBERS.filter(b => b.branch === selectedBranch);
+  const filteredBarbers = BARBERS.filter(b => b.branch === selectedBranch || b.branch === 'Ambas');
 
   return (
     <ScrollView
