@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Barberia App",
+    "slug": "barberia-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "backgroundColor": "#1a1a1a",
+      "package": "com.anonymous.barberiaapp"
+    },
+    "web": {
+      "backgroundColor": "#1a1a1a"
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-font"
+    ]
+  }
+}

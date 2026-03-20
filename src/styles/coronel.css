@@ -1,0 +1,468 @@
+:root {
+  --bg-dark: #0B0B0C;
+  --bg-card: rgba(26, 26, 28, 0.7);
+  --bg-sidebar: rgba(15, 15, 17, 0.85);
+  --gold: #D4AF37;
+  --gold-vibrant: #FFBF00;
+  --gold-glow: rgba(212, 175, 55, 0.2);
+  --gold-subtle: rgba(212, 175, 55, 0.08);
+  --gold-dim: rgba(212, 175, 55, 0.2);
+  --gold-border: rgba(212, 175, 55, 0.3);
+  
+  /* Glassmorphism */
+  --glass-surface: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(20px);
+  
+  --text-primary: #FFFFFF;
+  --text-secondary: #94949C;
+  --text-muted: rgba(148, 148, 156, 0.6);
+  
+  /* Layout */
+  --sidebar-width: 280px;
+  --radius-xl: 24px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  
+  --font-main: 'Inter', sans-serif;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-main);
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+/* ─── Glassmorphism Utilities ─── */
+.glass {
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-pane {
+  background: var(--glass-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: var(--transition);
+}
+
+.glass-card:hover {
+  border-color: var(--gold-soft);
+  box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.5);
+  transform: translateY(-4px);
+}
+
+/* ─── Selection Style ─── */
+::selection {
+  background-color: var(--gold);
+  color: #000;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-soft);
+}
+
+/* ─── Focus Styles ─── */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15) !important;
+  transition: var(--transition-smooth);
+}
+
+/* ─── Input Placeholders ─── */
+::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+  font-weight: 400;
+}
+
+/* ─── Links ─── */
+a {
+  color: var(--gold);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+a:hover {
+  color: var(--gold-light);
+  text-shadow: 0 0 12px var(--gold-glow);
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+
+/* Fade In Up */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade In */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Subtle Float */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Gold Shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Pulse Glow */
+@keyframes pulseGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
+  }
+}
+
+/* Rotate in */
+@keyframes rotateIn {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+/* Slide in from left */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scale appear */
+@keyframes scaleAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================================
+   AUTH SCREEN — Premium Login Experience
+   ============================================================ */
+
+/* Brand side background with animated gradient */
+[data-brand-side="true"] {
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(212, 175, 55, 0.04) 0%, transparent 40%),
+    linear-gradient(180deg, #080808 0%, #0A0A0A 50%, #080808 100%) !important;
+}
+
+/* Brand title with display font */
+[data-brand-title="true"] {
+  font-family: var(--font-display) !important;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+/* Decorative circles with animation */
+[data-deco-circle="true"] {
+  animation: float 8s ease-in-out infinite;
+}
+
+[data-deco-circle-small="true"] {
+  animation: float 6s ease-in-out infinite reverse;
+}
+
+/* Brand content fade in */
+[data-brand-content="true"] {
+  animation: fadeIn 1s ease-out 0.3s both;
+}
+
+/* Form card entrance */
+[data-form-card="true"] {
+  animation: scaleAppear 0.5s ease-out 0.2s both;
+}
+
+/* Form button with gradient & hover */
+[data-primary-btn="true"] {
+  background: linear-gradient(135deg, #D4AF37 0%, #C9A432 50%, #AA8C2C 100%) !important;
+  background-size: 200% auto;
+  border: none;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-smooth);
+}
+
+[data-primary-btn="true"]:hover {
+  background-position: right center;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(212, 175, 55, 0.4) !important;
+}
+
+[data-primary-btn="true"]:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Input wrapper hover */
+[data-input-wrapper="true"] {
+  transition: var(--transition-smooth);
+}
+
+[data-input-wrapper="true"]:hover {
+  border-color: rgba(212, 175, 55, 0.3) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-input-wrapper="true"]:focus-within {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ============================================================
+   HEADER — Sticky Navigation
+   ============================================================ */
+
+[data-header="true"] {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: var(--transition-smooth);
+}
+
+/* Header buttons hover */
+[data-header-btn="true"] {
+  transition: var(--transition-fast);
+}
+
+[data-header-btn="true"]:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  transform: translateY(-1px);
+}
+
+/* Logo container pulse on hover */
+[data-logo="true"] {
+  transition: var(--transition-smooth);
+}
+
+[data-logo="true"]:hover {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  transform: scale(1.05);
+}
+
+/* ============================================================
+   TAB BAR — Navigation Tabs
+   ============================================================ */
+
+[data-tab="true"] {
+  transition: var(--transition-fast);
+  position: relative;
+}
+
+[data-tab="true"]:hover {
+  background-color: rgba(212, 175, 55, 0.05);
+}
+
+[data-tab-indicator="true"] {
+  transition: var(--transition-smooth);
+}
+
+/* ============================================================
+   CARDS — Universal Card System
+   ============================================================ */
+
+[data-card="true"] {
+  transition: var(--transition-smooth);
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+[data-card="true"]:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 60px rgba(212, 175, 55, 0.04) !important;
+  border-color: rgba(212, 175, 55, 0.2) !important;
+}
+
+/* Active/Selected card */
+[data-card-active="true"] {
+  border-color: var(--gold) !important;
+  box-shadow: 0 8px 32px rgba(212, 175, 55, 0.15), 0 0 60px rgba(212, 175, 55, 0.05) !important;
+}
+
+/* ============================================================
+   HERO CARD — Next Appointment
+   ============================================================ */
+
+[data-hero-card="true"] {
+  animation: slideInLeft 0.5s ease-out;
+  transition: var(--transition-smooth);
+}
+
+[data-hero-card="true"]:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 60px rgba(212, 175, 55, 0.05) !important;
+}
+
+/* Gold accent bar shimmer */
+[data-accent-bar="true"] {
+  background: linear-gradient(180deg, var(--gold-light), var(--gold), var(--gold-dark));
+  background-size: 100% 200%;
+  animation: shimmer 3s ease-in-out infinite alternate;
+}
+
+/* ============================================================
+   BOOKING WIZARD — Step Progress
+   ============================================================ */
+
+[data-progress-fill="true"] {
+  background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light));
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-step-active="true"] {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Branch/Service/Barber cards in booking */
+[data-booking-card="true"] {
+  transition: var(--transition-smooth);
+  cursor: pointer;
+}
+
+[data-booking-card="true"]:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Time slots */
+[data-time-slot="true"] {
+  transition: var(--transition-fast);
+  cursor: pointer;
+}
+
+[data-time-slot="true"]:hover:not([data-disabled="true"]) {
+  transform: translateY(-2px);
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.15);
+}
+
+[data-time-slot-active="true"] {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35) !important;
+  border-color: transparent !important;
+  color: #000 !important;
+}
+
+/* ============================================================
+   TICKET — Confirmation Card
+   ============================================================ */
+
+[data-ticket="true"] {
+  animation: scaleAppear 0.5s ease-out;
+  transition: var(--transition-smooth);
+}
+
+[data-ticket="true"]:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), 0 0 100px rgba(212, 175, 55, 0.06) !important;
+}
+
+/* ============================================================
+   PRINT STYLES 
+   ============================================================ */
+
+@media print {
+  [data-header="true"],
+  [data-footer="true"],
+  [data-theme-toggle="true"],
+  [data-logout-btn="true"] {
+    display: none !important;
+  }
+
+  [data-ticket="true"] {
+    box-shadow: none !important;
+    border: 2px solid #000 !important;
+  }
+}
