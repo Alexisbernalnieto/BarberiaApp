@@ -1,9 +1,10 @@
 {
+  "firestore": {
+    "rules": "FIREBASE_RULES.txt"
+  },
   "functions": [
     {
       "source": "functions",
-      "codebase": "default",
-      "disallowLegacyRuntimeConfig": true,
       "ignore": [
         "node_modules",
         ".git",

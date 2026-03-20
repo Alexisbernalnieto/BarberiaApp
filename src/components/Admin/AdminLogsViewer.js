@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { subscribeToLogs } from '../../services/logs';
+import { subscribeToActivityLogs } from '../../services/activityLogs';
 
 export default function AdminLogsViewer({ COLORS, isMobile }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = subscribeToLogs((fetchedLogs) => {
+    const unsubscribe = subscribeToActivityLogs((fetchedLogs) => {
       setLogs(fetchedLogs);
       setLoading(false);
     }, 100);
@@ -17,45 +17,51 @@ export default function AdminLogsViewer({ COLORS, isMobile }) {
   }, []);
 
   const getRoleLabel = (role) => {
-    switch(role) {
-      case 0: return 'Admin';
-      case 1: return 'Cliente';
-      case 2: return 'Recepción';
-      case 3: return 'Barbero';
-      default: return 'Sistema';
+    if (typeof role === 'number') {
+        switch(role) {
+            case 0: return 'Admin';
+            case 1: return 'Cliente';
+            case 2: return 'Recepción';
+            case 3: return 'Barbero';
+            default: return 'Sistema';
+        }
     }
+    return String(role || 'Sistema').toUpperCase();
   };
 
   const getRoleColor = (role) => {
-    switch(role) {
-      case 0: return '#e74c3c'; // Rojo
-      case 1: return '#3498db'; // Azul
-      case 2: return '#9b59b6'; // Morado
-      case 3: return '#2ecc71'; // Verde
-      default: return '#95a5a6'; // Gris
-    }
+    const r = String(role).toLowerCase();
+    if (r === '0' || r === 'admin') return '#e74c3c'; // Rojo
+    if (r === '1' || r === 'client' || r === 'cliente') return '#3498db'; // Azul
+    if (r === '2' || r === 'reception' || r === 'recepción') return '#9b59b6'; // Morado
+    if (r === '3' || r === 'barber' || r === 'barbero') return '#2ecc71'; // Verde
+    return '#95a5a6'; // Gris
   };
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
-    const date = timestamp.toDate();
-    return date.toLocaleString('es-MX', { 
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
+    try {
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return date.toLocaleString('es-MX', { 
+          day: '2-digit', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        });
+    } catch (e) {
+        return 'N/A';
+    }
   };
 
   const renderLogItem = ({ item }) => (
     <View style={[styles.logCard, { backgroundColor: COLORS.surface }]}>
       <View style={styles.logHeader}>
         <View style={styles.userInfo}>
-          <View style={[styles.roleBadge, { backgroundColor: getRoleColor(item.userRole) }]}>
-            <Text style={styles.roleText}>{getRoleLabel(item.userRole)}</Text>
+          <View style={[styles.roleBadge, { backgroundColor: getRoleColor(item.adminRole) }]}>
+            <Text style={styles.roleText}>{getRoleLabel(item.adminRole)}</Text>
           </View>
-          <Text style={[styles.userEmail, { color: COLORS.text }]}>{item.userEmail}</Text>
+          <Text style={[styles.userEmail, { color: COLORS.text }]}>{item.adminEmail || 'N/A'}</Text>
         </View>
         <Text style={[styles.timeText, { color: COLORS.text + '80' }]}>
-          {formatTime(item.createdAt)}
+          {formatTime(item.timestamp)}
         </Text>
       </View>
       <View style={styles.logBody}>

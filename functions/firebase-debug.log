@@ -1,0 +1,54 @@
+[debug] [2026-03-20T21:04:02.714Z] ----------------------------------------------------------------------
+[debug] [2026-03-20T21:04:02.716Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Alexis\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions
+[debug] [2026-03-20T21:04:02.717Z] CLI Version:   12.8.1
+[debug] [2026-03-20T21:04:02.717Z] Platform:      win32
+[debug] [2026-03-20T21:04:02.717Z] Node Version:  v20.15.1
+[debug] [2026-03-20T21:04:02.717Z] Time:          Fri Mar 20 2026 15:04:02 GMT-0600 (Central Standard Time)
+[debug] [2026-03-20T21:04:02.717Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-20T21:04:02.781Z] Field ".functions" in "firebase.json" is possibly invalid: should be object
+[debug] [2026-03-20T21:04:02.782Z] Object ".functions[0]" in "firebase.json" has unknown property: {"additionalProperty":"disallowLegacyRuntimeConfig"}
+[debug] [2026-03-20T21:04:02.782Z] Field ".functions" in "firebase.json" is possibly invalid: should match some schema in anyOf
+[debug] [2026-03-20T21:04:02.786Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-20T21:04:02.786Z] > authorizing via signed-in user (alexisbn.ti22@utsjr.edu.mx)
+[debug] [2026-03-20T21:04:02.787Z] [iam] checking project barberia-app-c4c2b for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-03-20T21:04:02.788Z] > refreshing access token with scopes: []
+[debug] [2026-03-20T21:04:02.789Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-03-20T21:04:02.789Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-20T21:04:02.982Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-03-20T21:04:02.982Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-20T21:04:02.983Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/barberia-app-c4c2b:testIamPermissions [none]
+[debug] [2026-03-20T21:04:02.983Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/barberia-app-c4c2b:testIamPermissions x-goog-quota-user=projects/barberia-app-c4c2b
+[debug] [2026-03-20T21:04:02.983Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/barberia-app-c4c2b:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-03-20T21:04:03.159Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/barberia-app-c4c2b:testIamPermissions 401
+[debug] [2026-03-20T21:04:03.159Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/barberia-app-c4c2b:testIamPermissions {"error":{"code":401,"message":"Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.","status":"UNAUTHENTICATED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"ACCESS_TOKEN_TYPE_UNSUPPORTED","metadata":{"service":"cloudresourcemanager.googleapis.com","method":"google.cloudresourcemanager.v1.Projects.TestIamPermissions"}}]}}
+[debug] [2026-03-20T21:04:03.160Z] [iam] error while checking permissions, command may fail: FirebaseError: HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
+[debug] [2026-03-20T21:04:03.160Z] > refreshing access token with scopes: []
+[debug] [2026-03-20T21:04:03.160Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-03-20T21:04:03.160Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-20T21:04:03.221Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-03-20T21:04:03.221Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-20T21:04:03.221Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/barberia-app-c4c2b/serviceAccounts/barberia-app-c4c2b@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-03-20T21:04:03.221Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/barberia-app-c4c2b/serviceAccounts/barberia-app-c4c2b@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-03-20T21:04:03.410Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/barberia-app-c4c2b/serviceAccounts/barberia-app-c4c2b@appspot.gserviceaccount.com:testIamPermissions 401
+[debug] [2026-03-20T21:04:03.410Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/barberia-app-c4c2b/serviceAccounts/barberia-app-c4c2b@appspot.gserviceaccount.com:testIamPermissions {"error":{"code":401,"message":"Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.","status":"UNAUTHENTICATED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"ACCESS_TOKEN_TYPE_UNSUPPORTED","metadata":{"method":"google.iam.admin.v1.IAM.TestIamPermissions","service":"iam.googleapis.com"}}]}}
+[debug] [2026-03-20T21:04:03.410Z] [functions] service account IAM check errored, deploy may fail: HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project. {"name":"FirebaseError","children":[],"context":{"body":{"error":{"code":401,"message":"Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.","status":"UNAUTHENTICATED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"ACCESS_TOKEN_TYPE_UNSUPPORTED","metadata":{"method":"google.iam.admin.v1.IAM.TestIamPermissions","service":"iam.googleapis.com"}}]}},"response":{"statusCode":401}},"exit":1,"message":"HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.","status":401}
+[info] 
+[info] === Deploying to 'barberia-app-c4c2b'...
+[info] 
+[info] i  deploying functions 
+[debug] [2026-03-20T21:04:03.414Z] > refreshing access token with scopes: []
+[debug] [2026-03-20T21:04:03.414Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-03-20T21:04:03.414Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-20T21:04:03.492Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-03-20T21:04:03.492Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-20T21:04:03.492Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/barberia-app-c4c2b [none]
+[debug] [2026-03-20T21:04:03.652Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/barberia-app-c4c2b 401
+[debug] [2026-03-20T21:04:03.652Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/barberia-app-c4c2b {"error":{"code":401,"message":"Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.","status":"UNAUTHENTICATED"}}
+[debug] [2026-03-20T21:04:03.652Z] HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
+[debug] [2026-03-20T21:04:03.796Z] FirebaseError: HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
+    at responseToError (C:\Users\Alexis\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:49:12)
+    at RetryOperation._fn (C:\Users\Alexis\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:285:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[error] 
+[error] Error: Failed to get Firebase project barberia-app-c4c2b. Please make sure the project exists and your account has permission to access it.

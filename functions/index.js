@@ -14,6 +14,10 @@ const ALLOWED_ORIGINS = [
   "https://barberia-app-c4c2b.web.app",
   "https://barberia-app-c4c2b.firebaseapp.com",
   "http://localhost:8081",
+  "http://localhost:8082",
+  "http://localhost:8083",
+  "http://localhost:8084",
+  "http://localhost:8085",
   "http://localhost:19006",
 ];
 
@@ -32,21 +36,42 @@ exports.createPaymentIntent = onCall(
         );
       }
 
-      const { amount, currency = "mxn" } = request.data;
+      const { amount, serviceId, currency = "mxn" } = request.data;
+      let finalAmount = amount;
 
-      if (!amount || amount <= 0) {
+      // Verificación de Precio (BLOQUEO DE MANIPULACIÓN)
+      if (serviceId) {
+        const serviceDoc = await admin.firestore().collection("services").doc(serviceId).get();
+        if (!serviceDoc.exists) {
+            throw new HttpsError("not-found", "Servicio no encontrado");
+        }
+        finalAmount = serviceDoc.data().price;
+      } else {
+        // Solo admins pueden crear intents sin serviceId (ajustes manuales)
+        const userDoc = await admin.firestore().collection("users").doc(request.auth.uid).get();
+        const role = userDoc.data()?.role;
+        if (role !== 0 && role !== 'admin') {
+            throw new HttpsError("permission-denied", "Debe proporcionar un ID de servicio válido");
+        }
+      }
+
+      if (!finalAmount || finalAmount <= 0) {
         throw new HttpsError(
           "invalid-argument",
-          "Amount is required and must be positive"
+          "El monto debe ser positivo"
         );
       }
 
       const stripe = require("stripe")(stripeSecret.value());
 
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100),
+        amount: Math.round(finalAmount * 100),
         currency,
         automatic_payment_methods: { enabled: true },
+        metadata: {
+            userId: request.auth.uid,
+            serviceId: serviceId || "manual_adjustment"
+        }
       });
 
       return {
@@ -54,6 +79,7 @@ exports.createPaymentIntent = onCall(
       };
     } catch (error) {
       console.error("Stripe error:", error);
+      if (error instanceof HttpsError) throw error;
       throw new HttpsError("internal", error.message);
     }
   }
@@ -83,29 +109,56 @@ exports.createPaymentIntentWeb = onRequest(
         return res.status(405).json({ error: "Method not allowed" });
       }
 
-      // Verificar autenticación via Firebase Auth token
+      // 1. Verificar autenticación via Firebase Auth token (OBLIGATORIO)
       const authHeader = req.headers.authorization || "";
-      if (authHeader.startsWith("Bearer ")) {
-        try {
-          const idToken = authHeader.split("Bearer ")[1];
-          await admin.auth().verifyIdToken(idToken);
-        } catch (authError) {
-          console.warn("Token inválido:", authError.message);
-        }
+      if (!authHeader.startsWith("Bearer ")) {
+          return res.status(401).json({ error: "No se proporcionó token de autenticación" });
       }
 
-      const { amount, currency = "mxn" } = req.body;
+      let decodedToken;
+      try {
+        const idToken = authHeader.split("Bearer ")[1];
+        decodedToken = await admin.auth().verifyIdToken(idToken);
+      } catch (authError) {
+        console.warn("Token inválido:", authError.message);
+        return res.status(401).json({ error: "Autenticación inválida" });
+      }
 
-      if (!amount || amount <= 0) {
-        return res.status(400).json({ error: "Amount is required and must be positive" });
+      const { amount, serviceId, currency = "mxn" } = req.body;
+      let finalAmount = amount;
+
+      // 2. Verificación de Precio (BLOQUEO DE MANIPULACIÓN)
+      if (serviceId) {
+        const serviceDoc = await admin.firestore().collection("services").doc(serviceId).get();
+        if (!serviceDoc.exists) {
+            return res.status(404).json({ error: "Servicio no encontrado" });
+        }
+        // Usamos el precio real de la base de datos
+        finalAmount = serviceDoc.data().price;
+        console.log(`Pago verificado para servicio ${serviceId}: $${finalAmount}`);
+      } else {
+          // Si no hay serviceId, solo permitimos si el usuario es Admin (verificado por claims o BD)
+          const userDoc = await admin.firestore().collection("users").doc(decodedToken.uid).get();
+          const role = userDoc.data()?.role;
+          if (role !== 0 && role !== 'admin') {
+              return res.status(403).json({ error: "Debe proporcionar un ID de servicio válido para proceder" });
+          }
+      }
+
+      if (!finalAmount || finalAmount <= 0) {
+        return res.status(400).json({ error: "El monto debe ser positivo" });
       }
 
       const stripe = require("stripe")(stripeSecret.value());
 
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100),
+        amount: Math.round(finalAmount * 100),
         currency,
         automatic_payment_methods: { enabled: true },
+        metadata: {
+            userId: decodedToken.uid,
+            serviceId: serviceId || "manual_adjustment"
+        }
       });
 
       return res.json({

@@ -58,7 +58,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } else {
       qAppointments = query(
         collection(db, 'appointments'),
-        where('userId', '==', currentUser.email)
+        where('userId', 'in', [currentUser.uid, currentUser.email])
       );
     }
 
@@ -77,25 +77,53 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubBarbers = onSnapshot(
       qBarbers,
       (snapshot) => {
-        const b = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
-        setBarbers(b);
+        console.log(`[DATA CONTEXT] Snapshot de 'users' para barberos recibido. Total: ${snapshot.size}`);
+        const b = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { id: doc.id, uid: doc.id, ...data } as any as AppUser;
+        });
+        setBarbers(prev => {
+            // Merge with existing if any, or just set
+            const ids = new Set(b.map(u => u.id));
+            const filteredPrev = prev.filter(u => !ids.has(u.id));
+            return [...filteredPrev, ...b];
+        });
       },
-      () => { /* Ignore permission errors */ }
+      (error) => {
+        console.error("[DATA CONTEXT] ERROR cargando barberos de 'users':", error);
+      }
+    );
+
+    const unsubBarbersColl = onSnapshot(
+        collection(db, 'barbers'),
+        (snapshot) => {
+            console.log(`[DATA CONTEXT] Snapshot de colección 'barbers' recibido. Total: ${snapshot.size}`);
+            const b = snapshot.docs.map(doc => ({ id: doc.id, uid: doc.id, ...doc.data() } as any as AppUser));
+            setBarbers(prev => {
+                const ids = new Set(b.map(u => u.id));
+                const filteredPrev = prev.filter(u => !ids.has(u.id));
+                return [...filteredPrev, ...b];
+            });
+        },
+        (error) => console.error("[DATA CONTEXT] ERROR cargando colección 'barbers':", error)
     );
 
     const unsubServices = onSnapshot(collection(db, 'services'), (snapshot) => {
+        console.log(`[DATA CONTEXT] Snapshot de servicios recibido. Total: ${snapshot.size}`);
         const s = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
         setServices(s);
-    });
+    }, (error) => console.error("[DATA CONTEXT] ERROR servicios:", error));
 
     const unsubBranches = onSnapshot(collection(db, 'branches'), (snapshot) => {
+        console.log(`[DATA CONTEXT] Snapshot de sucursales recibido. Total: ${snapshot.size}`);
         const br = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Branch));
         setBranches(br);
-    });
+    }, (error) => console.error("[DATA CONTEXT] ERROR sucursales:", error));
 
     return () => {
       unsubAppointments();
       unsubBarbers();
+      unsubBarbersColl();
       unsubServices();
       unsubBranches();
     };
@@ -108,7 +136,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const seedData = async () => {
       try {
         const branchesSnap = await getDocs(collection(db, 'branches'));
-        if (branchesSnap.empty) {
+        if (branchesSnap.size < 2) {
           console.log("Seeding initial branches...");
           const initialBranches = [
             { id: 'centro', name: 'Centro', address: 'Mariano Abasolo 59 B San Juan del Rio, Qro' },
@@ -120,8 +148,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         const servicesSnap = await getDocs(collection(db, 'services'));
-        if (servicesSnap.empty) {
-          console.log("Seeding initial services...");
+        if (servicesSnap.size < 10) {
+          console.log("[DATA CONTEXT] Seeding initial services from image...");
           const initialServices = [
             { id: '1', name: 'CORTE FADE/ LAVADO', price: 300, duration: 60, branch: 'Ambas' },
             { id: '2', name: 'CORTE FADE', price: 229, duration: 45, branch: 'Ambas' },
@@ -136,7 +164,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             { id: '11', name: 'PERFILACION DE CEJAS', price: 30, duration: 15, branch: 'Ambas' },
             { id: '12', name: 'LAVADO', price: 80, duration: 20, branch: 'Ambas' },
             { id: '13', name: 'WAX FACIAL, OREJAS/ NARIZ', price: 0, duration: 20, branch: 'Ambas', status: 'Prox..' },
-            { id: '14', name: 'COLORIMETRIA', price: 0, duration: 60, branch: 'Ambas', status: 'Prox..' },
+            { id: '14', name: 'COLORMETRIA', price: 0, duration: 60, branch: 'Ambas', status: 'Prox..' },
             { id: '15', name: 'ONDULACION PERMANENTE', price: 0, duration: 90, branch: 'Ambas', status: 'Prox..' },
             { id: '16', name: 'ALACIADO PERMANENTE', price: 0, duration: 90, branch: 'Ambas', status: 'Prox..' }
           ];
@@ -145,20 +173,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         }
 
-        const barbersSnap = await getDocs(query(collection(db, 'users'), where('role', 'in', [3, 'barber'])));
-        if (barbersSnap.empty) {
-          console.log("Seeding initial barbers...");
+        const barbersSnap = await getDocs(collection(db, 'barbers'));
+        if (barbersSnap.size < 3) {
+          console.log("[DATA CONTEXT] Seeding initial barbers into 'barbers' collection...");
           const initialBarbers = [
-            { uid: 'barber1', name: 'Alex Bernal', email: 'alex@barber.com', role: 'barber', branch: 'Centro', rating: 4.9 },
-            { uid: 'barber2', name: 'Juan Perez', email: 'juan@barber.com', role: 'barber', branch: 'Lomas', rating: 4.8 },
-            { uid: 'barber3', name: 'Carlos Ruiz', email: 'carlos@barber.com', role: 'barber', branch: 'Ambas', rating: 5.0 }
+            { id: 'barber1', name: 'Alex Bernal', email: 'alex@barber.com', role: 'barber', branch: 'Centro', rating: 4.9 },
+            { id: 'barber2', name: 'Juan Perez', email: 'juan@barber.com', role: 'barber', branch: 'Lomas', rating: 4.8 },
+            { id: 'barber3', name: 'Carlos Ruiz', email: 'carlos@barber.com', role: 'barber', branch: 'Ambas', rating: 5.0 }
           ];
           for (const b of initialBarbers) {
-            await setDoc(doc(db, 'users', b.uid), b);
+            await setDoc(doc(db, 'barbers', b.id), b);
+            // Also seed into users for role checks
+            await setDoc(doc(db, 'users', b.id), { ...b, role: 3 });
           }
         }
       } catch (e) {
-        console.error("Error seeding data:", e);
+        console.error("[DATA CONTEXT] Error seeding data:", e);
       }
     };
 

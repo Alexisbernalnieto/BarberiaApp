@@ -6,8 +6,8 @@ interface BookingStepBranchProps {
   styles: any;
   COLORS: any;
   BRANCHES: any[];
-  selectedBranch: string | null;
-  setSelectedBranch: (branch: string) => void;
+  selectedBranch: any;
+  setSelectedBranch: (branch: any) => void;
 }
 
 export default function BookingStepBranch({
@@ -27,17 +27,17 @@ export default function BookingStepBranch({
             key={branch.name}
             style={[
               styles.branchCard,
-              selectedBranch === branch.name && styles.activeBranchCard
+              selectedBranch?.name === branch.name && styles.activeBranchCard
             ]}
-            onPress={() => setSelectedBranch(branch.name)}
+            onPress={() => setSelectedBranch(branch)}
           >
-            <View style={[styles.branchIcon, selectedBranch === branch.name && styles.activeIconBg]}>
-              <MapPin size={32} color={selectedBranch === branch.name ? "var(--gold)" : "var(--text-muted)"} />
+            <View style={[styles.branchIcon, selectedBranch?.name === branch.name && styles.activeIconBg]}>
+              <MapPin size={32} color={selectedBranch?.name === branch.name ? "var(--gold)" : "var(--text-muted)"} />
             </View>
             <Text style={styles.branchName}>{branch.name}</Text>
             <Text style={styles.branchAddress}>{branch.address}</Text>
 
-            {selectedBranch === branch.name && (
+            {selectedBranch?.name === branch.name && (
               <View style={styles.checkBadge}>
                 <Check size={14} color="#000" />
               </View>

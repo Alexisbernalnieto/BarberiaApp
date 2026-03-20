@@ -1,6 +1,7 @@
 export type UserRole = 0 | 1 | 2 | 3 | 'admin' | 'client' | 'reception' | 'barber';
 
 export interface AppUser {
+  id: string;
   uid: string;
   email: string;
   name?: string;
@@ -12,6 +13,8 @@ export interface AppUser {
   status?: 'active' | 'suspended' | 'deleted';
   statusMessage?: string;
   stripeCustomerId?: string;
+  rating?: number;
+  bio?: string;
 }
 
 export interface Service {
@@ -54,12 +57,12 @@ export interface Branch {
 }
 export interface ActivityLog {
   id: string;
-  adminId: string;
-  adminEmail: string;
-  adminRole: 'admin' | 'reception';
-  action: string; // e.g., 'Cambió el rol de un usuario'
+  adminId?: string; // UID del responsable (Admin o Cliente)
+  adminEmail?: string;
+  adminRole?: 'admin' | 'reception' | 'client' | 'barber' | 'system';
+  action: string;
   targetUserId?: string;
   targetUserEmail?: string;
-  details: string; // e.g., 'Nuevo Rol: CLIENTE'
+  details: string;
   timestamp: any;
 }

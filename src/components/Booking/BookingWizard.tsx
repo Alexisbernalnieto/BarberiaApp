@@ -9,10 +9,13 @@ import {
     Building2,
     CalendarCheck,
     CheckSquare,
-    CreditCard
+    CreditCard,
+    AlertTriangle
 } from 'lucide-react';
+import { Modal } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { useSidebar } from '../../context/SidebarContext';
 import { createAppointment } from '../../services/appointments';
 
 import BookingProgressBar from './BookingProgressBar';
@@ -30,8 +33,8 @@ export const STEPS = [
   { id: 2, title: 'Servicio', icon: Scissors },
   { id: 3, title: 'Barbero', icon: User },
   { id: 4, title: 'Horario', icon: Clock },
-  { id: 5, title: 'Pago', icon: CreditCard },
-  { id: 6, title: 'Confirmar', icon: CheckSquare }
+  { id: 5, title: 'Resumen', icon: CheckSquare },
+  { id: 6, title: 'Pago', icon: CreditCard }
 ];
 
 export default function BookingWizard({ 
@@ -55,6 +58,7 @@ export default function BookingWizard({
   );
   
   const { appointments: existingAppointments, barbers: dbBarbers, services: dbServices, branches: dbBranches } = useData();
+  const { setIsBookingInProgress } = useSidebar();
   
   const branchList = dbBranches?.length > 0 ? dbBranches : [
     { id: 'centro', name: 'Centro', address: 'Mariano Abasolo 59 B San Juan del Rio, Qro' },
@@ -75,6 +79,9 @@ export default function BookingWizard({
   const [guestName, setGuestName] = useState(user?.name || '');
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [bookingStatus, setBookingStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [bookingErrorMessage, setBookingErrorMessage] = useState('');
 
   const dToday = new Date();
   const todayLocal = `${dToday.getFullYear()}-${String(dToday.getMonth() + 1).padStart(2, '0')}-${String(dToday.getDate()).padStart(2, '0')}`;
@@ -91,17 +98,21 @@ export default function BookingWizard({
     if (currentStep === 1 && selectedBranch) goToStep(2);
     else if (currentStep === 2 && selectedService) goToStep(3);
     else if (currentStep === 3 && selectedBarber) goToStep(4);
-    else if (currentStep === 4 && selectedDate && selectedTime) {
-      if (isWalkIn) goToStep(6);
-      else goToStep(5);
-    }
-    else if (currentStep === 5 && isPaid) goToStep(6);
+    else if (currentStep === 4 && selectedDate && selectedTime) goToStep(5);
+    else if (currentStep === 5) goToStep(6);
   };
 
   const handleBack = () => {
-    if (currentStep === 6 && isWalkIn) goToStep(4);
-    else if (currentStep > 1) goToStep(currentStep - 1);
-    else if (onCancel) onCancel();
+    if (currentStep > 1) {
+      goToStep(currentStep - 1);
+    } else {
+      // If there's any progress (branch selected), ask for confirmation
+      if (selectedBranch && onCancel) {
+        setShowExitConfirm(true);
+      } else if (onCancel) {
+        onCancel();
+      }
+    }
   };
 
   const isSlotTaken = (time: string) => {
@@ -160,16 +171,37 @@ export default function BookingWizard({
       type: isWalkIn ? 'Walk-in' : 'Online',
       paymentIntentId: paymentIntentId,
       paid: isPaid,
-      status: 'confirmed',
+      status: isPaid ? 'confirmed' : 'pending_payment',
       createdAt: new Date().toISOString()
     };
 
     try {
       const result = await createAppointment(appointmentData as any);
+      setBookingStatus('success');
+      setIsBookingInProgress(false);
       onConfirm(result);
     } catch (error: any) {
-      alert(error.message || "Error al crear la cita");
+      setBookingErrorMessage(error.message || "Error al crear la cita");
+      setBookingStatus('error');
     }
+  };
+
+  // Track progress for global guard
+  useEffect(() => {
+    if (selectedBranch || currentStep > 1) {
+        setIsBookingInProgress(true);
+    }
+    
+    // Cleanup on unmount
+    return () => {
+        setIsBookingInProgress(false);
+    };
+  }, [selectedBranch, currentStep]);
+
+  const confirmWizardExit = () => {
+    setIsBookingInProgress(false);
+    setShowExitConfirm(false);
+    if (onCancel) onCancel();
   };
 
   return (
@@ -228,19 +260,6 @@ export default function BookingWizard({
             />
           )}
           {currentStep === 5 && (
-            <BookingStepPayment
-              styles={styles}
-              COLORS={COLORS}
-              selectedService={selectedService}
-              onPaymentSuccess={(id) => {
-                setPaymentIntentId(id);
-                setIsPaid(true);
-                goToStep(6);
-              }}
-              onPaymentError={(err) => alert(err)}
-            />
-          )}
-          {currentStep === 6 && (
             <BookingStepConfirm
               styles={styles}
               COLORS={COLORS}
@@ -255,6 +274,24 @@ export default function BookingWizard({
               selectedTime={selectedTime}
             />
           )}
+          {currentStep === 6 && (
+            <BookingStepPayment
+              styles={styles}
+              COLORS={COLORS}
+              selectedService={selectedService}
+              onPaymentSuccess={(id) => {
+                setPaymentIntentId(id);
+                setIsPaid(true);
+                // After successful payment, we automatically trigger handleConfirm
+                // or we can wait for the user to click "Finalizar"
+                // But normally payment is the last step.
+              }}
+              onPaymentError={(err) => {
+                  setBookingErrorMessage(err);
+                  setBookingStatus('error');
+              }}
+            />
+          )}
         </Animated.View>
 
         <View style={styles.footerActions}>
@@ -266,7 +303,7 @@ export default function BookingWizard({
             <Text style={styles.backBtnText}>{currentStep === 1 ? 'CANCELAR' : 'ATRÁS'}</Text>
           </TouchableOpacity>
 
-          {currentStep < 6 ? (
+          {currentStep < 5 ? (
             <TouchableOpacity
               style={[
                 styles.actionBtn,
@@ -274,32 +311,130 @@ export default function BookingWizard({
                 ((currentStep === 1 && !selectedBranch) ||
                   (currentStep === 2 && !selectedService) ||
                   (currentStep === 3 && !selectedBarber) ||
-                  (currentStep === 4 && (!selectedDate || !selectedTime)) ||
-                  (currentStep === 5 && !isPaid)) && styles.disabledBtn
+                  (currentStep === 4 && (!selectedDate || !selectedTime))) && styles.disabledBtn
               ]}
               onPress={handleNext}
               disabled={
                 (currentStep === 1 && !selectedBranch) ||
                 (currentStep === 2 && !selectedService) ||
                 (currentStep === 3 && !selectedBarber) ||
-                (currentStep === 4 && (!selectedDate || !selectedTime)) ||
-                (currentStep === 5 && !isPaid)
+                (currentStep === 4 && (!selectedDate || !selectedTime))
               }
             >
               <Text style={styles.nextBtnText}>SIGUIENTE</Text>
               <ArrowRight size={18} color={COLORS.textInverse || "#000"} style={{ marginLeft: 8 }} />
             </TouchableOpacity>
+          ) : currentStep === 5 ? (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.nextBtn]}
+              onPress={handleNext}
+            >
+              <Text style={styles.nextBtnText}>PROCEDER AL PAGO</Text>
+              <ArrowRight size={18} color={COLORS.textInverse || "#000"} style={{ marginLeft: 8 }} />
+            </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.actionBtn, styles.confirmBtn]}
+              style={[styles.actionBtn, styles.confirmBtn, !isPaid && styles.disabledBtn]}
               onPress={handleConfirm}
+              disabled={!isPaid}
             >
-              <Text style={styles.confirmBtnText}>CONFIRMAR CITA</Text>
+              <Text style={styles.confirmBtnText}>FINALIZAR RESERVA</Text>
               <CheckCircle2 size={18} color="#FFF" style={{ marginLeft: 8 }} />
             </TouchableOpacity>
           )}
         </View>
       </View>
+
+      {/* MODAL DE CONFIRMACIÓN DE SALIDA */}
+      <Modal
+        visible={showExitConfirm}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowExitConfirm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <AlertTriangle size={32} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>¿Abandonar proceso?</Text>
+            <Text style={styles.modalMessage}>
+                Si sales ahora perderás los datos seleccionados para tu cita. ¿Estás seguro de que deseas salir?
+            </Text>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.cancelModalBtn]} 
+                onPress={() => setShowExitConfirm(false)}
+              >
+                <Text style={styles.modalBtnText}>CONTINUAR</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.confirmModalBtn]} 
+                onPress={confirmWizardExit}
+              >
+                <Text style={styles.modalBtnText}>SÍ, SALIR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE ÉXITO */}
+      <Modal
+        visible={bookingStatus === 'success'}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.2)' }]}>
+              <CheckCircle2 size={32} color="#10B981" />
+            </View>
+            <Text style={styles.modalTitle}>¡Cita Agendada!</Text>
+            <Text style={styles.modalMessage}>
+                Tu reserva en El Coronel ha sido confirmada con éxito. Te esperamos pronto.
+            </Text>
+            
+            <TouchableOpacity 
+              style={[styles.modalBtn, { backgroundColor: 'var(--gold)' }]} 
+              onPress={() => {
+                  setBookingStatus('idle');
+                  if (onCancel) onCancel(); // Back to dashboard
+              }}
+            >
+              <Text style={[styles.modalBtnText, { color: '#000' }]}>EXCELENTE</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE ERROR */}
+      <Modal
+        visible={bookingStatus === 'error'}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}>
+              <AlertTriangle size={32} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>Algo salió mal</Text>
+            <Text style={styles.modalMessage}>
+                {bookingErrorMessage || "No pudimos procesar tu cita en este momento. Por favor intenta de nuevo."}
+            </Text>
+            
+            <TouchableOpacity 
+              style={[styles.modalBtn, styles.cancelModalBtn]} 
+              onPress={() => setBookingStatus('idle')}
+            >
+              <Text style={styles.modalBtnText}>REINTENTAR</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

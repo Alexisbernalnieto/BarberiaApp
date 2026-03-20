@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 import { db } from '../../firebaseClient';
 import { DEFAULT_SCHEDULE } from './BarberManagementStyles';
-import { logActivity } from '../../services/logs';
+import { logActivity } from '../../services/activityLogs';
 
 export default function UserManagement({ COLORS }) {
   const [users, setUsers] = useState([]);
@@ -42,12 +42,14 @@ export default function UserManagement({ COLORS }) {
   const changeRole = async (userId, newRole, roleName, userEmail) => {
     try {
       await updateDoc(doc(db, 'users', userId), { role: newRole });
-      await logActivity(
-        'Cambió el rol de un usuario',
-        `Usuario: ${userEmail}\nNuevo Rol: ${roleName}`,
-        'admin@admin.com', // Asumido por ahora, en un sistema real vendría del auth context
-        0
-      );
+      await logActivity({
+        adminEmail: 'admin@admin.com',
+        adminRole: 'admin',
+        action: 'Cambió el rol de un usuario',
+        details: `Usuario: ${userEmail}\nNuevo Rol: ${roleName}`,
+        targetUserEmail: userEmail,
+        targetUserId: userId
+      });
       Alert.alert('Éxito', `Usuario actualizado a rol: ${roleName}`);
     } catch (error) {
       console.error(error);
@@ -69,12 +71,14 @@ export default function UserManagement({ COLORS }) {
         active: true,
         schedule: DEFAULT_SCHEDULE,
       });
-      await logActivity(
-        'Asignó usuario como Barbero',
-        `Usuario: ${branchModalUser.email}\nSucursal: ${branchSelection}`,
-        'admin@admin.com',
-        0
-      );
+      await logActivity({
+        adminEmail: 'admin@admin.com',
+        adminRole: 'admin',
+        action: 'Asignó usuario como Barbero',
+        details: `Usuario: ${branchModalUser.email}\nSucursal: ${branchSelection}`,
+        targetUserEmail: branchModalUser.email,
+        targetUserId: branchModalUser.id
+      });
       setBranchModalUser(null);
       Alert.alert('Éxito', `Usuario actualizado a rol: BARBERO`);
     } catch (error) {
@@ -86,12 +90,14 @@ export default function UserManagement({ COLORS }) {
   const performDelete = async (userEmail, userId) => {
     try {
       await updateDoc(doc(db, 'users', userId), { status: 'deleted' });
-      await logActivity(
-        'Eliminó un usuario',
-        `Usuario eliminado: ${userEmail}`,
-        'admin@admin.com',
-        0
-      );
+      await logActivity({
+        adminEmail: 'admin@admin.com',
+        adminRole: 'admin',
+        action: 'Eliminó un usuario',
+        details: `Usuario eliminado: ${userEmail}`,
+        targetUserEmail: userEmail,
+        targetUserId: userId
+      });
       if (Platform.OS === 'web') {
         window.alert('Usuario eliminado lógicamente.');
       } else {
@@ -119,12 +125,14 @@ export default function UserManagement({ COLORS }) {
     const performToggle = async () => {
       try {
         await updateDoc(doc(db, 'users', user.id), { status: newStatus });
-        await logActivity(
-          `${pastTense} a un usuario`,
-          `Usuario: ${user.email}`,
-          'admin@admin.com',
-          0
-        );
+        await logActivity({
+          adminEmail: 'admin@admin.com',
+          adminRole: 'admin',
+          action: `${pastTense} a un usuario`,
+          details: `Usuario: ${user.email}`,
+          targetUserEmail: user.email,
+          targetUserId: user.id
+        });
         if (Platform.OS === 'web') {
           window.alert(`Usuario ${isSuspended ? 'activado' : 'suspendido'} correctamente.`);
         } else {
@@ -201,12 +209,14 @@ export default function UserManagement({ COLORS }) {
         name: editName,
         phone: editPhone
       });
-      await logActivity(
-        'Editó un perfil de usuario',
-        `Usuario: ${editingUser.email}\nNuevo Nombre: ${editName}`,
-        'admin@admin.com',
-        0
-      );
+      await logActivity({
+        adminEmail: 'admin@admin.com',
+        adminRole: 'admin',
+        action: 'Editó un perfil de usuario',
+        details: `Usuario: ${editingUser.email}\nNuevo Nombre: ${editName}`,
+        targetUserEmail: editingUser.email,
+        targetUserId: editingUser.id
+      });
       setEditingUser(null);
       Alert.alert('Éxito', 'Datos actualizados correctamente.');
     } catch (error) {
