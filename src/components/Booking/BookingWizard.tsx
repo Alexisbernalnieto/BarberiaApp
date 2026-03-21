@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, useWindowDimensions, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, useWindowDimensions, TextInput, Modal } from 'react-native';
 import { 
     Scissors, 
     User, 
@@ -12,7 +12,6 @@ import {
     CreditCard,
     AlertTriangle
 } from 'lucide-react';
-import { Modal } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useSidebar } from '../../context/SidebarContext';
@@ -60,11 +59,7 @@ export default function BookingWizard({
   const { appointments: existingAppointments, barbers: dbBarbers, services: dbServices, branches: dbBranches } = useData();
   const { setIsBookingInProgress } = useSidebar();
   
-  const branchList = dbBranches?.length > 0 ? dbBranches : [
-    { id: 'centro', name: 'Centro', address: 'Mariano Abasolo 59 B San Juan del Rio, Qro' },
-    { id: 'lomas', name: 'Lomas', address: 'Av. Lomas de San Juan 1129 San Juan del Rio, Qro' }
-  ];
-
+  const branchList = dbBranches?.length > 0 ? dbBranches : [];
   const serviceList = dbServices?.length > 0 ? dbServices : [];
   const barberList = dbBarbers?.length > 0 ? dbBarbers : [];
 
@@ -80,7 +75,7 @@ export default function BookingWizard({
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [bookingStatus, setBookingStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [bookingStatus, setBookingStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [bookingErrorMessage, setBookingErrorMessage] = useState('');
 
   const dToday = new Date();
@@ -106,7 +101,6 @@ export default function BookingWizard({
     if (currentStep > 1) {
       goToStep(currentStep - 1);
     } else {
-      // If there's any progress (branch selected), ask for confirmation
       if (selectedBranch && onCancel) {
         setShowExitConfirm(true);
       } else if (onCancel) {
@@ -176,6 +170,7 @@ export default function BookingWizard({
     };
 
     try {
+      setBookingStatus('processing');
       const result = await createAppointment(appointmentData as any);
       setBookingStatus('success');
       setIsBookingInProgress(false);
@@ -279,12 +274,12 @@ export default function BookingWizard({
               styles={styles}
               COLORS={COLORS}
               selectedService={selectedService}
+              onPaymentStart={() => setBookingStatus('processing')}
               onPaymentSuccess={(id) => {
                 setPaymentIntentId(id);
                 setIsPaid(true);
-                // After successful payment, we automatically trigger handleConfirm
-                // or we can wait for the user to click "Finalizar"
-                // But normally payment is the last step.
+                setBookingStatus('idle');
+                // goToStep(6); // Confirmation step is now step 5, payment is step 6
               }}
               onPaymentError={(err) => {
                   setBookingErrorMessage(err);
@@ -346,34 +341,19 @@ export default function BookingWizard({
       </View>
 
       {/* MODAL DE CONFIRMACIÓN DE SALIDA */}
-      <Modal
-        visible={showExitConfirm}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowExitConfirm(false)}
-      >
+      <Modal visible={showExitConfirm} transparent animationType="fade" onRequestClose={() => setShowExitConfirm(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalIconContainer}>
               <AlertTriangle size={32} color="#EF4444" />
             </View>
             <Text style={styles.modalTitle}>¿Abandonar proceso?</Text>
-            <Text style={styles.modalMessage}>
-                Si sales ahora perderás los datos seleccionados para tu cita. ¿Estás seguro de que deseas salir?
-            </Text>
-            
+            <Text style={styles.modalMessage}>Si sales ahora perderás los datos seleccionados para tu cita. ¿Estás seguro de que deseas salir?</Text>
             <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={[styles.modalBtn, styles.cancelModalBtn]} 
-                onPress={() => setShowExitConfirm(false)}
-              >
+              <TouchableOpacity style={[styles.modalBtn, styles.cancelModalBtn]} onPress={() => setShowExitConfirm(false)}>
                 <Text style={styles.modalBtnText}>CONTINUAR</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalBtn, styles.confirmModalBtn]} 
-                onPress={confirmWizardExit}
-              >
+              <TouchableOpacity style={[styles.modalBtn, styles.confirmModalBtn]} onPress={confirmWizardExit}>
                 <Text style={styles.modalBtnText}>SÍ, SALIR</Text>
               </TouchableOpacity>
             </View>
@@ -381,55 +361,46 @@ export default function BookingWizard({
         </View>
       </Modal>
 
-      {/* MODAL DE ÉXITO */}
-      <Modal
-        visible={bookingStatus === 'success'}
-        transparent={true}
-        animationType="slide"
-      >
+      {/* MODALES DE ESTADO */}
+      <Modal visible={bookingStatus === 'processing'} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(212, 175, 55, 0.1)', borderColor: 'rgba(212, 175, 55, 0.2)' }]}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, borderLeftColor: 'var(--gold)', borderTopColor: 'var(--gold)', borderRightColor: 'transparent', borderBottomColor: 'transparent', borderLeftWidth: 3, borderTopWidth: 3 }} />
+            </View>
+            <Text style={styles.modalTitle}>Procesando...</Text>
+            <Text style={styles.modalMessage}>Estamos asegurando tu lugar en El Coronel. No cierres esta ventana.</Text>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={bookingStatus === 'success'} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.2)' }]}>
               <CheckCircle2 size={32} color="#10B981" />
             </View>
             <Text style={styles.modalTitle}>¡Cita Agendada!</Text>
-            <Text style={styles.modalMessage}>
-                Tu reserva en El Coronel ha sido confirmada con éxito. Te esperamos pronto.
-            </Text>
-            
-            <TouchableOpacity 
-              style={[styles.modalBtn, { backgroundColor: 'var(--gold)' }]} 
-              onPress={() => {
-                  setBookingStatus('idle');
-                  if (onCancel) onCancel(); // Back to dashboard
-              }}
-            >
+            <Text style={styles.modalMessage}>Tu reserva en El Coronel ha sido confirmada con éxito. Te esperamos pronto.</Text>
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: 'var(--gold)' }]} onPress={() => {
+                setBookingStatus('idle');
+                if (onConfirm) onConfirm({});
+            }}>
               <Text style={[styles.modalBtnText, { color: '#000' }]}>EXCELENTE</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* MODAL DE ERROR */}
-      <Modal
-        visible={bookingStatus === 'error'}
-        transparent={true}
-        animationType="fade"
-      >
+      <Modal visible={bookingStatus === 'error'} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}>
               <AlertTriangle size={32} color="#EF4444" />
             </View>
             <Text style={styles.modalTitle}>Algo salió mal</Text>
-            <Text style={styles.modalMessage}>
-                {bookingErrorMessage || "No pudimos procesar tu cita en este momento. Por favor intenta de nuevo."}
-            </Text>
-            
-            <TouchableOpacity 
-              style={[styles.modalBtn, styles.cancelModalBtn]} 
-              onPress={() => setBookingStatus('idle')}
-            >
+            <Text style={styles.modalMessage}>{bookingErrorMessage || "No pudimos procesar tu cita en este momento. Por favor intenta de nuevo."}</Text>
+            <TouchableOpacity style={[styles.modalBtn, styles.cancelModalBtn]} onPress={() => setBookingStatus('idle')}>
               <Text style={styles.modalBtnText}>REINTENTAR</Text>
             </TouchableOpacity>
           </View>

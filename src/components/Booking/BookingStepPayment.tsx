@@ -9,6 +9,7 @@ interface BookingStepPaymentProps {
   styles: any;
   COLORS: any;
   selectedService: any;
+  onPaymentStart?: () => void;
   onPaymentSuccess: (paymentIntentId: string) => void;
   onPaymentError: (error: string) => void;
 }
@@ -17,6 +18,7 @@ const BookingStepPayment: React.FC<BookingStepPaymentProps> = ({
   styles,
   COLORS,
   selectedService,
+  onPaymentStart,
   onPaymentSuccess,
   onPaymentError,
 }) => {
@@ -29,6 +31,7 @@ const BookingStepPayment: React.FC<BookingStepPaymentProps> = ({
     if (!stripe || !elements) return;
     setLoading(true);
     setError(null);
+    if (onPaymentStart) onPaymentStart();
 
     try {
       const token = await auth.currentUser?.getIdToken();
