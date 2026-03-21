@@ -42,7 +42,7 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       backgroundColor: 'var(--gold)',
       ...Platform.select({
         web: {
-          background: 'linear-gradient(90deg, #D4AF37, #F4D03F)',
+          backgroundImage: 'linear-gradient(90deg, #D4AF37, #F4D03F)',
         } as any,
       }),
     } as ViewStyle,
@@ -341,6 +341,12 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       color: 'var(--gold)',
       letterSpacing: 3,
     } as TextStyle,
+    ticketSubtitle: {
+      color: 'var(--text-muted)',
+      fontSize: 10,
+      letterSpacing: 2,
+      marginTop: 4,
+    } as TextStyle,
     ticketContent: {
       padding: 28,
     } as ViewStyle,
@@ -363,22 +369,56 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       fontWeight: '600',
       textAlign: 'right',
     } as TextStyle,
+    dashedDivider: {
+      height: 1,
+      borderWidth: 1,
+      borderColor: 'rgba(212, 175, 55, 0.2)',
+      borderStyle: 'dashed',
+      marginVertical: 20,
+      borderRadius: 1,
+    } as ViewStyle,
+    ticketFooter: {
+      alignItems: 'center',
+    } as ViewStyle,
+    totalLabel: {
+      color: 'var(--text-muted)',
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 1,
+      marginBottom: 4,
+      textTransform: 'uppercase',
+    } as TextStyle,
     totalPrice: {
       fontSize: 26,
       fontWeight: '800',
       color: 'var(--gold)',
     } as TextStyle,
+    paymentNote: {
+      color: 'var(--text-muted)',
+      fontSize: 12,
+      fontStyle: 'italic',
+      marginTop: 20,
+      textAlign: 'center',
+      opacity: 0.6,
+    } as TextStyle,
 
     // === FOOTER ACTIONS ===
     footerActions: {
       flexDirection: 'row',
-      padding: 20,
-      paddingHorizontal: isMobile ? 20 : 40,
-      backgroundColor: 'rgba(15,15,15,0.95)',
+      padding: 16,
+      paddingHorizontal: isMobile ? 16 : 40,
+      backgroundColor: 'rgb(15,15,15)',
       borderTopWidth: 1,
-      borderTopColor: 'var(--glass-border)',
+      borderTopColor: 'rgba(212, 175, 55, 0.2)',
       justifyContent: 'space-between',
-      gap: 16,
+      gap: 12,
+      zIndex: 100,
+      position: isMobile ? 'relative' : 'relative', // Flex handles it now
+      ...Platform.select({
+        web: {
+          boxShadow: '0 -10px 30px rgba(0,0,0,0.5)',
+        } as any,
+      }),
     } as ViewStyle,
     actionBtn: {
       flex: 1,
@@ -417,4 +457,80 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
     disabledBtn: {
       opacity: 0.4,
     } as ViewStyle,
+
+    // === EXIT MODAL ===
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.85)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    } as ViewStyle,
+    modalContent: {
+      width: '100%',
+      maxWidth: 400,
+      backgroundColor: 'rgb(20, 20, 20)',
+      borderRadius: 24,
+      padding: 32,
+      borderWidth: 1,
+      borderColor: 'rgba(212, 175, 55, 0.2)',
+      alignItems: 'center',
+      ...Platform.select({
+          web: {
+              boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+          }
+      })
+    } as ViewStyle,
+    modalIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(212, 175, 55, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(212, 175, 55, 0.2)',
+    } as ViewStyle,
+    modalTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: '#FFF',
+      marginBottom: 12,
+      textAlign: 'center',
+      letterSpacing: 0.5,
+    } as TextStyle,
+    modalMessage: {
+      fontSize: 15,
+      color: 'rgba(255,255,255,0.6)',
+      textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: 32,
+    } as TextStyle,
+    modalActions: {
+      flexDirection: 'row',
+      gap: 12,
+      width: '100%',
+    } as ViewStyle,
+    modalBtn: {
+      flex: 1,
+      paddingVertical: 16,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    } as ViewStyle,
+    cancelModalBtn: {
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.1)',
+    } as ViewStyle,
+    confirmModalBtn: {
+      backgroundColor: '#EF4444',
+    } as ViewStyle,
+    modalBtnText: {
+        color: '#FFF',
+        fontWeight: '700',
+        fontSize: 14,
+        letterSpacing: 0.5,
+    } as TextStyle,
   });

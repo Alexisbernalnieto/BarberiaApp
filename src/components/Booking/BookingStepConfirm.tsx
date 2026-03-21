@@ -55,50 +55,50 @@ export default function BookingStepConfirm({
             )}
 
             <View style={styles.ticketRow}>
-                <View style={styles.rowCenter}>
+                <View style={[styles.rowCenter, { flex: 1 }]}>
                     <MapPin size={14} color="var(--gold)" style={{ marginRight: 8 }} />
                     <Text style={styles.ticketLabel}>Sucursal</Text>
                 </View>
-                <Text style={styles.ticketValue}>{selectedBranch}</Text>
+                <Text style={[styles.ticketValue, { flex: 1 }]}>{selectedBranch || 'No seleccionada'}</Text>
             </View>
 
             <View style={styles.ticketRow}>
-                <View style={styles.rowCenter}>
+                <View style={[styles.rowCenter, { flex: 1 }]}>
                     <Scissors size={14} color="var(--gold)" style={{ marginRight: 8 }} />
                     <Text style={styles.ticketLabel}>Servicio</Text>
                 </View>
-                <Text style={styles.ticketValue}>{selectedService?.name}</Text>
+                <Text style={[styles.ticketValue, { flex: 1 }]}>{selectedService?.name || 'No seleccionado'}</Text>
             </View>
 
             <View style={styles.ticketRow}>
-                <View style={styles.rowCenter}>
+                <View style={[styles.rowCenter, { flex: 1 }]}>
                     <UserIcon size={14} color="var(--gold)" style={{ marginRight: 8 }} />
                     <Text style={styles.ticketLabel}>Barbero</Text>
                 </View>
-                <Text style={styles.ticketValue}>{selectedBarber?.name}</Text>
+                <Text style={[styles.ticketValue, { flex: 1 }]}>{selectedBarber?.name || 'No seleccionado'}</Text>
             </View>
 
             <View style={styles.ticketRow}>
-                <View style={styles.rowCenter}>
+                <View style={[styles.rowCenter, { flex: 1 }]}>
                     <Calendar size={14} color="var(--gold)" style={{ marginRight: 8 }} />
                     <Text style={styles.ticketLabel}>Fecha</Text>
                 </View>
-                <Text style={styles.ticketValue}>{selectedDate}</Text>
+                <Text style={[styles.ticketValue, { flex: 1 }]}>{selectedDate || 'No seleccionada'}</Text>
             </View>
 
             <View style={styles.ticketRow}>
-                <View style={styles.rowCenter}>
+                <View style={[styles.rowCenter, { flex: 1 }]}>
                     <Clock size={14} color="var(--gold)" style={{ marginRight: 8 }} />
                     <Text style={styles.ticketLabel}>Hora</Text>
                 </View>
-                <Text style={styles.ticketValue}>{selectedTime}</Text>
+                <Text style={[styles.ticketValue, { flex: 1 }]}>{selectedTime || 'No seleccionada'}</Text>
             </View>
 
             <View style={styles.dashedDivider} />
 
             <View style={styles.ticketFooter}>
-                <Text style={styles.totalLabel}>TOTAL</Text>
-                <Text style={styles.totalPrice}>${selectedService?.price}</Text>
+                <Text style={styles.totalLabel}>TOTAL A PAGAR</Text>
+                <Text style={styles.totalPrice}>${selectedService?.price || 0}</Text>
             </View>
         </View>
       </View>

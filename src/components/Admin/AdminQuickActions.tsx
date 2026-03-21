@@ -14,6 +14,7 @@ export default function AdminQuickActions({ setViewMode, COLORS, isMobile }: Adm
     { id: 'barbers', label: 'Barberos', icon: Scissors, color: '#3B82F6' },
     { id: 'services', label: 'Servicios', icon: Tag, color: '#10B981' },
     { id: 'walkin', label: 'Nueva Cita', icon: PlusCircle, color: '#F59E0B' },
+    { id: 'history', label: 'Historial', icon: History, color: '#8B5CF6' },
   ];
 
   return (
@@ -55,14 +56,15 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
   mobileGrid: {
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   actionCard: {
     flex: 1,
+    minWidth: 160,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'var(--bg-card)',

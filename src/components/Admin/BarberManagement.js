@@ -6,7 +6,7 @@ import BarberListView from './BarberListView';
 import BarberFormView from './BarberFormView';
 import BarberDetailsView from './BarberDetailsView';
 import { DAYS, DEFAULT_SCHEDULE, getBarberManagementStyles } from './BarberManagementStyles';
-import { logActivity } from '../../services/logs';
+import { logActivity } from '../../services/activityLogs';
 
 export default function BarberManagement({ appointments, onClose, COLORS, barbers, setBarbers }) {
   const { width } = useWindowDimensions();
@@ -53,12 +53,13 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
                 await updateDoc(doc(db, 'users', editingBarber.id), barberToSave);
                 // Optimistic update
                 setBarbers(barbers.map(b => b.id === editingBarber.id ? barberToSave : b));
-                await logActivity(
-                    'Actualizó perfil de un barbero',
-                    `Barbero: ${editingBarber.name}`,
-                    'admin@admin.com',
-                    0
-                );
+                await logActivity({
+                    adminEmail: 'admin@admin.com',
+                    adminRole: 'admin',
+                    action: 'Actualizó perfil de un barbero',
+                    details: `Barbero: ${editingBarber.name}`,
+                    targetUserId: editingBarber.id
+                });
                 Alert.alert('Éxito', 'Barbero actualizado correctamente');
             } catch (error) {
                 console.error("Error updating barber:", error);
@@ -86,12 +87,13 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
                   style: 'destructive',
                   onPress: async () => {
                       setBarbers(barbers.filter(b => b.id !== barberId));
-                      await logActivity(
-                          'Eliminó un barbero',
-                          `Barbero eliminado: ${barberNameToDelete}`,
-                          'admin@admin.com',
-                          0
-                      );
+                      await logActivity({
+                          adminEmail: 'admin@admin.com',
+                          adminRole: 'admin',
+                          action: 'Eliminó un barbero',
+                          details: `Barbero eliminado: ${barberNameToDelete}`,
+                          targetUserId: barberId
+                      });
                       setViewMode('list');
                   }
               }

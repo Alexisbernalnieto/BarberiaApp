@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, getDoc, getDocFromCache, setDoc, DocumentReference } from 'firebase/firestore';
+import { doc, getDoc, getDocFromCache, setDoc, DocumentReference, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebaseClient';
 import { AppUser, UserRole } from '../types';
 
@@ -30,87 +30,81 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [offlineError, setOfflineError] = useState(false);
 
-  // Helper to map numeric roles to strings
-  const mapRole = (r: number): UserRole => {
-    if (r === 0) return 'admin';
-    if (r === 2) return 'reception';
-    if (r === 3) return 'barber';
-    return 'client';
-  };
-
-  // Fetch user document with retry and cache fallback
-  const fetchUserDoc = async (userDocRef: DocumentReference) => {
-    const MAX_RETRIES = 3;
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        const userDoc = await getDoc(userDocRef);
-        setOfflineError(false);
-        return userDoc;
-      } catch (error: any) {
-        console.warn(`[Auth] Server fetch attempt ${attempt}/${MAX_RETRIES} failed:`, error.message);
-
-        if (attempt === 1) {
-          try {
-            const cachedDoc = await getDocFromCache(userDocRef);
-            if (cachedDoc.exists()) {
-              console.log('[Auth] Using cached user data');
-              setOfflineError(true);
-              return cachedDoc;
-            }
-          } catch (cacheError: any) {
-            console.warn('[Auth] Cache also empty:', cacheError.message);
-          }
-        }
-
-        if (attempt < MAX_RETRIES) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
-        }
-      }
+  const mapRole = (role: number | string): UserRole => {
+    if (typeof role !== 'number') return role as UserRole;
+    switch (role) {
+      case 0: return 'admin';
+      case 2: return 'reception';
+      case 3: return 'barber';
+      case 1: return 'client';
+      default: return 'client';
     }
-
-    setOfflineError(true);
-    return null;
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await fetchUserDoc(userDocRef);
+    let unsubscribeSnapshot: (() => void) | null = null;
 
-        if (userDoc && userDoc.exists()) {
-          const data = userDoc.data();
-          const finalRole = typeof data.role === 'number' ? mapRole(data.role) : (data.role as UserRole || 'client');
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
+        if (user) {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            
+            // Check for suspension
+            if (data.status === 'suspended' || data.status === 'deleted') {
+              const msg = data.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
+              if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
+              else Alert.alert('Acceso Denegado', msg);
+              
+              await signOut(auth);
+              return;
+            }
+            
+            const role = mapRole(data.role);
+            setCurrentUser({ ...data, uid: user.uid, email: user.email, role } as AppUser);
 
-          setCurrentUser({
-            ...data,
-            uid: user.uid,
-            email: user.email || '',
-            role: finalRole as UserRole,
-          } as AppUser);
-        } else if (userDoc && !userDoc.exists()) {
-          setCurrentUser({
-            email: user.email || '',
-            uid: user.uid,
-            role: 'client',
-          } as AppUser);
+            // Real-time listener for status/role changes
+            unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
+              if (docSnap.exists()) {
+                const newData = docSnap.data();
+                if (newData.status === 'suspended' || newData.status === 'deleted') {
+                  const msg = newData.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
+                  if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
+                  else Alert.alert('Acceso Denegado', msg);
+                  signOut(auth);
+                } else {
+                  const newRole = mapRole(newData.role);
+                  setCurrentUser((prev) => prev ? { ...prev, ...newData, role: newRole } : null);
+                }
+              }
+            });
+
+          } else {
+            // New user or missing profile
+            setCurrentUser({ uid: user.uid, email: user.email || '', role: 'client' } as AppUser);
+          }
         } else {
-          console.error('[Auth] Could not load user data after retries.');
-          setCurrentUser({
-            email: user.email || '',
-            uid: user.uid,
-            role: 'client',
-          } as AppUser);
+          setCurrentUser(null);
+          if (unsubscribeSnapshot) {
+            unsubscribeSnapshot();
+            unsubscribeSnapshot = null;
+          }
         }
-      } else {
-        setCurrentUser(null);
-        setOfflineError(false);
+      } catch (error) {
+        console.error("Auth state change error:", error);
+        setOfflineError(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {

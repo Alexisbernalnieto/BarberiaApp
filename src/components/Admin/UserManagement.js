@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 import { db } from '../../firebaseClient';
 import { DEFAULT_SCHEDULE } from './BarberManagementStyles';
-import { logActivity } from '../../services/logs';
+import { logActivity } from '../../services/activityLogs';
 
 export default function UserManagement({ COLORS }) {
   const [users, setUsers] = useState([]);
@@ -42,12 +42,14 @@ export default function UserManagement({ COLORS }) {
   const changeRole = async (userId, newRole, roleName, userEmail) => {
     try {
       await updateDoc(doc(db, 'users', userId), { role: newRole });
-      await logActivity(
-        'Cambió el rol de un usuario',
-        `Usuario: ${userEmail}\nNuevo Rol: ${roleName}`,
-        'admin@admin.com', // Asumido por ahora, en un sistema real vendría del auth context
-        0
-      );
+      await logActivity({
+        adminEmail: 'admin@admin.com',
+        adminRole: 'admin',
+        action: 'Cambió el rol de un usuario',
+        details: `Usuario: ${userEmail}\nNuevo Rol: ${roleName}`,
+        targetUserEmail: userEmail,
+        targetUserId: userId
+      });
       Alert.alert('Éxito', `Usuario actualizado a rol: ${roleName}`);
     } catch (error) {
       console.error(error);
@@ -69,12 +71,14 @@ export default function UserManagement({ COLORS }) {
         active: true,
         schedule: DEFAULT_SCHEDULE,
       });
-      await logActivity(
-        'Asignó usuario como Barbero',
-        `Usuario: ${branchModalUser.email}\nSucursal: ${branchSelection}`,
-        'admin@admin.com',
-        0
-      );
+      await logActivity({
+        adminEmail: 'admin@admin.com',
+        adminRole: 'admin',
+        action: 'Asignó usuario como Barbero',
+        details: `Usuario: ${branchModalUser.email}\nSucursal: ${branchSelection}`,
+        targetUserEmail: branchModalUser.email,
+        targetUserId: branchModalUser.id
+      });
       setBranchModalUser(null);
       Alert.alert('Éxito', `Usuario actualizado a rol: BARBERO`);
     } catch (error) {
@@ -85,15 +89,17 @@ export default function UserManagement({ COLORS }) {
 
   const performDelete = async (userEmail, userId) => {
     try {
-      await deleteDoc(doc(db, 'users', userId));
-      await logActivity(
-        'Eliminó un usuario',
-        `Usuario eliminado: ${userEmail}`,
-        'admin@admin.com',
-        0
-      );
+      await updateDoc(doc(db, 'users', userId), { status: 'deleted' });
+      await logActivity({
+        adminEmail: 'admin@admin.com',
+        adminRole: 'admin',
+        action: 'Eliminó un usuario',
+        details: `Usuario eliminado: ${userEmail}`,
+        targetUserEmail: userEmail,
+        targetUserId: userId
+      });
       if (Platform.OS === 'web') {
-        window.alert('Usuario eliminado correctamente.');
+        window.alert('Usuario eliminado lógicamente.');
       } else {
         Alert.alert('Eliminado', 'Usuario eliminado correctamente.');
       }
@@ -105,6 +111,60 @@ export default function UserManagement({ COLORS }) {
       } else {
         Alert.alert('Error', errorMsg);
       }
+    }
+  };
+
+  const handleToggleSuspend = async (user) => {
+    const isSuspended = user.status === 'suspended';
+    const newStatus = isSuspended ? 'active' : 'suspended';
+    const actionText = isSuspended ? 'Activar' : 'Suspender';
+    const pastTense = isSuspended ? 'Activó' : 'Suspendió';
+
+    const confirmMessage = `¿Estás seguro de ${actionText.toLowerCase()} a ${user.name || user.email}?`;
+
+    const performToggle = async () => {
+      try {
+        await updateDoc(doc(db, 'users', user.id), { status: newStatus });
+        await logActivity({
+          adminEmail: 'admin@admin.com',
+          adminRole: 'admin',
+          action: `${pastTense} a un usuario`,
+          details: `Usuario: ${user.email}`,
+          targetUserEmail: user.email,
+          targetUserId: user.id
+        });
+        if (Platform.OS === 'web') {
+          window.alert(`Usuario ${isSuspended ? 'activado' : 'suspendido'} correctamente.`);
+        } else {
+          Alert.alert('Éxito', `Usuario ${isSuspended ? 'activado' : 'suspendido'} correctamente.`);
+        }
+      } catch (error) {
+        console.error(error);
+        if (Platform.OS === 'web') {
+          window.alert(`Error: No se pudo ${actionText.toLowerCase()} el usuario.`);
+        } else {
+          Alert.alert('Error', `No se pudo ${actionText.toLowerCase()} el usuario.`);
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(confirmMessage)) {
+        performToggle();
+      }
+    } else {
+      Alert.alert(
+        `${actionText} Usuario`,
+        confirmMessage,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: actionText, 
+            style: isSuspended ? 'default' : 'destructive',
+            onPress: performToggle
+          }
+        ]
+      );
     }
   };
 
@@ -149,12 +209,14 @@ export default function UserManagement({ COLORS }) {
         name: editName,
         phone: editPhone
       });
-      await logActivity(
-        'Editó un perfil de usuario',
-        `Usuario: ${editingUser.email}\nNuevo Nombre: ${editName}`,
-        'admin@admin.com',
-        0
-      );
+      await logActivity({
+        adminEmail: 'admin@admin.com',
+        adminRole: 'admin',
+        action: 'Editó un perfil de usuario',
+        details: `Usuario: ${editingUser.email}\nNuevo Nombre: ${editName}`,
+        targetUserEmail: editingUser.email,
+        targetUserId: editingUser.id
+      });
       setEditingUser(null);
       Alert.alert('Éxito', 'Datos actualizados correctamente.');
     } catch (error) {
@@ -184,10 +246,26 @@ export default function UserManagement({ COLORS }) {
         <View style={{ marginLeft: 10, flex: 1 }}>
           <Text style={[styles.userName, { color: COLORS.text }]}>{item.name || 'Sin Nombre'}</Text>
           <Text style={[styles.userEmail, { color: COLORS.textSecondary }]}>{item.email}</Text>
-          <View style={styles.roleBadge}>
-             <Text style={{ color: COLORS.primary, fontWeight: 'bold', fontSize: 12 }}>
-              {getRoleName(item.role)}
-            </Text>
+          <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 4}}>
+            <View style={styles.roleBadge}>
+               <Text style={{ color: COLORS.primary, fontWeight: 'bold', fontSize: 12 }}>
+                {getRoleName(item.role)}
+              </Text>
+            </View>
+            {item.status === 'suspended' && (
+              <View style={[styles.roleBadge, {backgroundColor: 'rgba(239,68,68,0.1)'}]}>
+                 <Text style={{ color: '#EF4444', fontWeight: 'bold', fontSize: 12 }}>
+                  SUSPENDIDO
+                </Text>
+              </View>
+            )}
+            {item.status === 'deleted' && (
+              <View style={[styles.roleBadge, {backgroundColor: 'rgba(107,114,128,0.1)'}]}>
+                 <Text style={{ color: '#6B7280', fontWeight: 'bold', fontSize: 12 }}>
+                  ELIMINADO
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -224,14 +302,24 @@ export default function UserManagement({ COLORS }) {
       </View>
 
       <View style={{flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15, borderTopWidth: 1, borderTopColor: COLORS.border || '#ccc', paddingTop: 10}}>
-        <TouchableOpacity onPress={() => openEditModal(item)} style={{marginRight: 20, flexDirection: 'row', alignItems: 'center'}}>
+        {item.status !== 'deleted' && (
+          <TouchableOpacity onPress={() => handleToggleSuspend(item)} style={{marginRight: 20, flexDirection: 'row', alignItems: 'center'}}>
+              <MaterialCommunityIcons name={item.status === 'suspended' ? "account-check" : "account-off"} size={18} color={item.status === 'suspended' ? '#10B981' : '#F59E0B'} />
+              <Text style={{color: item.status === 'suspended' ? '#10B981' : '#F59E0B', marginLeft: 4, fontWeight: 'bold'}}>
+                {item.status === 'suspended' ? 'Activar' : 'Suspender'}
+              </Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={() => openEditModal(item)} style={{marginRight: item.status !== 'deleted' ? 20 : 0, flexDirection: 'row', alignItems: 'center'}}>
             <MaterialCommunityIcons name="pencil" size={18} color={COLORS.primary} />
             <Text style={{color: COLORS.primary, marginLeft: 4, fontWeight: 'bold'}}>Editar</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDelete(item)} style={{flexDirection: 'row', alignItems: 'center'}}>
-            <MaterialCommunityIcons name="delete" size={18} color={'#EF4444'} />
-            <Text style={{color: '#EF4444', marginLeft: 4, fontWeight: 'bold'}}>Eliminar</Text>
-        </TouchableOpacity>
+        {item.status !== 'deleted' && (
+          <TouchableOpacity onPress={() => handleDelete(item)} style={{flexDirection: 'row', alignItems: 'center'}}>
+              <MaterialCommunityIcons name="delete" size={18} color={'#EF4444'} />
+              <Text style={{color: '#EF4444', marginLeft: 4, fontWeight: 'bold'}}>Eliminar</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

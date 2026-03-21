@@ -8,7 +8,8 @@ import {
   Platform, 
   Animated, 
   Dimensions, 
-  Pressable 
+  Pressable,
+  Modal
 } from 'react-native';
 import { 
   LayoutDashboard, 
@@ -22,9 +23,11 @@ import {
   PlusCircle,
   MonitorPlay,
   X,
-  Menu
+  Menu,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useSidebar } from '../../context/SidebarContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -37,9 +40,13 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMobile, isOpen, onClose }) => {
   const { logout, currentUser } = useAuth();
+  const { isBookingInProgress, setIsBookingInProgress } = useSidebar();
   const role = currentUser?.role;
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const [showExitConfirm, setShowExitConfirm] = React.useState(false);
+  const [pendingAction, setPendingAction] = React.useState<{type: 'tab' | 'logout', id?: string} | null>(null);
 
   const getRoleLabel = (r: any) => {
     if (r === 0 || r === 'admin') return 'Administrador';
@@ -96,8 +103,34 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
     : clientItems;
 
   const handleTabPress = (id: string) => {
+    if (isBookingInProgress && activeTab === 'book' && id !== 'book') {
+        setPendingAction({ type: 'tab', id });
+        setShowExitConfirm(true);
+        return;
+    }
     setActiveTab(id);
     if (isMobile && onClose) onClose();
+  };
+
+  const handleLogoutPress = () => {
+    if (isBookingInProgress && activeTab === 'book') {
+        setPendingAction({ type: 'logout' });
+        setShowExitConfirm(true);
+        return;
+    }
+    logout();
+  };
+
+  const confirmExit = () => {
+    setIsBookingInProgress(false);
+    setShowExitConfirm(false);
+    if (pendingAction?.type === 'tab' && pendingAction.id) {
+        setActiveTab(pendingAction.id);
+        if (isMobile && onClose) onClose();
+    } else if (pendingAction?.type === 'logout') {
+        logout();
+    }
+    setPendingAction(null);
   };
 
   const renderContent = () => (
@@ -164,13 +197,49 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
         
         <TouchableOpacity 
           style={styles.logoutBtn} 
-          onPress={logout}
+          onPress={handleLogoutPress}
           data-logout-btn="true"
         >
           <LogOut size={18} color="#EF4444" />
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
       </View>
+
+      {/* MODAL DE CONFIRMACIÓN GLOBAL */}
+      <Modal
+        visible={showExitConfirm}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowExitConfirm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <AlertTriangle size={32} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>¿Abandonar proceso?</Text>
+            <Text style={styles.modalMessage}>
+                Tienes una reserva en curso. Si sales ahora se perderán los datos seleccionados.
+            </Text>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.cancelModalBtn]} 
+                onPress={() => setShowExitConfirm(false)}
+              >
+                <Text style={styles.modalBtnText}>CONTINUAR</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.confirmModalBtn]} 
+                onPress={confirmExit}
+              >
+                <Text style={styles.modalBtnText}>SÍ, SALIR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 
@@ -359,6 +428,75 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 12,
+  },
+  // EXIT MODAL STYLES (MATCHING WIZARD)
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 20000,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: 'rgb(20, 20, 20)',
+    borderRadius: 24,
+    padding: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+    alignItems: 'center',
+  },
+  modalIconContainer: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: 'rgba(212, 175, 55, 0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(212, 175, 55, 0.2)',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelModalBtn: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  confirmModalBtn: {
+    backgroundColor: '#EF4444',
+  },
+  modalBtnText: {
+      color: '#FFF',
+      fontWeight: '700',
+      fontSize: 14,
   },
 });
 

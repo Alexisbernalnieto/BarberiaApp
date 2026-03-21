@@ -56,7 +56,7 @@ export default function UserDashboard({
 }: UserDashboardProps) {
   const { width } = useWindowDimensions();
   const isMobile = isMobileProp ?? width < 1024;
-  const { setIsOpen } = useSidebar();
+  const { setIsOpen, isBookingInProgress } = useSidebar();
   
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -66,6 +66,14 @@ export default function UserDashboard({
 
   const handleBookingComplete = (data: any) => {
     setActiveTab('appointments');
+  };
+
+  const handleLogoutWithGuard = () => {
+    if (isBookingInProgress) {
+        alert("Te encuentras en el proceso de agendar una cita. Por favor finaliza o cancela para salir.");
+        return;
+    }
+    onLogout();
   };
 
   return (
@@ -93,7 +101,7 @@ export default function UserDashboard({
                 <TouchableOpacity style={styles.headerBtn} onPress={toggleTheme}>
                     {isDarkMode ? <Sun size={20} color="var(--gold)" /> : <Moon size={20} color="var(--text-secondary)" />}
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.headerBtn} onPress={onLogout}>
+                <TouchableOpacity style={styles.headerBtn} onPress={handleLogoutWithGuard}>
                     <UserIcon size={20} color="var(--text-secondary)" />
                 </TouchableOpacity>
             </View>
@@ -147,7 +155,7 @@ export default function UserDashboard({
                     user={user}
                     COLORS={COLORS}
                     isMobile={isMobile}
-                    onLogout={onLogout}
+                    onLogout={handleLogoutWithGuard}
                     toggleTheme={toggleTheme}
                     isDarkMode={isDarkMode}
                 />
