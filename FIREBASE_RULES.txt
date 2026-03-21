@@ -1,8 +1,139 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // --- FUNCIONES DE AYUDA ---
+    
+    // Verifica que el documento del usuario no esté suspendido ni eliminado
+    function isActiveUser() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc == null || !('status' in userDoc.data) || userDoc.data.status == 'active';
+    }
+
+    function isSignedIn() {
+      return request.auth != null && isActiveUser();
+    }
+    
+    // --- NUEVO SISTEMA CUSTOM CLAIMS (Rápido, Barato y Seguro) ---
+    function hasRole(allowedRoles) {
+      // Verifica directamente en el token (sin lecturas a BD) o permite un rol numérico
+      return request.auth.token.role in allowedRoles;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && hasRole(['admin', 0]);
+    }
+    
+    function isReception() {
+      return isSignedIn() && hasRole(['reception', 2]);
+    }
+    
+    function isBarber() {
+      return isSignedIn() && hasRole(['barber', 3]);
+    }
+    
+    function isStaff() {
+      return isAdmin() || isReception() || isBarber();
+    }
+    
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- REGLAS POR COLECCIÓN ---
+
+    // USUARIOS
+    match /users/{userId} {
+      // Cualquiera puede registrarse (crear su propio doc)
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      
+      // Leer: 
+      // - El propio usuario
+      // - Admin y Recepción (para gestión)
+      // - Barberos pueden leer usuarios para ver nombres de clientes
+      allow read: if isOwner(userId) || isAdmin() || isReception(); 
+      
+      // Actualizar:
+      // - Admin (puede cambiar roles)
+      // - Dueño (puede editar nombre/teléfono, pero NO puede cambiar su rol, y debe estar activo)
+      allow update: if isAdmin() || 
+        (isOwner(userId) && isActiveUser() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+      
+      // Eliminar: Solo Admin
+      allow delete: if isAdmin();
+    }
+
+    // CITAS (Appointments)
+    match /appointments/{appointmentId} {
+      // Leer: Dueño o Staff
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.token.email || 
+        resource.data.userId == request.auth.uid || 
+        isStaff()
+      );
+
+      allow create: if isSignedIn() && (
+        // Regla 1: Si es un cliente, NO puede marcarse como pagado sin un paymentIntentId
+        (hasRole(['client', 1]) && 
+         request.resource.data.paid == true && 
+         request.resource.data.paymentIntentId != null &&
+         request.resource.data.userId == request.auth.token.email) ||
+        
+        // Regla 2: Staff puede crear citas (ej. Walk-ins)
+        isStaff()
+      );
+      
+      // Actualizar:
+      allow update: if isSignedIn() && (
+        // Solo Admin o Recepción pueden marcar como pagado o completar
+        (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paid', 'paymentMethod', 'status', 'paidAt'])) ||
+        
+        // El dueño puede cancelar? (A implementar después)
+        (isOwner(resource.data.userId) && request.resource.data.status == 'cancelled')
+      );
+      
+      // Eliminar: Solo Admin o Recepción
+      allow delete: if isAdmin() || isReception();
+    }
+
+    // SERVICIOS
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // NOTIFICACIONES
+    match /notifications/{notificationId} {
+      // Staff puede leer notificaciones dirigidas a su rol
+      allow read: if isSignedIn() && isStaff();
+      
+      // Admin y Recepción pueden crear notificaciones
+      allow create: if isAdmin() || isReception();
+      
+      // Staff puede actualizar (marcar como leídas)
+      allow update: if isSignedIn() && isStaff();
+      
+      // Solo Admin puede eliminar notificaciones
+      allow delete: if isAdmin();
+    }
+    
+    // HISTORIAL / LOGS
+    match /activity_logs/{logId} {
+      // Reglas estrictas:
+      // Lectura: Únicamente los Administradores (para que los clientes no puedan espiar).
+      allow read: if isAdmin();
+      
+      // Creación: Operaciones permitidas solo para la administración y staff de la Barbería.
+      allow create: if isStaff();
+
+      // Mantenimiento de auditoría (INMUTABLE):
+      // Nadie, absolutamente nadie, tiene permitido actualizar o destruir registros del sistema de Logs.
+      allow update, delete: if false;
+    }
+    
+    // Regla por defecto: Bloquear todo lo demás
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

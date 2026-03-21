@@ -50,6 +50,7 @@ export default function AdminHeader({
             onPress={() => setViewMode(viewMode === 'users' ? 'appointments' : 'users')} 
             style={[
                 styles.iconBtn, 
+                !isMobile && { width: 'auto', paddingHorizontal: 16 },
                 viewMode === 'users' && styles.activeBtn
             ]}
         >

@@ -1,5 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onRequest } = require("firebase-functions/v2/https");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 
@@ -288,6 +289,52 @@ exports.detachPaymentMethod = onCall(
     } catch (error) {
       console.error("Detach PM error:", error);
       throw new HttpsError("internal", error.message);
+    }
+  }
+);
+
+/* ============================================================
+   4) SEGURIDAD Y ROLES (Custom Claims)
+   ============================================================ */
+
+/**
+ * Trigger de Firestore que se ejecuta automáticamente cuando el documento
+ * de un usuario es creado o modificado. Sincroniza el campo "role" de la base
+ * de datos directamente hacia las credenciales seguras de Firebase Auth (Custom Claims).
+ */
+exports.syncUserRoleClaims = onDocumentWritten(
+  "users/{userId}",
+  async (event) => {
+    const userId = event.params.userId;
+    
+    // Si el documento fue eliminado, limpiar los claims del usuario
+    if (!event.data.after.exists) {
+      return admin.auth().setCustomUserClaims(userId, { role: null });
+    }
+
+    const userData = event.data.after.data();
+    const currentRole = userData.role;
+
+    // Si el usuario recién registrado aún no tiene un rol, lo ignoramos por ahora
+    if (currentRole === undefined) return null;
+
+    try {
+      // Obtener el usuario de Authentication para comparar su claim actual
+      const userRecord = await admin.auth().getUser(userId);
+      const currentClaims = userRecord.customClaims || {};
+
+      if (currentClaims.role === currentRole) {
+        // Ya cuenta con el certificado correcto, ignoramos el guardado para evitar ciclos infinitos
+        return null;
+      }
+
+      // Asignar el nuevo certificado (Claim) al token del usuario
+      await admin.auth().setCustomUserClaims(userId, { role: currentRole });
+      console.log(`✅ Custom Claim 'role' propagado exitosamente como '${currentRole}' para el usuario: ${userId}`);
+      return null;
+    } catch (error) {
+      console.error("❌ Error asignando Custom Claims al usuario:", userId, error);
+      return null;
     }
   }
 );
