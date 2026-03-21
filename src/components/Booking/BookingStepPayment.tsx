@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { createPaymentIntentWeb } from '../../services/payments';
+import { auth } from '../../firebaseClient';
 import { CreditCard, ShieldCheck, Lock } from 'lucide-react';
 
 interface BookingStepPaymentProps {
   styles: any;
   COLORS: any;
   selectedService: any;
+  onPaymentStart?: () => void;
   onPaymentSuccess: (paymentIntentId: string) => void;
   onPaymentError: (error: string) => void;
 }
@@ -16,6 +18,7 @@ const BookingStepPayment: React.FC<BookingStepPaymentProps> = ({
   styles,
   COLORS,
   selectedService,
+  onPaymentStart,
   onPaymentSuccess,
   onPaymentError,
 }) => {
@@ -28,9 +31,13 @@ const BookingStepPayment: React.FC<BookingStepPaymentProps> = ({
     if (!stripe || !elements) return;
     setLoading(true);
     setError(null);
+    if (onPaymentStart) onPaymentStart();
 
     try {
-      const { clientSecret } = await createPaymentIntentWeb(selectedService.price);
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Debes estar autenticado para proceder al pago");
+
+      const { clientSecret } = await createPaymentIntentWeb(selectedService.price, selectedService.id, token);
       const cardElement = elements.getElement(CardElement);
       if (!cardElement) throw new Error("No se encontró el elemento de tarjeta");
 
