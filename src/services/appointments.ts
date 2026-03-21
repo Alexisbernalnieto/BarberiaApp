@@ -1,7 +1,7 @@
 // src/services/appointments.ts
 import { db } from '../firebaseClient';
 import { doc, runTransaction, Timestamp } from 'firebase/firestore';
-import { logActivity } from './logs';
+import { logActivity } from './activityLogs';
 
 interface CreateAppointmentParams {
   userId: string;
@@ -71,12 +71,16 @@ export const createAppointment = async ({
       };
 
       transaction.set(appointmentRef, payload);
-      logActivity(
-        'Reservó una cita',
-        `Cliente: ${userName}\nBarbero: ${barberName}\nServicio: ${serviceName}\nFecha: ${date} a las ${time}`,
-        userId,
-        1
-      );
+      
+      // Log Activity using unified service
+      logActivity({
+        adminId: userId,
+        adminRole: 'client',
+        action: 'Reservó una cita',
+        details: `Cliente: ${userName}\nBarbero: ${barberName}\nServicio: ${serviceName}\nFecha: ${date} a las ${time}`,
+        targetUserId: uniqueId
+      });
+
       return { id: uniqueId, ...payload };
     });
   } catch (error) {
@@ -111,12 +115,13 @@ export const cancelAppointment = async (appointmentId: string, reason?: string) 
         cancelReason: reason || 'Cancelada por el usuario',
       });
 
-      logActivity(
-        'Canceló una cita',
-        `Cita ID: ${appointmentId}\nCliente: ${appData.userName}\nMotivo: ${reason || 'N/A'}`,
-        appData.userId,
-        1
-      );
+      logActivity({
+        adminId: appData.userId,
+        adminRole: 'client',
+        action: 'Canceló una cita',
+        details: `Cita ID: ${appointmentId}\nCliente: ${appData.userName}\nMotivo: ${reason || 'N/A'}`,
+        targetUserId: appointmentId
+      });
     });
     return true;
   } catch (error) {

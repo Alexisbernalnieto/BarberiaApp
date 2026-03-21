@@ -8,13 +8,22 @@ interface PaymentIntentResponse {
 /**
  * Crea un PaymentIntent en Stripe para el monto dado.
  * @param price — Precio en MXN (ej: 300 para $300 MXN)
+ * @param serviceId — ID del servicio para verificación en servidor
+ * @param idToken — Token de Firebase para autenticación
  * @returns {Promise<PaymentIntentResponse>} — El client secret del PaymentIntent
  */
-export const createPaymentIntentWeb = async (price: number): Promise<PaymentIntentResponse> => {
+export const createPaymentIntentWeb = async (
+    price: number, 
+    serviceId: string, 
+    idToken: string
+): Promise<PaymentIntentResponse> => {
     const res = await fetch(PAYMENT_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: price }), // Enviar precio en pesos, la Cloud Function convierte a centavos
+        headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ amount: price, serviceId }),
     });
 
     if (!res.ok) {

@@ -30,16 +30,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [offlineError, setOfflineError] = useState(false);
 
+  const mapRole = (role: number | string): UserRole => {
+    if (typeof role !== 'number') return role as UserRole;
+    switch (role) {
+      case 0: return 'admin';
+      case 2: return 'reception';
+      case 3: return 'barber';
+      case 1: return 'client';
+      default: return 'client';
+    }
+  };
+
   useEffect(() => {
     let unsubscribeSnapshot: (() => void) | null = null;
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
           if (userDoc.exists()) {
             const data = userDoc.data();
             
+            // Check for suspension
             if (data.status === 'suspended' || data.status === 'deleted') {
               const msg = data.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
               if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
@@ -49,60 +63,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               return;
             }
             
-            setCurrentUser({ ...data, uid: user.uid, email: user.email });
+            const role = mapRole(data.role);
+            setCurrentUser({ ...data, uid: user.uid, email: user.email, role } as AppUser);
 
-            unsubscribeSnapshot = onSnapshot(doc(db, 'users', user.uid), async (docSnap) => {
+            // Real-time listener for status/role changes
+            unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
               if (docSnap.exists()) {
                 const newData = docSnap.data();
                 if (newData.status === 'suspended' || newData.status === 'deleted') {
                   const msg = newData.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
                   if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
                   else Alert.alert('Acceso Denegado', msg);
-                  
-                  await signOut(auth);
+                  signOut(auth);
                 } else {
-                  setCurrentUser((prev: any) => prev ? { ...prev, ...newData } : prev);
+                  const newRole = mapRole(newData.role);
+                  setCurrentUser((prev) => prev ? { ...prev, ...newData, role: newRole } : null);
                 }
               }
             });
 
           } else {
-            setCurrentUser({ uid: user.uid, email: user.email, role: 'client' });
+            // New user or missing profile
+            setCurrentUser({ uid: user.uid, email: user.email || '', role: 'client' } as AppUser);
           }
-        }
-
-        if (attempt < MAX_RETRIES) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
-        }
-      }
-    }
-
-    setOfflineError(true);
-    return null;
-  };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await fetchUserDoc(userDocRef);
-
-        if (userDoc && userDoc.exists()) {
-          const data = userDoc.data();
-          const finalRole = typeof data.role === 'number' ? mapRole(data.role) : (data.role as UserRole || 'client');
-
-          setCurrentUser({
-            ...data,
-            uid: user.uid,
-            email: user.email || '',
-            role: finalRole as UserRole,
-          } as AppUser);
-        } else if (userDoc && !userDoc.exists()) {
-          setCurrentUser({
-            email: user.email || '',
-            uid: user.uid,
-            role: 'client',
-          } as AppUser);
         } else {
           setCurrentUser(null);
           if (unsubscribeSnapshot) {
@@ -110,12 +93,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             unsubscribeSnapshot = null;
           }
         }
-      } else {
-        setCurrentUser(null);
-        setOfflineError(false);
+      } catch (error) {
+        console.error("Auth state change error:", error);
+        setOfflineError(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
+
     return () => {
       unsubscribe();
       if (unsubscribeSnapshot) unsubscribeSnapshot();

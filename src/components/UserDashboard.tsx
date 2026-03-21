@@ -32,10 +32,10 @@ import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 
 // New Client Role Components
-import UserSummary from './User/UserSummary';
-import UserAppointments from './User/UserAppointments';
-import UserPayments from './User/UserPayments';
-import UserProfile from './User/UserProfile';
+import UserSummary from '@/components/User/UserSummary';
+import UserAppointments from '@/components/User/UserAppointments';
+import UserPayments from '@/components/User/UserPayments';
+import UserProfile from '@/components/User/UserProfile';
 
 interface UserDashboardProps {
   user: AppUser;
@@ -60,79 +60,28 @@ export default function UserDashboard({
 }: UserDashboardProps) {
   const { width } = useWindowDimensions();
   const isMobile = isMobileProp ?? width < 1024;
-  const { setIsOpen } = useSidebar();
+  const { setIsOpen, isBookingInProgress } = useSidebar();
   const stripe = useStripe();
   const elements = useElements();
   
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [showPayment, setShowPayment] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [paymentMessage, setPaymentMessage] = useState("");
-  const [pendingAppointment, setPendingAppointment] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   const myAppointments = useMemo(() => {
     return appointments.filter(app => app.userId === user.email || app.userId === user.uid);
   }, [appointments, user.email, user.uid]);
 
-  const handleNewBooking = async (data: any) => {
-    setPaymentMessage("");
-    setLoading(true);
-
-    try {
-      const newApp = await createAppointment({
-        ...data,
-        status: 'pending_payment',
-        paid: false
-      });
-
-      setPendingAppointment(newApp);
-
-      const json = await createPaymentIntentWeb(data.price || 0);
-      setClientSecret(json.clientSecret);
-      setShowPayment(true);
-    } catch (error: any) {
-      console.error("Error al iniciar reserva:", error);
-      setPaymentMessage(error.message || "Error al preparar la reserva.");
-    } finally {
-      setLoading(false);
-    }
+  const handleNewBooking = (data: any) => {
+    // BookingWizard now handles the appointment creation and payment
+    setActiveTab("appointments");
   };
 
-  const handleConfirmPayment = async () => {
-    if (!stripe || !elements || !clientSecret || !pendingAppointment) return;
-
-    const result = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: {
-        card: elements.getElement(CardElement)!,
-      },
-    });
-
-    if (result.error) {
-      setPaymentMessage("Error: " + result.error.message);
-      return;
+  const handleLogoutWithGuard = () => {
+    if (isBookingInProgress) {
+        alert("Te encuentras en el proceso de agendar una cita. Por favor finaliza o cancela para salir.");
+        return;
     }
-
-    if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
-      setPaymentMessage("Pago completado con éxito 🎉");
-
-      try {
-        const appRef = doc(db, 'appointments', pendingAppointment.id);
-        await updateDoc(appRef, {
-          paid: true,
-          status: 'confirmed',
-          paymentIntentId: result.paymentIntent.id,
-          paidAt: Timestamp.now()
-        });
-      } catch (e) {
-        console.error("Error al confirmar pago en Firestore:", e);
-      }
-
-      setShowPayment(false);
-      setPendingAppointment(null);
-      setClientSecret(null);
-      setActiveTab("appointments");
-    }
+    onLogout();
   };
 
   return (
@@ -143,125 +92,84 @@ export default function UserDashboard({
       user={user}
     >
       <View style={styles.contentWrapper}>
-        <ScrollView 
-          style={styles.contentArea} 
-          contentContainerStyle={[styles.scrollContent, { padding: isMobile ? 20 : 40 }]}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.header}>
-              <View style={styles.headerTitleRow}>
-                  {isMobile && (
-                      <TouchableOpacity onPress={() => setIsOpen(true)} style={styles.menuBtn}>
-                          <Menu size={24} color={COLORS.primary || "var(--gold)"} />
-                      </TouchableOpacity>
-                  )}
-                  <View>
-                      <Text style={[styles.greeting, { fontSize: isMobile ? 20 : 24 }]}>Hola, {user.name || 'Cliente'}</Text>
-                      <Text style={styles.dateText}>Bienvenido a tu portal exclusivo</Text>
-                  </View>
-              </View>
-            
-            <View style={styles.headerActions}>
-                <TouchableOpacity style={styles.headerBtn} onPress={toggleTheme}>
-                    {isDarkMode ? <Sun size={20} color="var(--gold)" /> : <Moon size={20} color="var(--text-secondary)" />}
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.headerBtn} onPress={onLogout}>
-                    <UserIcon size={20} color="var(--text-secondary)" />
-                </TouchableOpacity>
+        <View style={[styles.header, { padding: isMobile ? 20 : 40, paddingBottom: 0 }]}>
+            <View style={styles.headerTitleRow}>
+                {isMobile && (
+                    <TouchableOpacity onPress={() => setIsOpen(true)} style={styles.menuBtn}>
+                        <Menu size={24} color={COLORS.primary || "var(--gold)"} />
+                    </TouchableOpacity>
+                )}
+                <View>
+                    <Text style={[styles.greeting, { fontSize: isMobile ? 20 : 24 }]}>Hola, {user.name || 'Cliente'}</Text>
+                    <Text style={styles.dateText}>Bienvenido a tu portal exclusivo</Text>
+                </View>
             </View>
+          
+          <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.headerBtn} onPress={toggleTheme}>
+                  {isDarkMode ? <Sun size={20} color="var(--gold)" /> : <Moon size={20} color="var(--text-secondary)" />}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerBtn} onPress={handleLogoutWithGuard}>
+                  <UserIcon size={20} color="var(--text-secondary)" />
+              </TouchableOpacity>
+          </View>
         </View>
 
-        {showPayment && pendingAppointment ? (
-            <View style={styles.paymentSection} data-glass="true">
-                <Text style={styles.sectionTitle}>Finalizar Pago</Text>
-                <Text style={styles.paymentSub}>Cita: {pendingAppointment.serviceName} - ${pendingAppointment.price} MXN</Text>
-                
-                <View style={styles.stripeWrapper}>
-                    <CardElement
-                        options={{
-                            style: {
-                                base: {
-                                    fontSize: "16px",
-                                    color: "#FFFFFF",
-                                    "::placeholder": { color: "rgba(255,255,255,0.4)" },
-                                },
-                                invalid: { color: "#EF4444" },
-                            },
-                        }}
+        <View style={styles.mainContentArea}>
+            {activeTab === 'book' ? (
+                <View style={styles.bookingCardInner}>
+                    <BookingWizard
+                        user={user}
+                        onConfirm={handleNewBooking}
+                        COLORS={COLORS}
+                        onCancel={() => setActiveTab('dashboard')}
                     />
                 </View>
-
-                {paymentMessage !== "" && (
-                    <Text style={[styles.paymentMsg, { color: paymentMessage.includes("éxito") ? "#10B981" : "#EF4444" }]}>
-                        {paymentMessage}
-                    </Text>
-                )}
-
-                <TouchableOpacity 
-                    style={styles.payBtn} 
-                    onPress={handleConfirmPayment}
-                    disabled={loading}
+            ) : (
+                <ScrollView 
+                    style={styles.scrollArea} 
+                    contentContainerStyle={[styles.scrollContent, { padding: isMobile ? 20 : 40 }]}
+                    showsVerticalScrollIndicator={false}
                 >
-                    <CreditCard size={18} color="#000" />
-                    <Text style={styles.payBtnText}>{loading ? "PROCESANDO..." : "CONFIRMAR Y PAGAR"}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowPayment(false)} style={styles.cancelPay}>
-                    <Text style={styles.cancelText}>Cancelar Pago</Text>
-                </TouchableOpacity>
-            </View>
-        ) : (
-            <>
-                {activeTab === 'dashboard' && (
-                    <UserSummary 
-                        nextAppointment={myAppointments.find(a => a.status === 'confirmed')}
-                        activeTab={activeTab}
-                        setActiveTab={setActiveTab}
-                        COLORS={COLORS}
-                    />
-                )}
-
-                {activeTab === 'book' && (
-                    <View style={styles.bookingCard}>
-                         <BookingWizard
-                            user={user}
-                            existingAppointments={appointments}
-                            onConfirm={handleNewBooking}
+                    {activeTab === 'dashboard' && (
+                        <UserSummary 
+                            nextAppointment={myAppointments.find(a => a.status === 'confirmed')}
+                            activeTab={activeTab}
+                            setActiveTab={setActiveTab}
                             COLORS={COLORS}
-                            barbers={barbers}
                         />
-                    </View>
-                )}
+                    )}
 
-                {activeTab === 'appointments' && (
-                    <UserAppointments 
-                        user={user}
-                        appointments={myAppointments}
-                        COLORS={COLORS}
-                        isMobile={isMobile}
-                    />
-                )}
+                    {activeTab === 'appointments' && (
+                        <UserAppointments 
+                            user={user}
+                            appointments={myAppointments}
+                            COLORS={COLORS}
+                            isMobile={isMobile}
+                        />
+                    )}
 
-                {activeTab === 'payments' && (
-                    <UserPayments 
-                        user={user}
-                        COLORS={COLORS}
-                        isMobile={isMobile}
-                    />
-                )}
+                    {activeTab === 'payments' && (
+                        <UserPayments 
+                            user={user}
+                            COLORS={COLORS}
+                            isMobile={isMobile}
+                        />
+                    )}
 
-                {activeTab === 'profile' && (
-                    <UserProfile 
-                        user={user}
-                        COLORS={COLORS}
-                        isMobile={isMobile}
-                        onLogout={onLogout}
-                        toggleTheme={toggleTheme}
-                        isDarkMode={isDarkMode}
-                    />
-                )}
-            </>
-        )}
-        </ScrollView>
+                    {activeTab === 'profile' && (
+                        <UserProfile 
+                            user={user}
+                            COLORS={COLORS}
+                            isMobile={isMobile}
+                            onLogout={handleLogoutWithGuard}
+                            toggleTheme={toggleTheme}
+                            isDarkMode={isDarkMode}
+                        />
+                    )}
+                </ScrollView>
+            )}
+        </View>
       </View>
     </MainLayout>
   );
@@ -274,11 +182,21 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   menuBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.2)', alignItems: 'center', justifyContent: 'center' },
+  mainContentArea: {
+    flex: 1,
+  },
+  scrollArea: {
+    flex: 1,
+  },
+  bookingCardInner: {
+    flex: 1,
+    padding: Platform.OS === 'web' ? 20 : 0,
+  },
   greeting: { fontWeight: '800', color: '#FFF' },
   dateText: { color: '#888', fontSize: 14, marginTop: 4 },
   headerActions: { flexDirection: 'row', gap: 12 },
   headerBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.2)', alignItems: 'center', justifyContent: 'center' },
-  bookingCard: { backgroundColor: '#111', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.15)' },
+  bookingCard: { backgroundColor: '#111', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.15)', flex: 1 },
   sectionTitle: { color: '#FFF', fontSize: 18, fontWeight: '700' },
   paymentSection: {
     backgroundColor: '#111',
@@ -311,6 +229,4 @@ const styles = StyleSheet.create({
   cancelPay: { alignItems: 'center', padding: 12 },
   cancelText: { color: '#888', fontSize: 13 },
   paymentMsg: { textAlign: 'center', fontSize: 13, fontWeight: '600' }
-});
-
 });

@@ -7,6 +7,8 @@ interface SidebarContextType {
   isMobile: boolean;
   isTablet: boolean;
   isDesktop: boolean;
+  isBookingInProgress: boolean;
+  setIsBookingInProgress: (inProgress: boolean) => void;
 }
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
@@ -17,9 +19,18 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const isTablet = width >= 768 && width < 1024;
   const isDesktop = width >= 1024;
   const [isOpen, setIsOpen] = useState(false);
+  const [isBookingInProgress, setIsBookingInProgress] = useState(false);
 
   return (
-    <SidebarContext.Provider value={{ isOpen, setIsOpen, isMobile, isTablet, isDesktop }}>
+    <SidebarContext.Provider value={{ 
+      isOpen, 
+      setIsOpen, 
+      isMobile, 
+      isTablet, 
+      isDesktop,
+      isBookingInProgress,
+      setIsBookingInProgress
+    }}>
       {children}
     </SidebarContext.Provider>
   );

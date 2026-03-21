@@ -7,7 +7,6 @@ service cloud.firestore {
     // Verifica que el documento del usuario no esté suspendido ni eliminado
     function isActiveUser() {
       let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      // Permite si no existe doc (registro nuevo), no tiene status (cuentas antiguas) o si es 'active'
       return userDoc == null || !('status' in userDoc.data) || userDoc.data.status == 'active';
     }
 
@@ -15,21 +14,22 @@ service cloud.firestore {
       return request.auth != null && isActiveUser();
     }
     
-    // Obtiene el rol del usuario actual desde la colección 'users'
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    // --- NUEVO SISTEMA CUSTOM CLAIMS (Rápido, Barato y Seguro) ---
+    function hasRole(allowedRoles) {
+      // Verifica directamente en el token (sin lecturas a BD) o permite un rol numérico
+      return request.auth.token.role in allowedRoles;
     }
     
     function isAdmin() {
-      return isSignedIn() && (getUserRole() == 0 || getUserRole() == 'admin');
+      return isSignedIn() && hasRole(['admin', 0]);
     }
     
     function isReception() {
-      return isSignedIn() && (getUserRole() == 2 || getUserRole() == 'reception');
+      return isSignedIn() && hasRole(['reception', 2]);
     }
     
     function isBarber() {
-      return isSignedIn() && (getUserRole() == 3 || getUserRole() == 'barber');
+      return isSignedIn() && hasRole(['barber', 3]);
     }
     
     function isStaff() {
@@ -72,10 +72,9 @@ service cloud.firestore {
         isStaff()
       );
 
-      // Crear: 
       allow create: if isSignedIn() && (
         // Regla 1: Si es un cliente, NO puede marcarse como pagado sin un paymentIntentId
-        (getUserRole() == 1 && 
+        (hasRole(['client', 1]) && 
          request.resource.data.paid == true && 
          request.resource.data.paymentIntentId != null &&
          request.resource.data.userId == request.auth.token.email) ||
@@ -120,8 +119,16 @@ service cloud.firestore {
     
     // HISTORIAL / LOGS
     match /activity_logs/{logId} {
-      // Para pruebas, permitir lectura/escritura si está autenticado
-      allow read, write: if isSignedIn();
+      // Reglas estrictas:
+      // Lectura: Únicamente los Administradores (para que los clientes no puedan espiar).
+      allow read: if isAdmin();
+      
+      // Creación: Operaciones permitidas solo para la administración y staff de la Barbería.
+      allow create: if isStaff();
+
+      // Mantenimiento de auditoría (INMUTABLE):
+      // Nadie, absolutamente nadie, tiene permitido actualizar o destruir registros del sistema de Logs.
+      allow update, delete: if false;
     }
     
     // Regla por defecto: Bloquear todo lo demás

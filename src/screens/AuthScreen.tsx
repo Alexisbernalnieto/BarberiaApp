@@ -42,8 +42,10 @@ export default function AuthScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const toggleSwitch = () => {
+    setErrorMessage(null);
     Animated.timing(fadeAnim, { 
       toValue: 0, 
       duration: 250, 
@@ -60,6 +62,7 @@ export default function AuthScreen() {
 
   const handleAuth = async () => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       if (isLogin) {
         await login(email, password);
@@ -68,7 +71,7 @@ export default function AuthScreen() {
         await register(email, password, name);
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      setErrorMessage(error.message || 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
     }
@@ -178,6 +181,12 @@ export default function AuthScreen() {
               <TouchableOpacity onPress={() => resetPassword(email)} style={styles.forgotPass}>
                 <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
               </TouchableOpacity>
+            )}
+
+            {errorMessage && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
             )}
 
             <TouchableOpacity 
@@ -385,5 +394,19 @@ const styles = StyleSheet.create({
     color: 'var(--gold)',
     fontSize: 14,
     fontWeight: '700',
+  },
+  errorContainer: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
