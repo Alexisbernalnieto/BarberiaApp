@@ -20,6 +20,7 @@ interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
   offlineError: boolean;
 }
 
@@ -47,6 +48,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
+          // Block unverified users from entering the app
+          const isSystemAccount = user.email?.endsWith('@barberia.com');
+          if (!user.emailVerified && !isSystemAccount) {
+            // Don't set currentUser for unverified users
+            setCurrentUser(null);
+            setLoading(false);
+            return;
+          }
+
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
           
@@ -83,8 +93,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
 
           } else {
-            // New user or missing profile
-            setCurrentUser({ uid: user.uid, email: user.email || '', role: 'client' } as AppUser);
+            // New user or missing profile — still block if unverified
+            if (user.emailVerified || isSystemAccount) {
+              setCurrentUser({ uid: user.uid, email: user.email || '', role: 'client' } as AppUser);
+            } else {
+              setCurrentUser(null);
+            }
           }
         } else {
           setCurrentUser(null);
@@ -112,17 +126,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      const isSystemAccount = user.email?.endsWith('@barberia.com');
+      await user.reload();
+      const updatedUser = auth.currentUser;
 
-      if (!user.emailVerified && !isSystemAccount) {
-        try {
-          await sendEmailVerification(user);
-        } catch (e) {
-          console.error('Error re-sending verification email:', e);
-        }
+      const isSystemAccount = updatedUser?.email?.endsWith('@barberia.com');
+
+      if (updatedUser && !updatedUser.emailVerified && !isSystemAccount) {
         Alert.alert(
           'Verifica tu correo',
-          'Tu cuenta aún no está verificada. Te enviamos un enlace de verificación a tu correo.'
+          'Tu cuenta aún no está verificada. Revisa tu bandeja de entrada o spam para encontrar el enlace de activación enviado al registrarte.'
         );
         await signOut(auth);
         return false;
@@ -151,11 +163,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       try {
-        await sendEmailVerification(user);
-      } catch (e) { console.error(e); }
+        await sendEmailVerification(user, {
+          url: 'http://localhost:8081',
+          handleCodeInApp: false,
+        });
+      } catch (e) { console.error('Error sending verification email:', e); }
 
-      Alert.alert('Revisa tu correo', 'Cuenta creada. Verifica tu email.');
+      // Sign out after email is sent (emailVerified gate prevents race condition)
       await signOut(auth);
+
+      // Notificación se manejará en la vista
       return true;
     } catch (error: any) {
       console.error(error);
@@ -180,8 +197,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await sendPasswordResetEmail(auth, email);
   };
 
+  const resendVerificationEmail = async (): Promise<void> => {
+    const user = auth.currentUser;
+    if (user && !user.emailVerified) {
+      await sendEmailVerification(user);
+      Alert.alert('Correo enviado', 'Se ha enviado un nuevo enlace de verificación.');
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, register, logout, resetPassword, offlineError }}>
+    <AuthContext.Provider value={{ currentUser, loading, login, register, logout, resetPassword, resendVerificationEmail, offlineError }}>
       {children}
     </AuthContext.Provider>
   );
