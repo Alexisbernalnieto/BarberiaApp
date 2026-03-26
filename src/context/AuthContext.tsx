@@ -7,6 +7,9 @@ import {
   signOut,
   sendEmailVerification,
   sendPasswordResetEmail,
+  getIdToken,
+  getIdTokenResult,
+  reload,
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, getDoc, getDocFromCache, setDoc, DocumentReference, onSnapshot } from 'firebase/firestore';
@@ -48,13 +51,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
+          try {
+            await getIdToken(user, true);
+            await reload(user);
+          } catch (e) {
+             console.log("Could not reload user (might be offline)");
+          }
+          
+          const freshUser = auth.currentUser || user;
+          const tokenResult = await getIdTokenResult(freshUser, true).catch(() => null);
+          const isVerified = tokenResult ? !!tokenResult.claims.email_verified : freshUser.emailVerified;
+          
           // Block unverified users from entering the app
-          const isSystemAccount = user.email?.endsWith('@barberia.com');
-          if (!user.emailVerified && !isSystemAccount) {
-            // Don't set currentUser for unverified users
-            setCurrentUser(null);
-            setLoading(false);
-            return;
+          const isSystemAccount = freshUser.email?.endsWith('@barberia.com');
+          if (!isVerified && !isSystemAccount) {
+             setCurrentUser(null);
+             setLoading(false);
+             return;
           }
 
           const userDocRef = doc(db, 'users', user.uid);
@@ -126,16 +139,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      await user.reload();
-      const updatedUser = auth.currentUser;
+      try {
+        await getIdToken(user, true);
+        await reload(user);
+      } catch (e) {
+        console.log("Could not reload user during login");
+      }
 
-      const isSystemAccount = updatedUser?.email?.endsWith('@barberia.com');
+      const freshUser = auth.currentUser || user;
+      const tokenResult = await getIdTokenResult(freshUser, true).catch(() => null);
+      const isVerified = tokenResult ? !!tokenResult.claims.email_verified : freshUser.emailVerified;
 
-      if (updatedUser && !updatedUser.emailVerified && !isSystemAccount) {
-        Alert.alert(
-          'Verifica tu correo',
-          'Tu cuenta aún no está verificada. Revisa tu bandeja de entrada o spam para encontrar el enlace de activación enviado al registrarte.'
-        );
+      const isSystemAccount = freshUser.email?.endsWith('@barberia.com');
+
+      if (!isVerified && !isSystemAccount) {
+        if (Platform.OS === 'web') {
+          const resend = window.confirm("Tu cuenta aún no está verificada. Revisa tu bandeja de entrada o spam para encontrar el enlace de activación enviado al registrarte.\n\n¿Deseas reenviar el correo de verificación?");
+          if (resend) {
+            try {
+              await sendEmailVerification(freshUser);
+              window.alert("Correo de verificación reenviado a " + freshUser.email);
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        } else {
+          Alert.alert(
+            'Verifica tu correo',
+            'Tu cuenta aún no está verificada. Revisa tu bandeja de entrada o spam para encontrar el enlace de activación enviado al registrarte.',
+            [
+              { text: 'Esperar', style: 'cancel' },
+              { text: 'Reenviar confirmación', onPress: () => {
+                  sendEmailVerification(freshUser).catch(e => console.error(e));
+              }}
+            ]
+          );
+        }
         await signOut(auth);
         return false;
       }

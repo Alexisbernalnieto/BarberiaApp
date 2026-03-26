@@ -10,7 +10,7 @@ interface AdminQuickActionsProps {
 
 export default function AdminQuickActions({ setViewMode, COLORS, isMobile }: AdminQuickActionsProps) {
   const actions = [
-    { id: 'finance', label: 'Corte de Caja', icon: CreditCard, color: COLORS.primary || 'var(--gold)' },
+    { id: 'cashregister', label: 'Corte de Caja', icon: CreditCard, color: COLORS.primary || 'var(--gold)' },
     { id: 'barbers', label: 'Barberos', icon: Scissors, color: '#3B82F6' },
     { id: 'services', label: 'Servicios', icon: Tag, color: '#10B981' },
     { id: 'walkin', label: 'Nueva Cita', icon: PlusCircle, color: '#F59E0B' },
