@@ -40,7 +40,7 @@ export interface Appointment {
   serviceName: string;
   price: number;
   duration: number;
-  status: 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'En Local';
+  status: 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'En Local' | 'in_progress' | 'no_show';
   paid: boolean;
   paymentIntentId?: string | null;
   paymentMethod?: 'Cash' | 'Card' | null;

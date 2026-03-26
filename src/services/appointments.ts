@@ -130,6 +130,46 @@ export const cancelAppointment = async (appointmentId: string, reason?: string) 
   }
 };
 
+/**
+ * Actualiza el estado de una cita.
+ */
+export const updateAppointmentStatus = async (
+  appointmentId: string, 
+  newStatus: 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'En Local' | 'in_progress' | 'no_show',
+  adminId: string,
+  adminRole: 'admin' | 'reception' | 'client' | 'barber' | 'system'
+) => {
+  const appointmentRef = doc(db, 'appointments', appointmentId);
+  
+  try {
+    await runTransaction(db, async (transaction) => {
+      const appDoc = await transaction.get(appointmentRef);
+      if (!appDoc.exists()) {
+        throw new Error('La cita no existe.');
+      }
+      
+      const appData = appDoc.data();
+
+      transaction.update(appointmentRef, {
+        status: newStatus,
+        updatedAt: Timestamp.now(),
+      });
+
+      logActivity({
+        adminId: adminId,
+        adminRole: adminRole,
+        action: `Actualizó estado a ${newStatus}`,
+        details: `Cita ID: ${appointmentId}\nCliente: ${appData.userName}\nNuevo Estado: ${newStatus}`,
+        targetUserId: appointmentId
+      });
+    });
+    return true;
+  } catch (error) {
+    console.error("Update status transaction failed: ", error);
+    throw error;
+  }
+};
+
 // TODO: Implementar reembolso Stripe en Cloud Functions
 // Se necesita una Cloud Function que escuche cambios en Firestore (status: 'cancelled')
 // y ejecute stripe.refunds.create({ payment_intent: paymentIntentId })
