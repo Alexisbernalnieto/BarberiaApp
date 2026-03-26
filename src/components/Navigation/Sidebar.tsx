@@ -74,7 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
   const adminItems = [
     { id: 'dashboard', label: 'Panel Principal', icon: LayoutDashboard },
     { id: 'walkin', label: 'Nueva Cita', icon: PlusCircle },
-    { id: 'finance', label: 'Corte de Caja', icon: CreditCard },
+    { id: 'cashregister', label: 'Corte de Caja', icon: CreditCard },
     { id: 'queue', label: 'Pantalla Turnos', icon: MonitorPlay },
     { id: 'users', label: 'Usuarios y Staff', icon: Users },
     { id: 'metrics', label: 'Métricas', icon: TrendingUp },

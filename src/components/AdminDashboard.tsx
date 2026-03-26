@@ -11,6 +11,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { db } from '../firebaseClient';
 import { useAuth } from '../context/AuthContext';
+import { calculateMonthlyRevenue, getTodayAppointmentsStats, fetchNewUsersCount, getTopServiceMonth, getMonthlyRevenueByDay } from '../services/metrics';
 import { 
   collection, 
   query, 
@@ -26,6 +27,7 @@ import {
 import MainLayout from './Navigation/MainLayout';
 import AdminHeader from './Admin/AdminHeader';
 import AdminMetrics from './Admin/AdminMetrics';
+import AdminMetricsDashboard from './Admin/AdminMetricsDashboard';
 import AdminQuickActions from './Admin/AdminQuickActions';
 import AdminAgenda from './Admin/AdminAgenda';
 import AdminUsers from './Admin/AdminUsers';
@@ -36,6 +38,8 @@ import AdminFinances from './Admin/AdminFinances';
 import CheckoutManager from './Admin/CheckoutManager';
 import BookingWizard from './Booking/BookingWizard';
 import NotificationsModal from './Admin/NotificationsModal';
+import AdminCashRegister from './Admin/AdminCashRegister';
+import QueueDisplay from './Admin/QueueDisplay';
 
 import { Appointment, AppUser, UserRole } from '../types';
 
@@ -115,6 +119,24 @@ export default function AdminDashboard({
   };
 
   // Metrics for dashboard
+  const [newUsersCount, setNewUsersCount] = useState<number>(0);
+
+  useEffect(() => {
+    const getNewUsers = async () => {
+      const count = await fetchNewUsersCount();
+      setNewUsersCount(count);
+    };
+    getNewUsers();
+  }, []);
+
+  const metrics = useMemo(() => ({
+    revenueMonth: calculateMonthlyRevenue(appointments),
+    appointmentsToday: getTodayAppointmentsStats(appointments),
+    newUsersMonth: newUsersCount,
+    topServiceMonth: getTopServiceMonth(appointments),
+    revenueByDay: getMonthlyRevenueByDay(appointments)
+  }), [appointments, newUsersCount]);
+
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const dayAppointments = useMemo(() => {
     return appointments.filter(app => app.date === todayStr);
@@ -191,6 +213,14 @@ export default function AdminDashboard({
             </View>
           )}
 
+          {activeTab === 'metrics' && (
+            <AdminMetricsDashboard
+              metrics={metrics}
+              COLORS={COLORS}
+              isMobile={isMobile}
+            />
+          )}
+
           {activeTab === 'users' && (
             <AdminUsers 
               COLORS={COLORS} 
@@ -231,6 +261,16 @@ export default function AdminDashboard({
             />
           )}
 
+          {activeTab === 'cashregister' && (
+            <AdminCashRegister 
+                appointments={appointments}
+                COLORS={COLORS}
+                isMobile={isMobile}
+                onClose={() => setActiveTab('dashboard')}
+                currentUser={currentUser}
+            />
+          )}
+
           {activeTab === 'checkout' && (
             <View style={{ flex: 1 }}>
               <CheckoutManager 
@@ -260,12 +300,11 @@ export default function AdminDashboard({
 
           {activeTab === 'queue' && (
             <Modal visible={true} animationType="fade" transparent={true}>
-              <View style={styles.modalOverlay}>
-                  {/* Placeholder for Queue Display if available, else just a close btn */}
-                  <TouchableOpacity onPress={() => setActiveTab('dashboard')} style={styles.backBtn}>
-                    <Text style={{ color: COLORS.primary }}>Cerrar Fila Virtual</Text>
-                  </TouchableOpacity>
-              </View>
+              <QueueDisplay 
+                appointments={appointments}
+                COLORS={COLORS}
+                onClose={() => setActiveTab('dashboard')}
+              />
             </Modal>
           )}
 
