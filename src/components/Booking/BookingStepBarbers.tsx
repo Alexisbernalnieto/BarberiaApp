@@ -18,7 +18,7 @@ export default function BookingStepBarbers({
   setSelectedBarber,
 }: BookingStepBarbersProps) {
   return (
-    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={true}>
       <Text style={styles.stepHeader}>Elige a tu Barbero</Text>
       <Text style={styles.subLabel}>Nuestros maestros del estilo a tu disposición</Text>
 

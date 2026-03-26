@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { createPaymentIntentWeb } from '../../services/payments';
 import { auth } from '../../firebaseClient';
@@ -9,9 +9,10 @@ interface BookingStepPaymentProps {
   styles: any;
   COLORS: any;
   selectedService: any;
-  onPaymentStart?: () => void;
-  onPaymentSuccess: (paymentIntentId: string) => void;
+  onPaymentStart: () => void;
+  onPaymentSuccess: (id: string) => void;
   onPaymentError: (error: string) => void;
+  onBack: () => void;
 }
 
 const BookingStepPayment: React.FC<BookingStepPaymentProps> = ({
@@ -21,7 +22,8 @@ const BookingStepPayment: React.FC<BookingStepPaymentProps> = ({
   onPaymentStart,
   onPaymentSuccess,
   onPaymentError,
-}) => {
+  onBack,
+}: BookingStepPaymentProps) => {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -59,7 +61,7 @@ const BookingStepPayment: React.FC<BookingStepPaymentProps> = ({
   };
 
   return (
-    <View style={paymentStyles.container}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={paymentStyles.container} showsVerticalScrollIndicator={true}>
       <View style={paymentStyles.headerContainer}>
         <View style={paymentStyles.iconCircle}>
             <ShieldCheck size={32} color="#D4AF37" />
@@ -103,26 +105,46 @@ const BookingStepPayment: React.FC<BookingStepPaymentProps> = ({
         </View>
       ) : null}
 
-      <TouchableOpacity 
-        style={[styles.actionBtn, styles.nextBtn, (loading || !stripe) && styles.disabledBtn]} 
-        onPress={handleSubmit}
-        disabled={loading || !stripe}
-      >
-        {loading ? (
-          <ActivityIndicator color="#000" />
-        ) : (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Lock size={18} color="#000" />
-              <Text style={styles.nextBtnText}>PAGAR Y AGENDAR</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-      
       <View style={paymentStyles.securityFooter}>
           <CreditCard size={14} color="var(--text-secondary)" />
           <Text style={paymentStyles.secureNote}>Procesado por Stripe • Encriptación SSL 256-bit</Text>
       </View>
-    </View>
+
+      <View style={{ marginTop: 20, gap: 12 }}>
+          <TouchableOpacity 
+            style={[styles.actionBtn, styles.nextBtn, (loading || !stripe) && styles.disabledBtn]} 
+            onPress={handleSubmit}
+            disabled={loading || !stripe}
+          >
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <>
+                <ShieldCheck size={18} color="#000" style={{ marginRight: 10 }} />
+                <Text style={styles.nextBtnText}>PAGAR Y AGENDAR</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={{ 
+              alignSelf: 'center', 
+              paddingVertical: 12, 
+              paddingHorizontal: 20,
+              marginTop: 8
+            }} 
+            onPress={onBack}
+          >
+            <Text style={{ 
+              color: 'var(--text-muted)', 
+              fontWeight: '700', 
+              fontSize: 14, 
+              letterSpacing: 1,
+              textDecorationLine: 'underline'
+            }}>ATRÁS</Text>
+          </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 };
 

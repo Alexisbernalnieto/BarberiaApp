@@ -174,7 +174,7 @@ export default function BookingWizard({
       const result = await createAppointment(appointmentData as any);
       setBookingStatus('success');
       setIsBookingInProgress(false);
-      onConfirm(result);
+      // onConfirm(result); // Removing direct callback to wait for success modal interaction
     } catch (error: any) {
       setBookingErrorMessage(error.message || "Error al crear la cita");
       setBookingStatus('error');
@@ -279,65 +279,62 @@ export default function BookingWizard({
                 setPaymentIntentId(id);
                 setIsPaid(true);
                 setBookingStatus('idle');
-                // goToStep(6); // Confirmation step is now step 5, payment is step 6
+                // Automatically proceed to confirmation logic
+                setTimeout(() => {
+                    handleConfirm();
+                }, 500);
               }}
               onPaymentError={(err) => {
                   setBookingErrorMessage(err);
                   setBookingStatus('error');
               }}
+              onBack={handleBack}
             />
           )}
         </Animated.View>
 
-        <View style={styles.footerActions}>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.backBtn, currentStep === 1 && styles.disabledBtn]}
-            onPress={handleBack}
-            disabled={currentStep === 1 && !onCancel}
-          >
-            <Text style={styles.backBtnText}>{currentStep === 1 ? 'CANCELAR' : 'ATRÁS'}</Text>
-          </TouchableOpacity>
-
-          {currentStep < 5 ? (
+        {currentStep < 6 && (
+          <View style={styles.footerActions}>
             <TouchableOpacity
-              style={[
-                styles.actionBtn,
-                styles.nextBtn,
-                ((currentStep === 1 && !selectedBranch) ||
+              style={[styles.actionBtn, styles.backBtn, currentStep === 1 && styles.disabledBtn]}
+              onPress={handleBack}
+              disabled={currentStep === 1 && !onCancel}
+            >
+              <Text style={styles.backBtnText}>{currentStep === 1 ? 'CANCELAR' : 'ATRÁS'}</Text>
+            </TouchableOpacity>
+
+            {currentStep < 5 ? (
+              <TouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  styles.nextBtn,
+                  ((currentStep === 1 && !selectedBranch) ||
+                    (currentStep === 2 && !selectedService) ||
+                    (currentStep === 3 && !selectedBarber) ||
+                    (currentStep === 4 && (!selectedDate || !selectedTime))) && styles.disabledBtn
+                ]}
+                onPress={handleNext}
+                disabled={
+                  (currentStep === 1 && !selectedBranch) ||
                   (currentStep === 2 && !selectedService) ||
                   (currentStep === 3 && !selectedBarber) ||
-                  (currentStep === 4 && (!selectedDate || !selectedTime))) && styles.disabledBtn
-              ]}
-              onPress={handleNext}
-              disabled={
-                (currentStep === 1 && !selectedBranch) ||
-                (currentStep === 2 && !selectedService) ||
-                (currentStep === 3 && !selectedBarber) ||
-                (currentStep === 4 && (!selectedDate || !selectedTime))
-              }
-            >
-              <Text style={styles.nextBtnText}>SIGUIENTE</Text>
-              <ArrowRight size={18} color={COLORS.textInverse || "#000"} style={{ marginLeft: 8 }} />
-            </TouchableOpacity>
-          ) : currentStep === 5 ? (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.nextBtn]}
-              onPress={handleNext}
-            >
-              <Text style={styles.nextBtnText}>PROCEDER AL PAGO</Text>
-              <ArrowRight size={18} color={COLORS.textInverse || "#000"} style={{ marginLeft: 8 }} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.confirmBtn, !isPaid && styles.disabledBtn]}
-              onPress={handleConfirm}
-              disabled={!isPaid}
-            >
-              <Text style={styles.confirmBtnText}>FINALIZAR RESERVA</Text>
-              <CheckCircle2 size={18} color="#FFF" style={{ marginLeft: 8 }} />
-            </TouchableOpacity>
-          )}
-        </View>
+                  (currentStep === 4 && (!selectedDate || !selectedTime))
+                }
+              >
+                <Text style={styles.nextBtnText}>SIGUIENTE</Text>
+                <ArrowRight size={18} color={COLORS.textInverse || "#000"} style={{ marginLeft: 8 }} />
+              </TouchableOpacity>
+            ) : currentStep === 5 ? (
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.nextBtn]}
+                onPress={handleNext}
+              >
+                <Text style={styles.nextBtnText}>PROCEDER AL PAGO</Text>
+                <ArrowRight size={18} color={COLORS.textInverse || "#000"} style={{ marginLeft: 8 }} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        )}
       </View>
 
       {/* MODAL DE CONFIRMACIÓN DE SALIDA */}
