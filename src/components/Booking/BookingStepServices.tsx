@@ -18,7 +18,7 @@ export default function BookingStepServices({
   setSelectedService,
 }: BookingStepServicesProps) {
   return (
-    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={true}>
       <Text style={styles.stepHeader}>Elige tu Servicio</Text>
       <Text style={styles.subLabel}>Calidad y distinción en cada detalle</Text>
 
