@@ -42,15 +42,18 @@ export default function BookingStepConfirm({
 
         <View style={styles.ticketContent}>
             {isWalkIn && (
-                <View style={[styles.ticketRow, { marginBottom: 20 }]}>
+                <View style={[styles.ticketRow, { flexDirection: 'column', alignItems: 'flex-start', marginBottom: 20 }]}>
                     <Text style={styles.ticketLabel}>Cliente</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={guestName}
-                        onChangeText={setGuestName}
-                        placeholder="Nombre completo"
-                        placeholderTextColor="rgba(255,255,255,0.3)"
-                    />
+                    <View style={styles.inputWrapper}>
+                        <UserIcon size={16} color="var(--gold)" />
+                        <TextInput
+                            style={styles.input}
+                            value={guestName}
+                            onChangeText={setGuestName}
+                            placeholder="Nombre completo"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                        />
+                    </View>
                 </View>
             )}
 

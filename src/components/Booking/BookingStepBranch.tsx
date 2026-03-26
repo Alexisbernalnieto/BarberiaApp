@@ -17,7 +17,7 @@ export default function BookingStepBranch({
   setSelectedBranch,
 }: BookingStepBranchProps) {
   return (
-    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={true}>
       <Text style={styles.stepHeader}>Selecciona una Sucursal</Text>
       <Text style={styles.subLabel}>¿Dónde prefieres tu corte hoy?</Text>
 

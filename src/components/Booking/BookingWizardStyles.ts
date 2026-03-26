@@ -25,6 +25,11 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       borderBottomWidth: 1,
       borderBottomColor: 'var(--glass-border)',
       zIndex: 10,
+      ...Platform.select({
+        web: {
+          backdropFilter: 'blur(10px)',
+        } as any
+      })
     } as ViewStyle,
     progressTrack: {
       height: 3,
@@ -42,7 +47,9 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       backgroundColor: 'var(--gold)',
       ...Platform.select({
         web: {
-          backgroundImage: 'linear-gradient(90deg, #D4AF37, #F4D03F)',
+          backgroundImage: 'linear-gradient(90deg, #D4AF37, #FFD700, #D4AF37)',
+          backgroundSize: '200% 100%',
+          boxShadow: '0 0 15px rgba(212, 175, 55, 0.5)',
         } as any,
       }),
     } as ViewStyle,
@@ -69,6 +76,11 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
     stepCircleActive: {
       backgroundColor: 'var(--gold)',
       borderColor: 'var(--gold)',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 0 10px rgba(212, 175, 55, 0.4)',
+        } as any
+      })
     } as ViewStyle,
     stepCircleCurrent: {
       backgroundColor: 'var(--gold)',
@@ -91,10 +103,13 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
     // === CONTENT ===
     contentContainer: {
       flex: 1,
+      minHeight: isMobile ? 450 : 500,
+      maxHeight: isMobile ? 800 : 650, // Increased mobile limit significantly
+      overflow: 'hidden',
     } as ViewStyle,
     stepContent: {
-      padding: isMobile ? 20 : 48,
-      paddingBottom: 120,
+      padding: isMobile ? 20 : 32,
+      paddingBottom: isMobile ? 40 : 60,
       alignItems: 'center',
     } as ViewStyle,
     stepHeader: {
@@ -129,7 +144,13 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
     } as ViewStyle,
     activeBranchCard: {
       borderColor: 'var(--gold)',
-      backgroundColor: 'rgba(212, 175, 55, 0.05)',
+      backgroundColor: 'rgba(212, 175, 55, 0.08)',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 8px 32px rgba(212, 175, 55, 0.15)',
+          transform: 'translateY(-4px)',
+        } as any
+      })
     } as ViewStyle,
     branchIcon: {
       marginBottom: 16,
@@ -174,7 +195,13 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
     } as ViewStyle,
     activeServiceCard: {
       borderColor: 'var(--gold)',
-      backgroundColor: 'rgba(212, 175, 55, 0.05)',
+      backgroundColor: 'rgba(212, 175, 55, 0.08)',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 12px rgba(212, 175, 55, 0.1)',
+          transform: 'translateX(4px)',
+        } as any
+      })
     } as ViewStyle,
     serviceRow: {
       flexDirection: 'row',
@@ -220,7 +247,13 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
     } as ViewStyle,
     activeBarberCard: {
       borderColor: 'var(--gold)',
-      backgroundColor: 'rgba(212, 175, 55, 0.05)',
+      backgroundColor: 'rgba(212, 175, 55, 0.08)',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 8px 24px rgba(212, 175, 55, 0.15)',
+          transform: 'translateY(-4px)',
+        } as any
+      })
     } as ViewStyle,
     avatarBig: {
       width: 80,
@@ -303,6 +336,11 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
     activeSlot: {
       borderColor: 'var(--gold)',
       backgroundColor: 'var(--gold)',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 12px rgba(212, 175, 55, 0.3)',
+        } as any
+      })
     } as ViewStyle,
     disabledSlot: {
       backgroundColor: 'rgba(255,255,255,0.02)',
@@ -405,13 +443,14 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
     // === FOOTER ACTIONS ===
     footerActions: {
       flexDirection: 'row',
-      padding: 16,
-      paddingHorizontal: isMobile ? 16 : 40,
+      padding: 20,
+      paddingHorizontal: isMobile ? 20 : 40,
       backgroundColor: 'rgb(15,15,15)',
       borderTopWidth: 1,
       borderTopColor: 'rgba(212, 175, 55, 0.2)',
       justifyContent: 'space-between',
-      gap: 12,
+      alignItems: 'center',
+      gap: 16,
       zIndex: 100,
       position: isMobile ? 'relative' : 'relative', // Flex handles it now
       ...Platform.select({
@@ -432,6 +471,7 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       backgroundColor: 'transparent',
       borderWidth: 1,
       borderColor: 'var(--glass-border)',
+      maxWidth: isMobile ? 100 : 140,
     } as ViewStyle,
     backBtnText: {
       color: '#FFF',
@@ -532,5 +572,23 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
         fontWeight: '700',
         fontSize: 14,
         letterSpacing: 0.5,
+    } as TextStyle,
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.03)',
+      borderWidth: 1,
+      borderColor: 'var(--glass-border)',
+      borderRadius: 14,
+      paddingHorizontal: 16,
+      height: 48,
+      gap: 12,
+      marginTop: 8,
+    } as ViewStyle,
+    input: {
+      flex: 1,
+      color: '#FFF',
+      fontSize: 14,
+      fontWeight: '500',
     } as TextStyle,
   });

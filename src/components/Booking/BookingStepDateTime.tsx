@@ -31,7 +31,7 @@ export default function BookingStepDateTime({
   const slots = generateTimeSlots();
 
   return (
-    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={true}>
       <Text style={styles.stepHeader}>Fecha y Hora</Text>
       
       <View style={styles.calendarContainer}>
