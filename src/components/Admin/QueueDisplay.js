@@ -1,261 +1,378 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 
-export default function QueueDisplay({ appointments, onClose, COLORS }) {
-  const [selectedBranch, setSelectedBranch] = useState('Centro');
-  const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+export default function QueueDisplay({ appointments, onClose, COLORS }: any) {
+  const { width, height } = useWindowDimensions();
+  const isMobile = width < 768; // For TV it will be false, but good to have fallback
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Responsive Grid Config
-  const containerPadding = 40; 
-  const gap = 20;
-  const numColumns = width > 1400 ? 3 : width > 900 ? 2 : 1; 
-  const itemWidth = (width - containerPadding - ((numColumns - 1) * gap)) / numColumns;
+  // Clock effect
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-  const styles = useMemo(() => getStyles(COLORS, isMobile), [COLORS, isMobile]);
+  const styles = useMemo(() => getStyles(COLORS, isMobile, width, height), [COLORS, isMobile, width, height]);
 
-  // Filtrar citas de hoy y ordenarlas por hora
-  const d = new Date();
-  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  
-  // 1. Filtrar citas de hoy y de la sucursal seleccionada
-  const branchAppointments = appointments
-    .filter(app => app.date === today && (app.branch === selectedBranch || (!app.branch && selectedBranch === 'Centro')))
-    .sort((a, b) => a.time.localeCompare(b.time));
+  // Filter and process appointments
+  const { currentApp, upcomingApps } = useMemo(() => {
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    
+    // Get valid today appointments
+    let todayApps = appointments.filter((app: any) => 
+      app.date === todayStr && 
+      app.status !== 'cancelled' && 
+      app.status !== 'completed'
+    );
 
-  // 2. Identificar barberos activos (que tienen citas hoy)
-  const activeBarbers = [...new Set(branchAppointments.map(app => app.barberName))];
+    // Sort by time
+    todayApps.sort((a: any, b: any) => a.time.localeCompare(b.time));
 
-  // 3. Agrupar citas por barbero
-  const barberQueues = activeBarbers.map(barber => {
-      const apps = branchAppointments.filter(app => app.barberName === barber);
-      // Asumimos que la primera en la lista ordenada es la "Actual" (o la más próxima)
-      return {
-          name: barber,
-          current: apps[0] || null,
-          next: apps[1] || null,
-          remaining: apps.length - 2
-      };
-  });
+    // Determine current app (Prioritize 'En Local', otherwise the first one)
+    let current = todayApps.find((app: any) => app.status === 'En Local');
+    if (!current && todayApps.length > 0) {
+      current = todayApps[0];
+    }
+
+    // Filter out the current from the upcoming
+    const upcoming = current 
+        ? todayApps.filter((app: any) => app.id !== current.id) 
+        : todayApps;
+
+    return { currentApp: current, upcomingApps: upcoming };
+  }, [appointments, currentTime.getMinutes()]); // Update slightly when minute changes, just in case
+
+  const timeString = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const dateString = currentTime.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase();
 
   return (
     <View style={styles.container}>
+      {/* Top Header / Clock */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-            <Text style={styles.title}>TURNO ACTUAL</Text>
-            <View style={styles.branchSwitch}>
-                <TouchableOpacity onPress={() => setSelectedBranch('Centro')}>
-                    <Text style={[styles.branchTab, selectedBranch === 'Centro' && styles.branchActive]}>CENTRO</Text>
-                </TouchableOpacity>
-                <Text style={{color: COLORS.textSecondary}}>|</Text>
-                <TouchableOpacity onPress={() => setSelectedBranch('Lomas')}>
-                    <Text style={[styles.branchTab, selectedBranch === 'Lomas' && styles.branchActive]}>LOMAS</Text>
-                </TouchableOpacity>
+            <View style={styles.logoBadge}>
+                <Text style={styles.logoText}>B</Text>
             </View>
+            <Text style={styles.brandTitle}>EL CORONEL</Text>
         </View>
-        <TouchableOpacity onPress={onClose}><Text style={styles.close}>Cerrar</Text></TouchableOpacity>
+        <View style={styles.headerRight}>
+            <Text style={styles.dateText}>{dateString}</Text>
+            <Text style={styles.clockText}>{timeString}</Text>
+        </View>
       </View>
 
-      {barberQueues.length > 0 ? (
-          <FlatList
-            data={barberQueues}
-            keyExtractor={(item) => item.name}
-            horizontal={!isMobile} // En PC mostrar columnas lado a lado
-            numColumns={isMobile ? 1 : 0} // En móvil lista vertical
-            contentContainerStyle={{ gap: 20, paddingBottom: 20, alignItems: isMobile ? 'stretch' : 'flex-start' }}
-            renderItem={({ item }) => (
-                <View style={[styles.barberColumn, !isMobile && { width: 350 }]}>
-                    <View style={styles.barberHeader}>
-                        <Text style={styles.barberNameTitle}>{item.name}</Text>
-                    </View>
+      <View style={styles.mainContent}>
+          {/* LEFT SIDE: CURRENT APPOINTMENT */}
+          <View style={styles.leftPanel}>
+              <View style={styles.currentCard}>
+                  <Text style={styles.currentLabel}>TURNO ACTUAL</Text>
+                  
+                  {currentApp ? (
+                      <View style={styles.currentDetails}>
+                          <Text style={styles.currentClientName} numberOfLines={2} adjustsFontSizeToFit>
+                              {currentApp.userName || 'Cliente Web'}
+                          </Text>
+                          
+                          <View style={styles.serviceBox}>
+                              <Text style={styles.currentService}>{currentApp.serviceName}</Text>
+                          </View>
 
-                    {/* Turno Actual */}
-                    <View style={styles.currentCard}>
-                        <Text style={styles.label}>AHORA ATENDIENDO:</Text>
-                        {item.current ? (
-                            <>
-                                <Text style={styles.bigName}>{item.current.userName}</Text>
-                                <Text style={styles.subInfo}>{item.current.serviceName}</Text>
-                                <Text style={styles.timeTag}>{item.current.time}</Text>
-                            </>
-                        ) : (
-                            <Text style={{color: COLORS.textSecondary, fontStyle: 'italic'}}>Disponible</Text>
-                        )}
-                    </View>
+                          <View style={styles.barberRow}>
+                              <Text style={styles.barberLabel}>BARBERO:</Text>
+                              <Text style={styles.currentBarber}>{currentApp.barberName || 'Sin asignar'}</Text>
+                          </View>
 
-                    {/* Turno Próximo */}
-                    <View style={styles.nextCard}>
-                        <Text style={styles.labelSmall}>SIGUIENTE:</Text>
-                        {item.next ? (
-                            <View style={styles.nextRow}>
-                                <View>
-                                    <Text style={styles.nextName}>{item.next.userName}</Text>
-                                    <Text style={styles.nextService}>{item.next.serviceName}</Text>
-                                </View>
-                                <Text style={styles.nextTime}>{item.next.time}</Text>
-                            </View>
-                        ) : (
-                            <Text style={{color: COLORS.textSecondary, fontSize: 14}}>No hay más citas por hoy</Text>
-                        )}
-                    </View>
-                    
-                    {item.remaining > 0 && (
-                        <Text style={{textAlign: 'center', marginTop: 10, color: COLORS.textSecondary}}>
-                            + {item.remaining} citas más en espera
-                        </Text>
-                    )}
-                </View>
-            )}
-          />
-      ) : (
-        <View style={styles.empty}>
-            <Text style={styles.emptyText}>No hay barberos activos en esta sucursal hoy</Text>
-        </View>
-      )}
+                          <View style={styles.timeBadgeContainer}>
+                              <Text style={styles.timeBadgeText}>{currentApp.time}</Text>
+                          </View>
+                      </View>
+                  ) : (
+                      <View style={styles.emptyCurrent}>
+                          <Text style={styles.emptyCurrentText}>NO HAY TURNOS EN FILA</Text>
+                      </View>
+                  )}
+              </View>
+          </View>
+
+          {/* RIGHT SIDE: UPCOMING APPOINTMENTS */}
+          <View style={styles.rightPanel}>
+              <View style={styles.upcomingHeader}>
+                  <Text style={styles.upcomingTitle}>PRÓXIMOS TURNOS</Text>
+              </View>
+              
+              {upcomingApps.length > 0 ? (
+                  <FlatList
+                      data={upcomingApps.slice(0, 5)} // Show only next 5
+                      keyExtractor={item => item.id}
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{ paddingBottom: 20, gap: 15 }}
+                      renderItem={({ item, index }) => (
+                          <View style={styles.upcomingRow}>
+                              <View style={styles.upcomingIndexBox}>
+                                  <Text style={styles.upcomingIndex}>{index + 1}</Text>
+                              </View>
+                              <View style={styles.upcomingInfo}>
+                                  <Text style={styles.upcomingName} numberOfLines={1}>{item.userName || 'Cliente'}</Text>
+                                  <Text style={styles.upcomingService} numberOfLines={1}>{item.serviceName} • {item.barberName}</Text>
+                              </View>
+                              <Text style={styles.upcomingTime}>{item.time}</Text>
+                          </View>
+                      )}
+                  />
+              ) : (
+                  <View style={styles.emptyUpcoming}>
+                      <Text style={styles.emptyUpcomingText}>Sin citas próximas</Text>
+                  </View>
+              )}
+          </View>
+      </View>
+
+      <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+          <Text style={styles.closeBtnText}>Cerrar Fila Virtual</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
-const getStyles = (COLORS, isMobile) => StyleSheet.create({
+const getStyles = (COLORS: any, isMobile: boolean, width: number, height: number) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
-    padding: isMobile ? 10 : 20,
+    backgroundColor: '#0A0A0A', // Deep black for TV
+    padding: isMobile ? 15 : 40,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 20,
+    alignItems: 'center',
+    marginBottom: 40,
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(212, 175, 55, 0.3)', // Gold transparent
+    paddingBottom: 20,
   },
   headerLeft: {
-    flexDirection: 'column',
-  },
-  branchSwitch: {
     flexDirection: 'row',
-    marginTop: 5,
-    gap: 10,
+    alignItems: 'center',
   },
-  branchTab: {
-    color: COLORS.textSecondary,
+  logoBadge: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#D4AF37', // Gold
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  logoText: {
+    color: '#D4AF37',
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  brandTitle: {
+    color: '#FFF',
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: 4,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+  },
+  dateText: {
+    color: '#AAA',
+    fontSize: 18,
     fontWeight: 'bold',
-    fontSize: 14,
+    letterSpacing: 1,
+    marginBottom: 5,
   },
-  branchActive: {
-    color: COLORS.primary,
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.primary,
+  clockText: {
+    color: '#D4AF37',
+    fontSize: 48,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
   },
-  title: {
-    fontSize: isMobile ? 24 : 36,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    letterSpacing: 2,
+  mainContent: {
+    flex: 1,
+    flexDirection: isMobile ? 'column' : 'row',
+    gap: 40,
   },
-  close: {
-    color: COLORS.error,
-    fontSize: 16,
-    fontWeight: 'bold',
+  leftPanel: {
+    flex: 6, // 60% approx
   },
-  // New Styles for Barber Columns
-  barberColumn: {
-      backgroundColor: COLORS.surface,
-      borderRadius: 15,
-      padding: 15,
-      marginRight: isMobile ? 0 : 20,
-      marginBottom: isMobile ? 20 : 0,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      elevation: 4,
-  },
-  barberHeader: {
-      borderBottomWidth: 1,
-      borderBottomColor: COLORS.border,
-      paddingBottom: 10,
-      marginBottom: 15,
-      alignItems: 'center'
-  },
-  barberNameTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: COLORS.primary,
-      textTransform: 'uppercase'
+  rightPanel: {
+    flex: 4, // 40% approx
+    backgroundColor: '#141414',
+    borderRadius: 24,
+    padding: 30,
+    borderWidth: 1,
+    borderColor: '#222',
   },
   currentCard: {
-      backgroundColor: COLORS.background,
-      borderRadius: 10,
-      padding: 15,
-      alignItems: 'center',
-      marginBottom: 15,
-      borderLeftWidth: 5,
-      borderLeftColor: COLORS.success
+    flex: 1,
+    backgroundColor: '#111',
+    borderRadius: 32,
+    padding: 50,
+    borderWidth: 4,
+    borderColor: '#D4AF37',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 0px 40px rgba(212, 175, 55, 0.15)',
+      },
+      default: {
+        elevation: 10,
+      }
+    })
   },
-  label: {
-      fontSize: 10,
-      color: COLORS.textSecondary,
-      marginBottom: 5,
-      fontWeight: 'bold',
-      letterSpacing: 1
+  currentLabel: {
+    color: '#D4AF37',
+    fontSize: 36,
+    fontWeight: '900',
+    letterSpacing: 6,
+    marginBottom: 30,
   },
-  bigName: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: COLORS.text,
-      textAlign: 'center',
-      marginBottom: 5
+  currentDetails: {
+    alignItems: 'center',
+    width: '100%',
   },
-  subInfo: {
-      fontSize: 14,
-      color: COLORS.textSecondary,
-      marginBottom: 5
+  currentClientName: {
+    color: '#FFF',
+    fontSize: 90,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 100,
   },
-  timeTag: {
-      backgroundColor: COLORS.primary,
-      color: COLORS.white,
-      paddingHorizontal: 10,
-      paddingVertical: 2,
-      borderRadius: 5,
-      fontWeight: 'bold',
-      fontSize: 12,
-      overflow: 'hidden'
+  serviceBox: {
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 16,
+    marginBottom: 40,
   },
-  nextCard: {
-      backgroundColor: COLORS.surfaceHighlight,
-      borderRadius: 10,
-      padding: 10,
+  currentService: {
+    color: '#FFF',
+    fontSize: 32,
+    fontWeight: '700',
+    textAlign: 'center',
   },
-  labelSmall: {
-      fontSize: 10,
-      color: COLORS.textSecondary,
-      marginBottom: 8,
-      fontWeight: 'bold'
+  barberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 40,
+    gap: 15,
   },
-  nextRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center'
+  barberLabel: {
+    color: '#888',
+    fontSize: 24,
+    fontWeight: 'bold',
+    letterSpacing: 2,
   },
-  nextName: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: COLORS.text
+  currentBarber: {
+    color: '#FFF',
+    fontSize: 36,
+    fontWeight: '800',
   },
-  nextService: {
-      fontSize: 12,
-      color: COLORS.textSecondary
+  timeBadgeContainer: {
+    backgroundColor: '#D4AF37',
+    paddingHorizontal: 40,
+    paddingVertical: 15,
+    borderRadius: 50,
   },
-  nextTime: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: COLORS.text
+  timeBadgeText: {
+    color: '#000',
+    fontSize: 48,
+    fontWeight: '900',
   },
-  empty: {
+  emptyCurrent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyText: {
-    color: COLORS.textSecondary,
+  emptyCurrentText: {
+    color: '#444',
+    fontSize: 48,
+    fontWeight: 'bold',
+  },
+  // Upcoming Panel
+  upcomingHeader: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    paddingBottom: 20,
+    marginBottom: 30,
+  },
+  upcomingTitle: {
+    color: '#FFF',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: 2,
+  },
+  upcomingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  upcomingIndexBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  upcomingIndex: {
+    color: '#AAA',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  upcomingInfo: {
+    flex: 1,
+    marginRight: 20,
+  },
+  upcomingName: {
+    color: '#FFF',
+    fontSize: 26,
+    fontWeight: '800',
+    marginBottom: 5,
+  },
+  upcomingService: {
+    color: '#888',
     fontSize: 18,
+    fontWeight: '600',
+  },
+  upcomingTime: {
+    color: '#D4AF37',
+    fontSize: 32,
+    fontWeight: '900',
+  },
+  emptyUpcoming: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyUpcomingText: {
+    color: '#555',
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  closeBtn: {
+    position: 'absolute',
+    bottom: 20,
+    right: 40,
+    backgroundColor: 'rgba(255,0,0,0.1)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  closeBtnText: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: 'bold',
   }
 });
