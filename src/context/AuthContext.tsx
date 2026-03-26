@@ -7,6 +7,9 @@ import {
   signOut,
   sendEmailVerification,
   sendPasswordResetEmail,
+  getIdToken,
+  getIdTokenResult,
+  reload,
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, getDoc, getDocFromCache, setDoc, DocumentReference, onSnapshot } from 'firebase/firestore';
@@ -47,6 +50,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
+          try {
+            await getIdToken(user, true);
+            await reload(user);
+          } catch (e) {
+             console.log("Could not reload user (might be offline)");
+          }
+          
+          const freshUser = auth.currentUser || user;
+          const tokenResult = await getIdTokenResult(freshUser, true).catch(() => null);
+          const isVerified = tokenResult ? !!tokenResult.claims.email_verified : freshUser.emailVerified;
+          const isSystemAccount = freshUser.email?.endsWith('@barberia.com');
+          if (!isVerified && !isSystemAccount) {
+             setLoading(false);
+             return;
+          }
+
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
           
@@ -112,18 +131,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      const isSystemAccount = user.email?.endsWith('@barberia.com');
+      try {
+        await getIdToken(user, true);
+        await reload(user);
+      } catch (e) {
+        console.log("Could not reload user during login");
+      }
 
-      if (!user.emailVerified && !isSystemAccount) {
-        try {
-          await sendEmailVerification(user);
-        } catch (e) {
-          console.error('Error re-sending verification email:', e);
+      const freshUser = auth.currentUser || user;
+      const tokenResult = await getIdTokenResult(freshUser, true).catch(() => null);
+      const isVerified = tokenResult ? !!tokenResult.claims.email_verified : freshUser.emailVerified;
+
+      const isSystemAccount = freshUser.email?.endsWith('@barberia.com');
+
+      if (!isVerified && !isSystemAccount) {
+        if (Platform.OS === 'web') {
+          const resend = window.confirm("Tu cuenta aún no está verificada. Revisa tu bandeja de entrada o spam.\n\n¿Deseas reenviar el correo de verificación?");
+          if (resend) {
+            try {
+              await sendEmailVerification(freshUser);
+              window.alert("Correo de verificación reenviado a " + freshUser.email);
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        } else {
+          Alert.alert(
+            'Verifica tu correo',
+            'Tu cuenta aún no está verificada. Revisa tu bandeja de entrada o spam.',
+            [
+              { text: 'Esperar', style: 'cancel' },
+              { text: 'Reenviar confirmación', onPress: () => {
+                  sendEmailVerification(freshUser).catch(e => console.error(e));
+              }}
+            ]
+          );
         }
-        Alert.alert(
-          'Verifica tu correo',
-          'Tu cuenta aún no está verificada. Te enviamos un enlace de verificación a tu correo.'
-        );
         await signOut(auth);
         return false;
       }
