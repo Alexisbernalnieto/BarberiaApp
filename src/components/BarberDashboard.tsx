@@ -54,6 +54,8 @@ export default function BarberDashboard({
   const [activeTab, setActiveTab] = useState('dashboard');
   const [viewMode, setViewMode] = useState<'upcoming' | 'history'>('upcoming');
   const [showWeeklyBreakdown, setShowWeeklyBreakdown] = useState(false);
+  const [showHistoricalBreakdown, setShowHistoricalBreakdown] = useState(false);
+  const [showServicesBreakdown, setShowServicesBreakdown] = useState(false);
 
   // Filter appointments assigned to this barber
   const myAppointments = useMemo(() => {
@@ -103,29 +105,56 @@ export default function BarberDashboard({
     const breakdown = [];
     const todayD = new Date();
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    
+
     for (let i = 0; i < 7; i++) {
-        const d = new Date(todayD);
-        d.setDate(todayD.getDate() - i);
-        
-        const dateStr = [
-            d.getFullYear(),
-            String(d.getMonth() + 1).padStart(2, '0'),
-            String(d.getDate()).padStart(2, '0')
-        ].join('-');
-        
-        const dayEarnings = allCompletedAppts
-            .filter(app => app.date === dateStr)
-            .reduce((sum, app) => sum + (app.price || 0), 0);
-            
-        breakdown.push({
-            date: dateStr,
-            dayName: days[d.getDay()],
-            formattedDate: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
-            earnings: dayEarnings
-        });
+      const d = new Date(todayD);
+      d.setDate(todayD.getDate() - i);
+
+      const dateStr = [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2, '0'),
+        String(d.getDate()).padStart(2, '0')
+      ].join('-');
+
+      const dayEarnings = allCompletedAppts
+        .filter(app => app.date === dateStr)
+        .reduce((sum, app) => sum + (app.price || 0), 0);
+
+      breakdown.push({
+        date: dateStr,
+        dayName: days[d.getDay()],
+        formattedDate: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+        earnings: dayEarnings
+      });
     }
     return breakdown;
+  }, [allCompletedAppts]);
+
+  const historicalBreakdown = useMemo(() => {
+    const groups: { [monthYear: string]: number } = {};
+    allCompletedAppts.forEach(app => {
+      // Create date object
+      const parts = app.date.split('-'); 
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const monthYear = d.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+        groups[monthYear] = (groups[monthYear] || 0) + (app.price || 0);
+      }
+    });
+    return Object.entries(groups)
+      .map(([period, earnings]) => ({ period: period.charAt(0).toUpperCase() + period.slice(1), earnings }))
+      .slice(0, 12);
+  }, [allCompletedAppts]);
+
+  const servicesBreakdown = useMemo(() => {
+    const groups: { [service: string]: number } = {};
+    allCompletedAppts.forEach(app => {
+      const sName = app.serviceName || 'Otros';
+      groups[sName] = (groups[sName] || 0) + 1;
+    });
+    return Object.entries(groups)
+      .sort((a,b) => b[1] - a[1])
+      .map(([service, count]) => ({ service, count }));
   }, [allCompletedAppts]);
 
   const handleStatusChange = async (appId: string, newStatus: string) => {
@@ -397,67 +426,168 @@ export default function BarberDashboard({
           {activeTab === 'metrics' && (
             <View style={styles.tabContent}>
               <Text style={styles.sectionTitle}>Tus Métricas Globales</Text>
-              <View style={styles.metricsColumn}>
-                <TouchableOpacity 
-                  style={[styles.metricCard, { flex: 0, flexDirection: 'column', alignItems: 'stretch' }]}
-                  onPress={() => setShowWeeklyBreakdown(!showWeeklyBreakdown)}
-                  activeOpacity={0.7}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={[styles.iconBox, { backgroundColor: 'var(--gold-subtle)', marginRight: 16 }]}>
+              <View style={[styles.metricsRow, isMobile ? { flexDirection: 'column' } : { flexWrap: 'wrap', gap: 24 }]}>
+                
+                <View style={{
+                  flex: isMobile ? undefined : 1, width: isMobile ? '100%' : 'auto', minWidth: 280, maxHeight: 280,
+                  backgroundColor: 'var(--bg-card)', borderRadius: 20, borderWidth: 1, borderColor: 'var(--glass-border)',
+                  overflow: 'hidden', marginBottom: isMobile ? 24 : 0, elevation: 4,
+                  shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8
+                }}>
+                  <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={{ padding: 32, flexDirection: 'column', alignItems: 'center' }} showsVerticalScrollIndicator={true}>
+                    <View style={[styles.iconBox, { backgroundColor: 'var(--gold-subtle)', marginBottom: 24 }]}>
                       <TrendingUp size={24} color="var(--gold)" />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.metricValue}>${thisWeekEarnings.toLocaleString()}</Text>
-                      <Text style={styles.metricLabel}>Ingresos de los últimos 7 días (Ver Desglose)</Text>
-                    </View>
-                    <View style={{ transform: [{ rotate: showWeeklyBreakdown ? '90deg' : '0deg' }] }}>
-                      <ChevronRight size={20} color="var(--text-muted)" />
-                    </View>
-                  </View>
+                    <Text style={[styles.metricValue, { fontSize: 36, marginBottom: 8, textAlign: 'center' }]}>${thisWeekEarnings.toLocaleString()}</Text>
+                    <Text style={[styles.metricLabel, { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }]}>Ingresos de los últimos 7 días</Text>
+                    
+                    <TouchableOpacity
+                      style={{ alignSelf: 'center', flexDirection: 'row', alignItems: 'center', marginTop: 24, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'var(--bg-card)', borderRadius: 24, borderWidth: 1, borderColor: 'var(--gold-subtle)' }}
+                      onPress={() => {
+                        setShowWeeklyBreakdown(!showWeeklyBreakdown);
+                        setShowHistoricalBreakdown(false);
+                        setShowServicesBreakdown(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ color: 'var(--gold)', fontSize: 12, fontWeight: '700', marginRight: 8 }}>
+                        {showWeeklyBreakdown ? 'OCULTAR DESGLOSE' : 'VER DESGLOSE'}
+                      </Text>
+                      <View style={{ transform: [{ rotate: showWeeklyBreakdown ? '-90deg' : '90deg' }] }}>
+                        <ChevronRight size={16} color="var(--gold)" />
+                      </View>
+                    </TouchableOpacity>
 
-                  {showWeeklyBreakdown && (
-                    <View style={styles.breakdownContainer}>
-                      {last7DaysBreakdown.map((day, idx) => (
-                        <View key={idx} style={[
-                          styles.breakdownRow, 
-                          idx === last7DaysBreakdown.length - 1 && { borderBottomWidth: 0 }
-                        ]}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                            <View style={[styles.dayDot, day.earnings > 0 && styles.dayDotActive]} />
-                            <Text style={styles.breakdownDay}>{day.dayName} {day.formattedDate}</Text>
-                          </View>
-                          <Text style={[
-                            styles.breakdownAmount, 
-                            day.earnings > 0 ? { color: '#10B981' } : { color: 'var(--text-muted)' }
+                    {showWeeklyBreakdown && (
+                      <View style={[styles.breakdownContainer, { width: '100%', marginTop: 24, paddingTop: 16, backgroundColor: 'transparent', paddingHorizontal: 0, paddingBottom: 0, borderTopColor: 'rgba(255,255,255,0.05)' }]}>
+                        {last7DaysBreakdown.map((day, idx) => (
+                          <View key={idx} style={[
+                            styles.breakdownRow,
+                            idx === last7DaysBreakdown.length - 1 && { borderBottomWidth: 0 }
                           ]}>
-                            ${day.earnings.toLocaleString()}
-                          </Text>
-                        </View>
-                      ))}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                              <View style={[styles.dayDot, day.earnings > 0 && styles.dayDotActive]} />
+                              <Text style={styles.breakdownDay}>{day.dayName} {day.formattedDate}</Text>
+                            </View>
+                            <Text style={[
+                              styles.breakdownAmount,
+                              day.earnings > 0 ? { color: '#10B981' } : { color: 'var(--text-muted)' }
+                            ]}>
+                              ${day.earnings.toLocaleString()}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </ScrollView>
+                </View>
+
+                <View style={{
+                  flex: isMobile ? undefined : 1, width: isMobile ? '100%' : 'auto', minWidth: 280, maxHeight: 280,
+                  backgroundColor: 'var(--bg-card)', borderRadius: 20, borderWidth: 1, borderColor: 'var(--glass-border)',
+                  overflow: 'hidden', marginBottom: isMobile ? 24 : 0, elevation: 4,
+                  shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8
+                }}>
+                  <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={{ padding: 32, flexDirection: 'column', alignItems: 'center' }} showsVerticalScrollIndicator={true}>
+                    <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.1)', marginBottom: 24 }]}>
+                      <Award size={24} color="#10B981" />
                     </View>
-                  )}
-                </TouchableOpacity>
+                    <Text style={[styles.metricValue, { fontSize: 36, marginBottom: 8, textAlign: 'center' }]}>${totalEarnings.toLocaleString()}</Text>
+                    <Text style={[styles.metricLabel, { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }]}>Ingresos Totales (Histórico)</Text>
+                    
+                    <TouchableOpacity
+                      style={{ alignSelf: 'center', flexDirection: 'row', alignItems: 'center', marginTop: 24, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'var(--bg-card)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.5)' }}
+                      onPress={() => {
+                        setShowHistoricalBreakdown(!showHistoricalBreakdown);
+                        setShowWeeklyBreakdown(false);
+                        setShowServicesBreakdown(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '700', marginRight: 8 }}>
+                        {showHistoricalBreakdown ? 'OCULTAR DESGLOSE' : 'VER DESGLOSE'}
+                      </Text>
+                      <View style={{ transform: [{ rotate: showHistoricalBreakdown ? '-90deg' : '90deg' }] }}>
+                        <ChevronRight size={16} color="#10B981" />
+                      </View>
+                    </TouchableOpacity>
 
-                <View style={[styles.metricCard, { flex: 0 }]}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                    <Award size={24} color="#10B981" />
-                  </View>
-                  <View>
-                    <Text style={styles.metricValue}>${totalEarnings.toLocaleString()}</Text>
-                    <Text style={styles.metricLabel}>Ingresos Totales (Histórico)</Text>
-                  </View>
+                    {showHistoricalBreakdown && (
+                      <View style={[styles.breakdownContainer, { width: '100%', marginTop: 24, paddingTop: 16, backgroundColor: 'transparent', paddingHorizontal: 0, paddingBottom: 0, borderTopColor: 'rgba(255,255,255,0.05)' }]}>
+                        {historicalBreakdown.length > 0 ? historicalBreakdown.map((item, idx) => (
+                          <View key={idx} style={[
+                            styles.breakdownRow,
+                            idx === historicalBreakdown.length - 1 && { borderBottomWidth: 0 }
+                          ]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                              <View style={[styles.dayDot, { backgroundColor: '#10B981', shadowColor: '#10B981', shadowOpacity: 0.5, shadowRadius: 4 }]} />
+                              <Text style={styles.breakdownDay}>{item.period}</Text>
+                            </View>
+                            <Text style={[styles.breakdownAmount, { color: '#10B981' }]}>
+                              ${item.earnings.toLocaleString()}
+                            </Text>
+                          </View>
+                        )) : (
+                          <Text style={[styles.breakdownDay, { textAlign: 'center', padding: 12 }]}>No hay datos</Text>
+                        )}
+                      </View>
+                    )}
+                  </ScrollView>
                 </View>
 
-                <View style={[styles.metricCard, { flex: 0 }]}>
-                  <View style={[styles.iconBox, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
-                    <CheckCircle2 size={24} color="#3B82F6" />
-                  </View>
-                  <View>
-                    <Text style={styles.metricValue}>{allCompletedAppts.length}</Text>
-                    <Text style={styles.metricLabel}>Cortes Completados</Text>
-                  </View>
+                <View style={{
+                  flex: isMobile ? undefined : 1, width: isMobile ? '100%' : 'auto', minWidth: 280, maxHeight: 280,
+                  backgroundColor: 'var(--bg-card)', borderRadius: 20, borderWidth: 1, borderColor: 'var(--glass-border)',
+                  overflow: 'hidden', marginBottom: 0, elevation: 4,
+                  shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8
+                }}>
+                  <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={{ padding: 32, flexDirection: 'column', alignItems: 'center' }} showsVerticalScrollIndicator={true}>
+                    <View style={[styles.iconBox, { backgroundColor: 'rgba(59, 130, 246, 0.1)', marginBottom: 24 }]}>
+                      <CheckCircle2 size={24} color="#3B82F6" />
+                    </View>
+                    <Text style={[styles.metricValue, { fontSize: 36, marginBottom: 8, textAlign: 'center' }]}>{allCompletedAppts.length}</Text>
+                    <Text style={[styles.metricLabel, { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }]}>Cortes Completados</Text>
+
+                    <TouchableOpacity
+                      style={{ alignSelf: 'center', flexDirection: 'row', alignItems: 'center', marginTop: 24, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'var(--bg-card)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.5)' }}
+                      onPress={() => {
+                        setShowServicesBreakdown(!showServicesBreakdown);
+                        setShowWeeklyBreakdown(false);
+                        setShowHistoricalBreakdown(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '700', marginRight: 8 }}>
+                        {showServicesBreakdown ? 'OCULTAR DESGLOSE' : 'VER DESGLOSE'}
+                      </Text>
+                      <View style={{ transform: [{ rotate: showServicesBreakdown ? '-90deg' : '90deg' }] }}>
+                        <ChevronRight size={16} color="#3B82F6" />
+                      </View>
+                    </TouchableOpacity>
+
+                    {showServicesBreakdown && (
+                      <View style={[styles.breakdownContainer, { width: '100%', marginTop: 24, paddingTop: 16, backgroundColor: 'transparent', paddingHorizontal: 0, paddingBottom: 0, borderTopColor: 'rgba(255,255,255,0.05)' }]}>
+                        {servicesBreakdown.length > 0 ? servicesBreakdown.map((item, idx) => (
+                          <View key={idx} style={[
+                            styles.breakdownRow,
+                            idx === servicesBreakdown.length - 1 && { borderBottomWidth: 0 }
+                          ]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                              <View style={[styles.dayDot, { backgroundColor: '#3B82F6', shadowColor: '#3B82F6', shadowOpacity: 0.5, shadowRadius: 4 }]} />
+                              <Text style={styles.breakdownDay}>{item.service}</Text>
+                            </View>
+                            <Text style={[styles.breakdownAmount, { color: '#FFF' }]}>
+                              {item.count} {item.count === 1 ? 'corte' : 'cortes'}
+                            </Text>
+                          </View>
+                        )) : (
+                          <Text style={[styles.breakdownDay, { textAlign: 'center', padding: 12 }]}>Aún no hay cortes</Text>
+                        )}
+                      </View>
+                    )}
+                  </ScrollView>
                 </View>
+
               </View>
             </View>
           )}
