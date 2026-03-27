@@ -51,7 +51,8 @@ service cloud.firestore {
       // - El propio usuario
       // - Admin y Recepción (para gestión)
       // - Barberos pueden leer usuarios para ver nombres de clientes
-      allow read: if isOwner(userId) || isAdmin() || isReception(); 
+      // - Cualquier usuario puede leer perfiles de barberos (para el sistema de citas)
+      allow read: if isOwner(userId) || isAdmin() || isReception() || isBarber() || (resource.data != null && resource.data.role in [3, 'barber']); 
       
       // Actualizar:
       // - Admin (puede cambiar roles)
@@ -63,6 +64,20 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // --- VALIDACIONES DE ESQUEMA ---
+    function isValidAppointment() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['userId', 'userName', 'barberId', 'date', 'time', 'serviceId', 'price', 'status']) &&
+             data.price >= 0 &&
+             data.status in ['pending_payment', 'confirmed', 'completed', 'cancelled', 'En Local', 'in_progress', 'no_show'];
+    }
+    
+    function isValidLog() {
+       let data = request.resource.data;
+       return data.keys().hasAll(['adminId', 'action', 'timestamp']) &&
+              data.adminId == request.auth.uid; // El usuario solo puede registrar logs a su nombre
+    }
+
     // CITAS (Appointments)
     match /appointments/{appointmentId} {
       // Leer: Dueño o Staff
@@ -72,12 +87,12 @@ service cloud.firestore {
         isStaff()
       );
 
-      allow create: if isSignedIn() && (
+      allow create: if isSignedIn() && isValidAppointment() && (
         // Regla 1: Si es un cliente, NO puede marcarse como pagado sin un paymentIntentId
         (hasRole(['client', 1]) && 
          request.resource.data.paid == true && 
          request.resource.data.paymentIntentId != null &&
-         request.resource.data.userId == request.auth.token.email) ||
+         request.resource.data.userId == request.auth.uid) ||
         
         // Regla 2: Staff puede crear citas (ej. Walk-ins)
         isStaff()
@@ -98,6 +113,18 @@ service cloud.firestore {
 
     // SERVICIOS
     match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // SUCURSALES
+    match /branches/{branchId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // BARBEROS PUBLICOS
+    match /barbers/{barberId} {
       allow read: if true;
       allow write: if isAdmin();
     }
@@ -123,8 +150,9 @@ service cloud.firestore {
       // Lectura: Únicamente los Administradores (para que los clientes no puedan espiar).
       allow read: if isAdmin();
       
-      // Creación: Operaciones permitidas solo para la administración y staff de la Barbería.
-      allow create: if isStaff();
+      // Creación: Operaciones permitidas solo para la administración y staff de la Barbería, o clientes que validan su propio ID.
+      // Validación estricta para evitar inyección de logs falsos.
+      allow create: if isSignedIn() && isValidLog() && (isStaff() || request.auth.uid == request.resource.data.adminId);
 
       // Mantenimiento de auditoría (INMUTABLE):
       // Nadie, absolutamente nadie, tiene permitido actualizar o destruir registros del sistema de Logs.

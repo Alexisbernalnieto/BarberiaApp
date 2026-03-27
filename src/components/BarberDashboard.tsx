@@ -24,6 +24,7 @@ import {
   User,
   Award
 } from 'lucide-react';
+import { formatFullDate, formatTime12h } from '../utils/formatters';
 import MainLayout from './Navigation/MainLayout';
 import { useSidebar } from '../context/SidebarContext';
 import { Appointment, AppUser, UserRole } from '../types';
@@ -324,8 +325,8 @@ export default function BarberDashboard({
                           <View key={app.id} style={[styles.appCard, { flexDirection: 'column', alignItems: 'stretch' }]} data-glass="true">
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                               <View style={styles.appTime}>
-                                <Clock size={16} color="var(--gold)" />
-                                <Text style={styles.timeText}>{app.time}</Text>
+                                 <Clock size={16} color="var(--gold)" />
+                                 <Text style={styles.timeText}>{formatTime12h(app.time)}</Text>
                               </View>
                               <View style={styles.appInfo}>
                                 <Text style={styles.clientName}>{app.userName || 'Cliente'}</Text>
@@ -369,12 +370,12 @@ export default function BarberDashboard({
                     {upcomingAppointments.filter(app => app.date > today).slice(0, 5).map((app) => (
                       <View key={app.id} style={styles.upcomingItem}>
                         <View style={styles.upcomingDate}>
-                          <Text style={styles.upMonth}>{new Date(app.date).toLocaleDateString('es-ES', { month: 'short' })}</Text>
-                          <Text style={styles.upDay}>{new Date(app.date).getDate()}</Text>
+                           <Text style={[styles.upDay, { fontSize: 13, textAlign: 'center' }]}>{formatFullDate(app.date).split(' ')[0]}</Text>
+                           <Text style={[styles.upDay, { fontSize: 18, fontWeight: '900' }]}>{new Date(app.date).getDate() + 1}</Text>
                         </View>
                         <View style={styles.upInfo}>
-                          <Text style={styles.upClient}>{app.userName}</Text>
-                          <Text style={styles.upService}>{app.serviceName} • {app.time}</Text>
+                           <Text style={styles.upClient}>{app.userName}</Text>
+                           <Text style={styles.upService}>{app.serviceName} • {formatTime12h(app.time)}</Text>
                         </View>
                         <ChevronRight size={18} color="var(--text-muted)" />
                       </View>
@@ -399,9 +400,8 @@ export default function BarberDashboard({
                       const s = getStatusBadge(app.status);
                       return (
                         <View key={app.id} style={[styles.appCard, { opacity: 0.8 }]} data-glass="true">
-                          <View style={styles.upcomingDate}>
-                            <Text style={styles.upMonth}>{new Date(app.date).toLocaleDateString('es-ES', { month: 'short' })}</Text>
-                            <Text style={styles.upDay}>{new Date(app.date).getDate()}</Text>
+                          <View style={[styles.upcomingDate, { width: 100 }]}>
+                            <Text style={[styles.upDay, { fontSize: 12 }]}>{formatFullDate(app.date)}</Text>
                           </View>
                           <View style={styles.appInfo}>
                             <Text style={styles.clientName}>{app.userName || 'Cliente'}</Text>

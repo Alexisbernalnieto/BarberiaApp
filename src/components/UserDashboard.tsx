@@ -32,6 +32,9 @@ import UserSummary from './User/UserSummary';
 import UserAppointments from './User/UserAppointments';
 import UserPayments from './User/UserPayments';
 import UserProfile from './User/UserProfile';
+import UserSchedules from './User/UserSchedules';
+import UserServicesDetailed from './User/UserServicesDetailed';
+import UserLocations from './User/UserLocations';
 
 interface UserDashboardProps {
   user: AppUser;
@@ -87,22 +90,22 @@ export default function UserDashboard({
         <View style={styles.headerArea}>
             <View style={styles.headerTitleRow}>
                 {isMobile && (
-                    <TouchableOpacity onPress={() => setIsOpen(true)} style={styles.menuBtn}>
-                        <Menu size={24} color={COLORS.primary || "var(--gold)"} />
+                    <TouchableOpacity onPress={() => setIsOpen(true)} style={[styles.menuBtn, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(0,0,0,0.05)' }]}>
+                        <Menu size={24} color={COLORS.primary} />
                     </TouchableOpacity>
                 )}
                 <View>
-                    <Text style={[styles.greeting, { fontSize: isMobile ? 22 : 28 }]}>Hola, {user.name?.split(' ')[0] || 'Cliente'}</Text>
-                    <Text style={styles.dateText}>Bienvenido a tu portal élite</Text>
+                    <Text style={[styles.greeting, { color: COLORS.text, fontSize: isMobile ? 22 : 28 }]}>Hola, {user.name?.split(' ')[0] || 'Cliente'}</Text>
+                    <Text style={[styles.dateText, { color: COLORS.textSecondary }]}>Bienvenido a tu portal élite</Text>
                 </View>
             </View>
             
             <View style={styles.headerActions}>
-                <TouchableOpacity style={styles.headerBtn} onPress={toggleTheme}>
-                    {isDarkMode ? <Sun size={20} color="var(--gold)" /> : <Moon size={20} color="var(--text-secondary)" />}
+                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(0,0,0,0.05)' }]} onPress={toggleTheme}>
+                    {isDarkMode ? <Sun size={20} color={COLORS.primary} /> : <Moon size={20} color={COLORS.textSecondary} />}
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.headerBtn} onPress={handleLogoutWithGuard}>
-                    <UserIcon size={20} color="var(--text-secondary)" />
+                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(0,0,0,0.05)' }]} onPress={handleLogoutWithGuard}>
+                    <UserIcon size={20} color={COLORS.textSecondary} />
                 </TouchableOpacity>
             </View>
         </View>
@@ -160,6 +163,18 @@ export default function UserDashboard({
                     isDarkMode={isDarkMode}
                 />
             )}
+
+            {activeTab === 'schedules' && (
+                <UserSchedules COLORS={COLORS} />
+            )}
+
+            {activeTab === 'services' && (
+                <UserServicesDetailed COLORS={COLORS} />
+            )}
+
+            {activeTab === 'location' && (
+                <UserLocations COLORS={COLORS} />
+            )}
         </ScrollView>
       </View>
     </MainLayout>
@@ -179,15 +194,15 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  menuBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.2)', alignItems: 'center', justifyContent: 'center' },
-  greeting: { fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
-  dateText: { color: 'var(--text-secondary)', fontSize: 14, marginTop: 4, letterSpacing: 1 },
+  menuBtn: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  greeting: { fontWeight: '900', letterSpacing: -0.5 },
+  dateText: { fontSize: 14, marginTop: 4, letterSpacing: 1 },
   headerActions: { flexDirection: 'row', gap: 12 },
-  headerBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.2)', alignItems: 'center', justifyContent: 'center' },
+  headerBtn: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   bookingCard: { 
     backgroundColor: 'transparent',
     borderRadius: 24, 
     flex: 1 
   },
-  sectionTitle: { color: '#FFF', fontSize: 18, fontWeight: '700' },
+  sectionTitle: { fontSize: 18, fontWeight: '700' },
 });

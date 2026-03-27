@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Calendar as CalendarIcon, Clock, Check } from 'lucide-react';
 import { Calendar } from 'react-native-calendars';
+import { formatTime12h } from '../../utils/formatters';
 
 interface BookingStepDateTimeProps {
   styles: any;
@@ -85,7 +86,7 @@ export default function BookingStepDateTime({
                             onPress={() => setSelectedTime(slot)}
                         >
                             <Text style={[styles.timeText, selectedTime === slot && { color: '#000' }]}>
-                                {slot}
+                                {formatTime12h(slot)}
                             </Text>
                         </TouchableOpacity>
                     );

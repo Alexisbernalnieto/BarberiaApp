@@ -1,4 +1,5 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
@@ -335,6 +336,104 @@ exports.syncUserRoleClaims = onDocumentWritten(
     } catch (error) {
       console.error("❌ Error asignando Custom Claims al usuario:", userId, error);
       return null;
+    }
+  }
+);
+
+/* ============================================================
+   5) CONSISTENCIA Y TRANSACCIONES
+   ============================================================ */
+
+/**
+ * Automatiza reembolsos de Stripe cuando una cita es cancelada.
+ * Escucha cambios en 'appointments/{id}' y si `status` cambia a 'cancelled' y
+ * fue pagada, procesa el reembolso automáticamente para evitar descuadres financieros.
+ */
+exports.handleAppointmentCancellation = onDocumentWritten(
+  {
+    document: "appointments/{appointmentId}",
+    secrets: [stripeSecret]
+  },
+  async (event) => {
+    // Si el documento se borró, o es nuevo, no hacer nada si no es una cancelación explícita
+    if (!event.data.after.exists) return null;
+    
+    const after = event.data.after.data();
+    const before = event.data.before ? event.data.before.data() : null;
+    
+    // Solo ejecutamos si el status CAMBIÓ a 'cancelled'
+    if (after.status !== 'cancelled' || (before && before.status === 'cancelled')) {
+        return null;
+    }
+
+    // Solo reembolsamos si está pagado y existe un paymentIntentId
+    if (after.paid && after.paymentIntentId && !after.refundStatus) {
+        try {
+            const stripe = require("stripe")(stripeSecret.value());
+            console.log(`Iniciando reembolso para la cita ${event.params.appointmentId}`);
+            
+            // Procesar el reembolso total (o ajustarlo según políticas de penalización)
+            const refund = await stripe.refunds.create({
+                payment_intent: after.paymentIntentId,
+                reason: 'requested_by_customer'
+            });
+            
+            console.log(`✅ Reembolso exitoso para ${event.params.appointmentId}: ${refund.id}`);
+            
+            // Actualizar Firestore para marcar el reembolso como completado (Transaccional)
+            return event.data.after.ref.update({ 
+                refundStatus: 'completed',
+                refundId: refund.id,
+                refundedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) {
+           console.error(`❌ Error al procesar reembolso para ${event.params.appointmentId}`, error);
+           return event.data.after.ref.update({ 
+               refundStatus: 'failed', 
+               refundError: error.message 
+           });
+        }
+    }
+    return null;
+  }
+);
+
+/* ============================================================
+   6) BACKUPS DIARIOS AUTOMATIZADOS (Cron Job)
+   ============================================================ */
+
+/**
+ * Backup diario automatizado de Firestore a las 3:00 AM (Hora de México)
+ * Exporta toda la base de datos a un bucket de Storage para retención y recuperación en caso de desastres.
+ */
+exports.scheduledFirestoreExport = onSchedule(
+  {
+    schedule: "0 3 * * *", 
+    timeZone: "America/Mexico_City",
+    timeoutSeconds: 300,
+    memory: "256MiB"
+  },
+  async (event) => {
+    // Obtenemos el ID del proyecto automáticamente
+    const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
+    const databaseName = admin.firestore()._referencePath ? admin.firestore()._referencePath.databaseId : '(default)';
+    
+    // El bucket por defecto de Firebase Appspot se utiliza para almacenar los backups
+    const bucket = `gs://${projectId}.appspot.com/firestore_backups`;
+
+    const client = new admin.firestore.v1.FirestoreAdminClient();
+
+    try {
+      const responses = await client.exportDocuments({
+        name: client.databasePath(projectId, databaseName),
+        outputUriPrefix: bucket,
+        collectionIds: [] // Un arreglo vacío significa que exportará TODAS las colecciones
+      });
+      console.log(`✅ Backup diario completado exitosamente en ${bucket}`);
+      return responses;
+    } catch (err) {
+      console.error("❌ Falló la exportación programada de la base de datos", err);
+      throw new Error("Export operation failed: " + err.message);
     }
   }
 );
