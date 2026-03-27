@@ -1,16 +1,19 @@
 export const LIGHT_THEME = {
   mode: 'light',
-  primary: '#D4AF37', // Gold
-  secondary: '#1A1A1A',
-  background: '#F8F9FA',
+  primary: '#C5A021', // Noble Gold
+  secondary: '#0F172A', // Royal Navy
+  background: '#F8F9FA', // Soft Platinum
   surface: '#FFFFFF',
-  text: '#1A1A1A',
-  textSecondary: '#666666',
-  textMuted: '#999999',
+  sidebar: '#F1F3F5', // Platinum Sidebar
+  cardDark: '#0F172A', // Royal Navy for Elite Cards
+  cardLight: '#FFFFFF',
+  text: '#0F172A', // Navy for main text
+  textSecondary: '#475569', // Slate Gray
+  textMuted: '#94A3B8',
   textInverse: '#FFFFFF',
-  border: '#E0E0E0',
-  glassSurface: 'rgba(255, 255, 255, 0.8)',
-  glassBorder: 'rgba(0, 0, 0, 0.1)',
+  border: '#E2E8F0',
+  glassSurface: 'rgba(255, 255, 255, 0.7)',
+  glassBorder: 'rgba(15, 23, 42, 0.08)',
 };
 
 export const DARK_THEME = {
@@ -19,6 +22,9 @@ export const DARK_THEME = {
   secondary: '#F8F9FA',
   background: '#080808',
   surface: '#121212',
+  sidebar: '#0B0B0C',
+  cardDark: '#111111', // Matte Black
+  cardLight: '#FFFFFF',
   text: '#FFFFFF',
   textSecondary: '#A0A0A0',
   textMuted: '#666666',

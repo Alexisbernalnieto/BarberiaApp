@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, ScrollView } from 'react-native';
 import { Ticket, MapPin, Scissors, User as UserIcon, Calendar, Clock } from 'lucide-react';
+import { formatFullDate, formatTime12h } from '../../utils/formatters';
 
 interface BookingStepConfirmProps {
   styles: any;
@@ -18,6 +19,7 @@ interface BookingStepConfirmProps {
 
 export default function BookingStepConfirm({
   styles,
+  COLORS,
   isWalkIn,
   guestName,
   setGuestName,
@@ -35,7 +37,7 @@ export default function BookingStepConfirm({
 
       <View style={styles.ticketCard}>
         <View style={styles.ticketHeader}>
-          <Ticket size={32} color="var(--gold)" />
+          <Ticket size={32} color={COLORS.primary} />
           <Text style={styles.ticketTitle}>EL CORONEL</Text>
           <Text style={styles.ticketSubtitle}>EST. 2024</Text>
         </View>
@@ -45,13 +47,13 @@ export default function BookingStepConfirm({
                 <View style={[styles.ticketRow, { flexDirection: 'column', alignItems: 'flex-start', marginBottom: 20 }]}>
                     <Text style={styles.ticketLabel}>Cliente</Text>
                     <View style={styles.inputWrapper}>
-                        <UserIcon size={16} color="var(--gold)" />
+                        <UserIcon size={16} color={COLORS.primary} />
                         <TextInput
                             style={styles.input}
                             value={guestName}
                             onChangeText={setGuestName}
                             placeholder="Nombre completo"
-                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            placeholderTextColor={COLORS.textMuted}
                         />
                     </View>
                 </View>
@@ -59,7 +61,7 @@ export default function BookingStepConfirm({
 
             <View style={styles.ticketRow}>
                 <View style={[styles.rowCenter, { flex: 1 }]}>
-                    <MapPin size={14} color="var(--gold)" style={{ marginRight: 8 }} />
+                    <MapPin size={14} color={COLORS.primary} style={{ marginRight: 8 }} />
                     <Text style={styles.ticketLabel}>Sucursal</Text>
                 </View>
                 <Text style={[styles.ticketValue, { flex: 1 }]}>{selectedBranch || 'No seleccionada'}</Text>
@@ -67,7 +69,7 @@ export default function BookingStepConfirm({
 
             <View style={styles.ticketRow}>
                 <View style={[styles.rowCenter, { flex: 1 }]}>
-                    <Scissors size={14} color="var(--gold)" style={{ marginRight: 8 }} />
+                    <Scissors size={14} color={COLORS.primary} style={{ marginRight: 8 }} />
                     <Text style={styles.ticketLabel}>Servicio</Text>
                 </View>
                 <Text style={[styles.ticketValue, { flex: 1 }]}>{selectedService?.name || 'No seleccionado'}</Text>
@@ -75,7 +77,7 @@ export default function BookingStepConfirm({
 
             <View style={styles.ticketRow}>
                 <View style={[styles.rowCenter, { flex: 1 }]}>
-                    <UserIcon size={14} color="var(--gold)" style={{ marginRight: 8 }} />
+                    <UserIcon size={14} color={COLORS.primary} style={{ marginRight: 8 }} />
                     <Text style={styles.ticketLabel}>Barbero</Text>
                 </View>
                 <Text style={[styles.ticketValue, { flex: 1 }]}>{selectedBarber?.name || 'No seleccionado'}</Text>
@@ -83,18 +85,18 @@ export default function BookingStepConfirm({
 
             <View style={styles.ticketRow}>
                 <View style={[styles.rowCenter, { flex: 1 }]}>
-                    <Calendar size={14} color="var(--gold)" style={{ marginRight: 8 }} />
+                    <Calendar size={14} color={COLORS.primary} style={{ marginRight: 8 }} />
                     <Text style={styles.ticketLabel}>Fecha</Text>
                 </View>
-                <Text style={[styles.ticketValue, { flex: 1 }]}>{selectedDate || 'No seleccionada'}</Text>
+                <Text style={[styles.ticketValue, { flex: 1 }]}>{formatFullDate(selectedDate) || 'No seleccionada'}</Text>
             </View>
 
             <View style={styles.ticketRow}>
                 <View style={[styles.rowCenter, { flex: 1 }]}>
-                    <Clock size={14} color="var(--gold)" style={{ marginRight: 8 }} />
+                    <Clock size={14} color={COLORS.primary} style={{ marginRight: 8 }} />
                     <Text style={styles.ticketLabel}>Hora</Text>
                 </View>
-                <Text style={[styles.ticketValue, { flex: 1 }]}>{selectedTime || 'No seleccionada'}</Text>
+                <Text style={[styles.ticketValue, { flex: 1 }]}>{formatTime12h(selectedTime || '') || 'No seleccionada'}</Text>
             </View>
 
             <View style={styles.dashedDivider} />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { formatFullDate, formatTime12h } from '../../utils/formatters';
 
 export default function AdminAppointmentList({ appointments, numColumns, itemWidth, COLORS }) {
   
@@ -17,7 +18,7 @@ export default function AdminAppointmentList({ appointments, numColumns, itemWid
             </View>
             <View style={[styles.timeTag, { backgroundColor: COLORS.primary }]}>
                 <MaterialCommunityIcons name="clock-outline" size={14} color="#FFFFFF" style={{marginRight: 4}} />
-                <Text style={styles.timeTagText}>{item.time}</Text>
+                <Text style={styles.timeTagText}>{formatTime12h(item.time)}</Text>
             </View>
         </View>
         
@@ -28,7 +29,7 @@ export default function AdminAppointmentList({ appointments, numColumns, itemWid
         
         <View style={styles.cardRow}>
             <MaterialCommunityIcons name="calendar" size={16} color={COLORS.textSecondary} style={{marginRight: 8}} />
-            <Text style={[styles.detail, { color: COLORS.textSecondary }]}>{item.date}</Text>
+            <Text style={[styles.detail, { color: COLORS.textSecondary }]}>{formatFullDate(item.date)}</Text>
         </View>
 
         <View style={styles.cardRow}>

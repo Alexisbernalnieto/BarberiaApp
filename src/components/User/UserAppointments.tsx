@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated, useWindow
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AppointmentDetail from './AppointmentDetail';
 import { Appointment } from '../../types';
+import { formatFullDate, formatTime12h } from '../../utils/formatters';
 
 interface UserAppointmentsProps {
   user: any;
@@ -48,11 +49,11 @@ export default function UserAppointments({ user, appointments, COLORS, isMobile 
       <View style={styles.cardFooter}>
          <View style={styles.dateTime}>
             <MaterialCommunityIcons name="calendar-month" size={16} color={COLORS.primary} />
-            <Text style={[styles.footerText, { color: COLORS.textSecondary }]}>{item.date}</Text>
+            <Text style={[styles.footerText, { color: COLORS.textSecondary }]}>{formatFullDate(item.date)}</Text>
          </View>
          <View style={styles.dateTime}>
             <MaterialCommunityIcons name="clock-outline" size={16} color={COLORS.primary} />
-            <Text style={[styles.footerText, { color: COLORS.textSecondary }]}>{item.time}</Text>
+            <Text style={[styles.footerText, { color: COLORS.textSecondary }]}>{formatTime12h(item.time)}</Text>
          </View>
          <View style={[styles.statusBadge, { 
            backgroundColor: item.status === 'confirmed' ? '#10B98120' : '#EF444420',

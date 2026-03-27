@@ -1,13 +1,83 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform } from 'react-native';
-import { User, Phone, Mail, Moon, Sun, LogOut, ChevronRight, Bell } from 'lucide-react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform, Alert, ActivityIndicator, Modal } from 'react-native';
+import { User, Phone, Mail, Moon, Sun, LogOut, ChevronRight, Bell, Save, CheckCircle2 } from 'lucide-react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebaseClient';
+import { logActivity } from '../../services/activityLogs';
 
 export default function UserProfile({ user, COLORS, onLogout, toggleTheme, isDarkMode }: any) {
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
+  const [saving, setSaving] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [modalType, setModalType] = useState<'added' | 'updated'>('updated');
+
+  const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert('Error', 'El nombre no puede estar vacío');
+      return;
+    }
+
+    const isAdding = !user.phone && phone.trim();
+    setModalType(isAdding ? 'added' : 'updated');
+
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        name: name.trim(),
+        phone: phone.trim()
+      });
+
+      await logActivity({
+          adminEmail: user.email,
+          adminRole: user.role === 'admin' ? 'admin' : 'client',
+          action: 'Actualizó su perfil',
+          details: `Cambió nombre/teléfono (${isAdding ? 'Añadió número' : 'Actualizó número'})`,
+          targetUserEmail: user.email,
+          targetUserId: user.uid
+      });
+
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      Alert.alert('Error', 'No se pudieron guardar los cambios. Intenta de nuevo.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const SuccessModal = () => (
+    <Modal visible={showSuccessModal} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, { backgroundColor: COLORS.surface, borderColor: COLORS.primary + '30' }]}>
+          <View style={[styles.iconContainer, { backgroundColor: COLORS.primary + '15' }]}>
+            <CheckCircle2 size={50} color={COLORS.primary} strokeWidth={2.5} />
+          </View>
+          
+          <Text style={[styles.modalTitle, { color: COLORS.text }]}>
+            {modalType === 'added' ? '¡Número Agregado!' : '¡Datos Actualizados!'}
+          </Text>
+          
+          <Text style={[styles.modalSub, { color: COLORS.textSecondary }]}>
+            {modalType === 'added' 
+              ? 'Tu número de teléfono ha sido registrado con éxito.' 
+              : 'Los cambios en tu perfil se han guardado correctamente.'}
+          </Text>
+
+          <TouchableOpacity 
+            style={[styles.closeBtn, { backgroundColor: COLORS.primary }]} 
+            onPress={() => setShowSuccessModal(false)}
+          >
+            <Text style={styles.closeBtnText}>Entendido</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <SuccessModal />
       <View style={styles.header}>
         <Text style={[styles.title, { color: COLORS.text }]}>Mi Perfil</Text>
         <Text style={[styles.subtitle, { color: COLORS.textSecondary }]}>Personaliza tu experiencia Coronel</Text>
@@ -56,8 +126,19 @@ export default function UserProfile({ user, COLORS, onLogout, toggleTheme, isDar
                <Text style={styles.hint}>El correo no puede ser modificado</Text>
             </View>
 
-            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: COLORS.primary }]}>
-               <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+            <TouchableOpacity 
+              style={[styles.saveBtn, { backgroundColor: COLORS.primary, opacity: saving ? 0.7 : 1 }]} 
+              onPress={handleSave}
+              disabled={saving}
+            >
+               {saving ? (
+                 <ActivityIndicator color="#000" />
+               ) : (
+                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Save size={20} color="#000" />
+                    <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+                 </View>
+               )}
             </TouchableOpacity>
          </View>
       </View>
@@ -128,4 +209,13 @@ const styles = StyleSheet.create({
   iconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   settingLabel: { fontSize: 15, fontWeight: '700' },
   settingSub: { fontSize: 12, marginTop: 2 },
+
+  // Success Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalContent: { width: '100%', maxWidth: 340, borderRadius: 32, borderWidth: 1, padding: 32, alignItems: 'center', gap: 16 },
+  iconContainer: { width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  modalTitle: { fontSize: 22, fontWeight: '900', textAlign: 'center' },
+  modalSub: { fontSize: 14, textAlign: 'center', lineHeight: 22, opacity: 0.8 },
+  closeBtn: { height: 52, borderRadius: 16, width: '100%', alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  closeBtnText: { color: '#000', fontSize: 15, fontWeight: '800' }
 });

@@ -13,6 +13,7 @@ interface BookingStepServicesProps {
 
 export default function BookingStepServices({
   styles,
+  COLORS,
   SERVICES,
   selectedService,
   setSelectedService,
@@ -23,7 +24,7 @@ export default function BookingStepServices({
       <Text style={styles.subLabel}>Calidad y distinción en cada detalle</Text>
 
       <View style={styles.gridContainer}>
-        {SERVICES.map((service) => (
+        {SERVICES.filter(s => (s.price || 0) > 0).map((service) => (
           <TouchableOpacity
             key={service.id}
             style={[
@@ -36,7 +37,7 @@ export default function BookingStepServices({
               <View style={styles.serviceInfo}>
                 <Text style={styles.serviceName}>{service.name}</Text>
                 <View style={styles.rowCenter}>
-                    <Clock size={12} color="var(--text-muted)" style={{ marginRight: 6 }} />
+                    <Clock size={12} color={COLORS.textMuted} style={{ marginRight: 6 }} />
                     <Text style={styles.serviceDuration}>{service.duration} min</Text>
                 </View>
               </View>

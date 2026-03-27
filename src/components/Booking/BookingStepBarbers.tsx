@@ -13,6 +13,7 @@ interface BookingStepBarbersProps {
 
 export default function BookingStepBarbers({
   styles,
+  COLORS,
   BARBERS,
   selectedBarber,
   setSelectedBarber,
@@ -33,7 +34,7 @@ export default function BookingStepBarbers({
             onPress={() => setSelectedBarber(barber)}
           >
             <View style={[styles.avatarBig, selectedBarber?.id === barber.id && styles.activeAvatarBig]}>
-              <User size={40} color={selectedBarber?.id === barber.id ? "#000" : "var(--text-muted)"} />
+              <User size={40} color={selectedBarber?.id === barber.id ? "#000" : COLORS.textMuted} />
             </View>
             <Text style={styles.barberName}>{barber.name}</Text>
             
