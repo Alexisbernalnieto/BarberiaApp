@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users, CreditCard, Store } from 'lucide-react';
+import { formatFullDate } from '../../utils/formatters';
 
 const AdminAgenda = ({ appointments, COLORS, isMobile }: any) => {
   const [selectedBranch, setSelectedBranch] = useState('Todas');
@@ -51,7 +52,9 @@ const AdminAgenda = ({ appointments, COLORS, isMobile }: any) => {
       <View style={[styles.calendarCard, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.1)' }]}>
         <View style={styles.calendarHeader}>
           <TouchableOpacity><ChevronLeft size={24} color={COLORS.primary} /></TouchableOpacity>
-          <Text style={[styles.monthYear, { color: COLORS.text }]}>Marzo 2026</Text>
+          <Text style={[styles.monthYear, { color: COLORS.text }]}>
+            {formatFullDate(selectedDate).split(' ').slice(-2).join(' ').toUpperCase()}
+          </Text>
           <TouchableOpacity><ChevronRight size={24} color={COLORS.primary} /></TouchableOpacity>
         </View>
 

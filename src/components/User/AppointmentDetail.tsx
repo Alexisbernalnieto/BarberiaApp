@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Clock, CreditCard, Banknote, Scissors, MapPin, X, Hash } from 'lucide-react';
+import { formatFullDate, formatTime12h } from '../../utils/formatters';
 
 const AppointmentDetail = ({ appointment, visible, onClose, COLORS }: any) => {
     if (!appointment) return null;
@@ -39,7 +40,7 @@ const AppointmentDetail = ({ appointment, visible, onClose, COLORS }: any) => {
                         <View style={styles.detailsList}>
                             <DetailRow icon={MapPin} label="SUCURSAL" value={appointment.branch || 'Sucursal Matriz'} />
                             <DetailRow icon={Scissors} label="SERVICIO" value={appointment.serviceName} />
-                            <DetailRow icon={Clock} label="FECHA Y HORA" value={`${appointment.date} a las ${appointment.time}`} />
+                            <DetailRow icon={Clock} label="FECHA Y HORA" value={`${formatFullDate(appointment.date)} a las ${formatTime12h(appointment.time)}`} />
                             
                             <View style={styles.divider} />
                             

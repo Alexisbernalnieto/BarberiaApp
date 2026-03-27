@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { ArrowLeft, Clock, Shield, User, History } from 'lucide-react';
 import { getActivityLogs } from '../../services/activityLogs';
+import { formatFullDate, formatTime12h } from '../../utils/formatters';
 import { ActivityLog } from '../../types';
 
 const AdminHistory = ({ COLORS, isMobile, onBack }: any) => {
@@ -21,15 +22,7 @@ const AdminHistory = ({ COLORS, isMobile, onBack }: any) => {
   const formatDate = (timestamp: any) => {
     if (!timestamp) return '';
     const date = timestamp.toDate();
-    return date.toLocaleDateString('es-ES', { 
-      day: 'numeric', 
-      month: 'short', 
-      year: 'numeric' 
-    }) + ', ' + date.toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
+    return `${formatFullDate(date)}, ${formatTime12h(date)}`;
   };
 
   return (
@@ -50,7 +43,7 @@ const AdminHistory = ({ COLORS, isMobile, onBack }: any) => {
               <View key={log.id} style={[styles.logCard, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.1)' }]}>
                 <View style={styles.logHeader}>
                   <View style={[styles.roleTag, { backgroundColor: '#EF4444' }]}>
-                    <Text style={styles.roleTagText}>{log.adminRole.toUpperCase()}</Text>
+                    <Text style={styles.roleTagText}>{(log.adminRole || 'admin').toUpperCase()}</Text>
                   </View>
                   <View style={styles.headerInfo}>
                     <Text style={[styles.adminEmail, { color: COLORS.text }]}>{log.adminEmail}</Text>

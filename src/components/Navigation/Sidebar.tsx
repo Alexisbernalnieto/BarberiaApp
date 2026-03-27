@@ -18,7 +18,6 @@ import {
   Scissors, 
   CreditCard, 
   TrendingUp, 
-  Settings, 
   LogOut,
   PlusCircle,
   MonitorPlay,
@@ -78,7 +77,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
     { id: 'queue', label: 'Pantalla Turnos', icon: MonitorPlay },
     { id: 'users', label: 'Usuarios y Staff', icon: Users },
     { id: 'metrics', label: 'Métricas', icon: TrendingUp },
-    { id: 'settings', label: 'Ajustes', icon: Settings },
   ];
 
   const clientItems = [
@@ -87,7 +85,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
     { id: 'appointments', label: 'Mis Citas', icon: Calendar },
     { id: 'payments', label: 'Métodos de Pago', icon: CreditCard },
     { id: 'profile', label: 'Mi Perfil', icon: Users },
-    { id: 'settings', label: 'Ajustes', icon: Settings },
   ];
 
   const barberItems = [
@@ -134,16 +131,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
   };
 
   const renderContent = () => (
-    <View style={[styles.sidebarInner, { backgroundColor: COLORS.background || 'var(--bg-sidebar)' }]}>
+    <View style={[styles.sidebarInner, { backgroundColor: COLORS.sidebar || COLORS.background }]}>
       {/* Brand Header */}
       <View style={styles.brandContainer}>
-        <View style={[styles.logo, { borderColor: COLORS.primary || 'var(--gold)' }]}>
-          <Text style={[styles.logoText, { color: COLORS.primary || 'var(--gold)' }]}>B</Text>
+        <View style={[styles.logo, { borderColor: COLORS.primary }]}>
+          <Text style={[styles.logoText, { color: COLORS.primary }]}>B</Text>
         </View>
-        <Text style={styles.brandName}>EL CORONEL</Text>
+        <Text style={[styles.brandName, { color: COLORS.mode === 'dark' ? '#FFFFFF' : COLORS.text }]}>EL CORONEL</Text>
         {isMobile && (
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <X size={24} color={COLORS.text || "#FFF"} />
+            <X size={24} color={COLORS.text} />
           </TouchableOpacity>
         )}
       </View>
@@ -158,25 +155,25 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
               onPress={() => handleTabPress(item.id)}
               style={[
                 styles.menuItem,
-                isActive && styles.activeItem
+                isActive && { backgroundColor: COLORS.primary + '15' }
               ]}
               data-sidebar-item="true"
             >
               <Icon 
                 size={20} 
-                color={isActive ? (COLORS.primary || 'var(--gold)') : (COLORS.textSecondary || 'var(--text-secondary)')} 
+                color={isActive ? COLORS.primary : COLORS.textSecondary} 
                 strokeWidth={isActive ? 2.5 : 2}
               />
               <Text 
                 style={[
                   styles.menuLabel, 
-                  { color: isActive ? (COLORS.text || 'var(--text-primary)') : (COLORS.textSecondary || 'var(--text-secondary)') },
+                  { color: isActive ? COLORS.text : COLORS.textSecondary },
                   isActive && styles.activeLabel
                 ]}
               >
                 {item.label}
               </Text>
-              {isActive && <View style={[styles.indicator, { backgroundColor: COLORS.primary || 'var(--gold)' }]} />}
+              {isActive && <View style={[styles.indicator, { backgroundColor: COLORS.primary }]} />}
             </TouchableOpacity>
           );
         })}
@@ -184,14 +181,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
 
       {/* User Info / Logout */}
       <View style={styles.footer}>
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: COLORS.border }]} />
         <View style={styles.userSection}>
-          <View style={styles.userAvatar}>
-             <Text style={styles.avatarInitial}>{currentUser?.name?.charAt(0) || 'U'}</Text>
+          <View style={[styles.userAvatar, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: COLORS.border }]}>
+             <Text style={[styles.avatarInitial, { color: COLORS.primary }]}>{currentUser?.name?.charAt(0) || 'U'}</Text>
           </View>
           <View style={styles.userDetails}>
-            <Text style={styles.userName} numberOfLines={1}>{currentUser?.name || 'Usuario'}</Text>
-            <Text style={styles.userRole} numberOfLines={1}>{getRoleLabel(role)}</Text>
+            <Text style={[styles.userName, { color: COLORS.text }]} numberOfLines={1}>{currentUser?.name || 'Usuario'}</Text>
+            <Text style={[styles.userRole, { color: COLORS.textSecondary }]} numberOfLines={1}>{getRoleLabel(role)}</Text>
           </View>
         </View>
         
@@ -213,21 +210,21 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
         onRequestClose={() => setShowExitConfirm(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalIconContainer}>
+          <View style={[styles.modalContent, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(15, 23, 42, 0.1)' }]}>
+            <View style={[styles.modalIconContainer, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(239, 68, 68, 0.1)' }]}>
               <AlertTriangle size={32} color="#EF4444" />
             </View>
-            <Text style={styles.modalTitle}>¿Abandonar proceso?</Text>
-            <Text style={styles.modalMessage}>
+            <Text style={[styles.modalTitle, { color: COLORS.text }]}>¿Abandonar proceso?</Text>
+            <Text style={[styles.modalMessage, { color: COLORS.textSecondary }]}>
                 Tienes una reserva en curso. Si sales ahora se perderán los datos seleccionados.
             </Text>
             
             <View style={styles.modalActions}>
               <TouchableOpacity 
-                style={[styles.modalBtn, styles.cancelModalBtn]} 
+                style={[styles.modalBtn, styles.cancelModalBtn, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]} 
                 onPress={() => setShowExitConfirm(false)}
               >
-                <Text style={styles.modalBtnText}>CONTINUAR</Text>
+                <Text style={[styles.modalBtnText, { color: COLORS.text }]}>CONTINUAR</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -331,7 +328,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   brandName: {
-    color: '#FFF',
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: 2,
@@ -404,9 +400,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    color: '#FFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   userRole: {
     color: 'var(--text-secondary)',

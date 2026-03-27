@@ -94,7 +94,7 @@ export default function AuthScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: COLORS.background }]}>
       {/* Success Modal */}
       <Modal
         visible={showSuccessModal}
@@ -103,21 +103,24 @@ export default function AuthScreen() {
         onRequestClose={handleSuccessModalClose}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={handleSuccessModalClose}>
-              <X size={20} color="var(--text-muted)" />
+          <View style={[styles.modalCard, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+            <TouchableOpacity 
+              style={[styles.modalCloseBtn, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]} 
+              onPress={handleSuccessModalClose}
+            >
+              <X size={20} color={COLORS.textSecondary} />
             </TouchableOpacity>
 
-            <View style={styles.modalIconWrapper}>
-              <CheckCircle size={48} color="var(--gold)" />
+            <View style={[styles.modalIconWrapper, { backgroundColor: COLORS.primary + '15', borderColor: COLORS.primary + '30' }]}>
+              <CheckCircle size={48} color={COLORS.primary} />
             </View>
 
-            <Text style={styles.modalTitle}>¡Cuenta Creada!</Text>
-            <Text style={styles.modalMessage}>
+            <Text style={[styles.modalTitle, { color: COLORS.text }]}>¡Cuenta Creada!</Text>
+            <Text style={[styles.modalMessage, { color: COLORS.textSecondary }]}>
               Te hemos enviado un correo de verificación. Revisa tu bandeja de entrada o spam y haz clic en el enlace para activar tu cuenta.
             </Text>
 
-            <TouchableOpacity style={styles.modalBtn} onPress={handleSuccessModalClose}>
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: COLORS.primary }]} onPress={handleSuccessModalClose}>
               <Text style={styles.modalBtnText}>ENTENDIDO</Text>
             </TouchableOpacity>
           </View>
@@ -126,15 +129,15 @@ export default function AuthScreen() {
 
       {/* Background Decor */}
       {!isMobile && (
-        <View style={styles.brandSide} data-brand-side="true">
+        <View style={[styles.brandSide, { backgroundColor: COLORS.mode === 'dark' ? '#080808' : '#0F172A' }]} data-brand-side="true">
           <View style={styles.brandContent} data-brand-content="true">
-            <View style={styles.logoWrapper}>
-               <Scissors size={48} color="var(--gold)" />
+            <View style={[styles.logoWrapper, { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(197, 160, 33, 0.3)' }]}>
+               <Scissors size={48} color={COLORS.primary} />
             </View>
-            <Text style={styles.brandTitle} data-brand-title="true">EL CORONEL</Text>
-            <Text style={styles.brandSubtitle}>EXECUTIVE BARBER SHOP</Text>
-            <View style={styles.divider} />
-            <Text style={styles.quote}>Donde la tradición se encuentra con la distinción.</Text>
+            <Text style={[styles.brandTitle, { color: COLORS.primary }]} data-brand-title="true">EL CORONEL</Text>
+            <Text style={[styles.brandSubtitle, { color: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.8)' : 'rgba(197, 160, 33, 0.7)' }]}>EXECUTIVE BARBER SHOP</Text>
+            <View style={[styles.divider, { backgroundColor: COLORS.primary }]} />
+            <Text style={[styles.quote, { color: 'rgba(255,255,255,0.6)' }]}>Donde la tradición se encuentra con la distinción.</Text>
           </View>
         </View>
       )}
@@ -144,14 +147,14 @@ export default function AuthScreen() {
         style={styles.formSide}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle} data-theme-toggle="true">
-            {isDarkMode ? <Sun size={20} color="var(--gold)" /> : <Moon size={20} color="#333" />}
+          <TouchableOpacity onPress={toggleTheme} style={[styles.themeToggle, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: COLORS.border }]}>
+            {isDarkMode ? <Sun size={20} color={COLORS.primary} /> : <Moon size={20} color={COLORS.text} />}
           </TouchableOpacity>
 
-          <Animated.View style={[styles.formCard, { opacity: fadeAnim }]} data-form-card="true">
+          <Animated.View style={[styles.formCard, { opacity: fadeAnim, backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} data-form-card="true">
             <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>{isLogin ? 'Bienvenido' : 'Crea tu Cuenta'}</Text>
-              <Text style={styles.formSubtitle}>
+              <Text style={[styles.formTitle, { color: COLORS.text }]}>{isLogin ? 'Bienvenido' : 'Crea tu Cuenta'}</Text>
+              <Text style={[styles.formSubtitle, { color: COLORS.textSecondary }]}>
                 {isLogin ? 'Ingresa tus credenciales para continuar' : 'Únete a la membresía exclusiva de El Coronel'}
               </Text>
             </View>
@@ -159,13 +162,13 @@ export default function AuthScreen() {
             <View style={styles.inputsContainer}>
               {!isLogin && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Nombre Completo</Text>
-                  <View style={styles.inputWrapper} data-input-wrapper="true">
-                    <UserIcon size={18} color="var(--text-muted)" />
+                  <Text style={[styles.label, { color: COLORS.textSecondary }]}>Nombre Completo</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} data-input-wrapper="true">
+                    <UserIcon size={18} color={COLORS.textMuted} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: COLORS.text }]}
                       placeholder="Tu nombre"
-                      placeholderTextColor="var(--text-muted)"
+                      placeholderTextColor={COLORS.textMuted}
                       value={name}
                       onChangeText={setName}
                     />
@@ -174,13 +177,13 @@ export default function AuthScreen() {
               )}
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
-                <View style={styles.inputWrapper} data-input-wrapper="true">
-                  <Mail size={18} color="var(--text-muted)" />
+                <Text style={[styles.label, { color: COLORS.textSecondary }]}>Email</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} data-input-wrapper="true">
+                  <Mail size={18} color={COLORS.textMuted} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: COLORS.text }]}
                     placeholder="email@ejemplo.com"
-                    placeholderTextColor="var(--text-muted)"
+                    placeholderTextColor={COLORS.textMuted}
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
@@ -190,13 +193,13 @@ export default function AuthScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Contraseña</Text>
-                <View style={styles.inputWrapper} data-input-wrapper="true">
-                  <Lock size={18} color="var(--text-muted)" />
+                <Text style={[styles.label, { color: COLORS.textSecondary }]}>Contraseña</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} data-input-wrapper="true">
+                  <Lock size={18} color={COLORS.textMuted} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: COLORS.text }]}
                     placeholder="••••••••"
-                    placeholderTextColor="var(--text-muted)"
+                    placeholderTextColor={COLORS.textMuted}
                     secureTextEntry
                     value={password}
                     onChangeText={setPassword}
@@ -206,13 +209,13 @@ export default function AuthScreen() {
 
               {!isLogin && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Confirmar Contraseña</Text>
-                  <View style={styles.inputWrapper} data-input-wrapper="true">
-                    <Lock size={18} color="var(--text-muted)" />
+                  <Text style={[styles.label, { color: COLORS.textSecondary }]}>Confirmar Contraseña</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} data-input-wrapper="true">
+                    <Lock size={18} color={COLORS.textMuted} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: COLORS.text }]}
                       placeholder="••••••••"
-                      placeholderTextColor="var(--text-muted)"
+                      placeholderTextColor={COLORS.textMuted}
                       secureTextEntry
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
@@ -224,7 +227,7 @@ export default function AuthScreen() {
 
             {isLogin && (
               <TouchableOpacity onPress={() => resetPassword(email)} style={styles.forgotPass}>
-                <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+                <Text style={[styles.forgotText, { color: COLORS.primary }]}>¿Olvidaste tu contraseña?</Text>
               </TouchableOpacity>
             )}
 
@@ -235,7 +238,7 @@ export default function AuthScreen() {
             )}
 
             <TouchableOpacity 
-              style={styles.primaryBtn} 
+              style={[styles.primaryBtn, { backgroundColor: COLORS.primary, shadowColor: COLORS.primary }]} 
               onPress={handleAuth} 
               disabled={loading}
               data-primary-btn="true"
@@ -247,11 +250,11 @@ export default function AuthScreen() {
             </TouchableOpacity>
 
             <View style={styles.footerRow}>
-              <Text style={styles.footerText}>
+              <Text style={[styles.footerText, { color: COLORS.textMuted }]}>
                 {isLogin ? '¿Aún no eres miembro?' : '¿Ya tienes una cuenta?'}
               </Text>
               <TouchableOpacity onPress={toggleSwitch}>
-                <Text style={styles.linkText}>
+                <Text style={[styles.linkText, { color: COLORS.primary }]}>
                   {isLogin ? 'Regístrate aquí' : 'Inicia sesión'}
                 </Text>
               </TouchableOpacity>
@@ -267,13 +270,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: 'var(--bg-dark)',
   },
   brandSide: {
     flex: 1.2,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 60,
+    backgroundColor: '#080808',
   },
   brandContent: {
     alignItems: 'center',
@@ -283,22 +286,18 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 30,
-    backgroundColor: 'var(--glass-surface)',
     borderWidth: 1,
-    borderColor: 'var(--glass-border)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
   },
   brandTitle: {
-    color: '#FFF',
     fontSize: 56,
     fontWeight: '900',
     letterSpacing: 10,
     textAlign: 'center',
   },
   brandSubtitle: {
-    color: 'var(--gold)',
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 4,
@@ -306,11 +305,9 @@ const styles = StyleSheet.create({
   divider: {
     width: 60,
     height: 3,
-    backgroundColor: 'var(--gold)',
     marginVertical: 10,
   },
   quote: {
-    color: 'var(--text-muted)',
     fontSize: 18,
     fontStyle: 'italic',
     textAlign: 'center',
@@ -333,9 +330,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'var(--glass-surface)',
     borderWidth: 1,
-    borderColor: 'var(--glass-border)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -343,11 +338,9 @@ const styles = StyleSheet.create({
   formCard: {
     width: '100%',
     maxWidth: 440,
-    backgroundColor: 'var(--bg-card)',
     padding: 40,
     borderRadius: 32,
     borderWidth: 1,
-    borderColor: 'var(--glass-border)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.4,
@@ -357,13 +350,11 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   formTitle: {
-    color: '#FFF',
     fontSize: 32,
     fontWeight: '800',
     marginBottom: 8,
   },
   formSubtitle: {
-    color: 'var(--text-secondary)',
     fontSize: 15,
     lineHeight: 22,
   },
@@ -375,7 +366,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: 'var(--text-secondary)',
     fontSize: 13,
     fontWeight: '600',
     marginLeft: 4,
@@ -383,9 +373,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: 'var(--glass-border)',
     borderRadius: 14,
     paddingHorizontal: 16,
     height: 52,
@@ -393,7 +381,6 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#FFF',
     fontSize: 15,
     fontWeight: '500',
   },
@@ -402,19 +389,16 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   forgotText: {
-    color: 'var(--gold)',
     fontSize: 13,
     fontWeight: '600',
   },
   primaryBtn: {
-    backgroundColor: 'var(--gold)',
     height: 56,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    shadowColor: 'var(--gold)',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 15,
@@ -432,11 +416,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   footerText: {
-    color: 'var(--text-muted)',
     fontSize: 14,
   },
   linkText: {
-    color: 'var(--gold)',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -465,10 +447,8 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: 'var(--bg-card)',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'var(--glass-border)',
     padding: 32,
     alignItems: 'center',
     shadowColor: '#000',
@@ -483,7 +463,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -491,22 +470,18 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: 'rgba(201, 169, 106, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(201, 169, 106, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
   modalTitle: {
-    color: '#FFF',
     fontSize: 24,
     fontWeight: '800',
     marginBottom: 12,
     textAlign: 'center',
   },
   modalMessage: {
-    color: 'var(--text-secondary)',
     fontSize: 14,
     lineHeight: 22,
     textAlign: 'center',
@@ -515,11 +490,9 @@ const styles = StyleSheet.create({
   modalBtn: {
     width: '100%',
     height: 52,
-    backgroundColor: 'var(--gold)',
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: 'var(--gold)',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 12,

@@ -10,6 +10,9 @@ import {
   getIdToken,
   getIdTokenResult,
   reload,
+  setPersistence,
+  browserSessionPersistence,
+  browserLocalPersistence,
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, getDoc, getDocFromCache, setDoc, DocumentReference, onSnapshot } from 'firebase/firestore';
@@ -44,6 +47,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       default: return 'client';
     }
   };
+
+  // Inactivity Timer (30 minutes)
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (currentUser) {
+        timeoutId = setTimeout(() => {
+          console.log("Inactivity timeout reached. Logging out...");
+          logout();
+          if (Platform.OS === 'web') {
+            window.alert("Tu sesión ha expirado por inactividad.");
+          } else {
+            Alert.alert("Sesión Expirada", "Tu sesión ha sido cerrada por inactividad.");
+          }
+        }, INACTIVITY_TIMEOUT);
+      }
+    };
+
+    // Set persistence for web to session only (clears on tab close)
+    if (Platform.OS === 'web') {
+      setPersistence(auth, browserSessionPersistence).catch(err => {
+        console.error("Error setting session persistence:", err);
+      });
+      
+      // Activity listeners for web
+      window.addEventListener('mousemove', resetTimer);
+      window.addEventListener('keydown', resetTimer);
+      window.addEventListener('scroll', resetTimer);
+      window.addEventListener('touchstart', resetTimer);
+    }
+
+    if (currentUser) {
+      resetTimer();
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (Platform.OS === 'web') {
+        window.removeEventListener('mousemove', resetTimer);
+        window.removeEventListener('keydown', resetTimer);
+        window.removeEventListener('scroll', resetTimer);
+        window.removeEventListener('touchstart', resetTimer);
+      }
+    };
+  }, [currentUser]);
 
   useEffect(() => {
     let unsubscribeSnapshot: (() => void) | null = null;

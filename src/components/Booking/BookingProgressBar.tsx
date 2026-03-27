@@ -14,6 +14,7 @@ export default function BookingProgressBar({
   styles, 
   currentStep, 
   STEPS, 
+  COLORS,
   isMobile 
 }: BookingProgressBarProps) {
   return (
@@ -45,7 +46,7 @@ export default function BookingProgressBar({
                  {isActive ? (
                     <Check size={18} color="#000" />
                  ) : (
-                    Icon ? <Icon size={18} color={isCurrent ? "#000" : "var(--text-muted)"} /> : null
+                    Icon ? <Icon size={18} color={isCurrent ? "#000" : COLORS.textMuted} /> : null
                  )}
               </View>
               {!isMobile && (

@@ -169,7 +169,3 @@ export const updateAppointmentStatus = async (
     throw error;
   }
 };
-
-// TODO: Implementar reembolso Stripe en Cloud Functions
-// Se necesita una Cloud Function que escuche cambios en Firestore (status: 'cancelled')
-// y ejecute stripe.refunds.create({ payment_intent: paymentIntentId })

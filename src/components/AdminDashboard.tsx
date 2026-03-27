@@ -22,6 +22,7 @@ import {
   arrayUnion, 
   writeBatch 
 } from 'firebase/firestore';
+import { formatFullDate } from '../utils/formatters';
 
 // Core Components
 import MainLayout from './Navigation/MainLayout';
@@ -179,6 +180,7 @@ export default function AdminDashboard({
             isDarkMode={isDarkMode}
             onLogout={onLogout}
             COLORS={COLORS}
+            viewMode={activeTab}
             setViewMode={setActiveTab}
             isMobile={isMobile}
           />
@@ -188,7 +190,7 @@ export default function AdminDashboard({
               <AdminMetrics
                 totalToday={totalToday}
                 totalWalkins={totalWalkins}
-                dateLabel={new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                dateLabel={formatFullDate(new Date())}
                 COLORS={COLORS}
                 isMobile={isMobile}
               />
@@ -291,7 +293,6 @@ export default function AdminDashboard({
                         onConfirm={handleWalkIn} 
                         onCancel={() => setActiveTab('dashboard')}
                         COLORS={COLORS} 
-                        barbers={barbers}
                         isWalkIn
                       />
                   </View>

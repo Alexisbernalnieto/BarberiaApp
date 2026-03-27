@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { Bell, X, CalendarCheck, MapPin, User, Scissors } from 'lucide-react';
+import { formatTime12h } from '../../utils/formatters';
 
 interface AdminNotificationsProps {
   showNotifications: boolean;
@@ -59,7 +60,7 @@ export default function AdminNotifications({
                         <Text style={styles.typeText}>Nueva Cita</Text>
                       </View>
                       <Text style={styles.notifTime}>
-                        {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {formatTime12h(new Date(notif.createdAt))}
                       </Text>
                     </View>
 

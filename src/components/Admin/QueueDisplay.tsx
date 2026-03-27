@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
+import { formatFullDate, formatTime12h } from '../../utils/formatters';
 
 export default function QueueDisplay({ appointments, onClose, COLORS }: any) {
   const { width, height } = useWindowDimensions();
@@ -43,8 +44,9 @@ export default function QueueDisplay({ appointments, onClose, COLORS }: any) {
     return { currentApp: current, upcomingApps: upcoming };
   }, [appointments, currentTime.getMinutes()]); // Update slightly when minute changes, just in case
 
-  const timeString = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const dateString = currentTime.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase();
+  const timeString = formatTime12h(`${currentTime.getHours()}:${currentTime.getMinutes()}`);
+  const dateStr = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${String(currentTime.getDate()).padStart(2, '0')}`;
+  const dateString = formatFullDate(dateStr).toUpperCase();
 
   return (
     <View style={styles.container}>
@@ -84,7 +86,7 @@ export default function QueueDisplay({ appointments, onClose, COLORS }: any) {
                           </View>
 
                           <View style={styles.timeBadgeContainer}>
-                              <Text style={styles.timeBadgeText}>{currentApp.time}</Text>
+                              <Text style={styles.timeBadgeText}>{formatTime12h(currentApp.time)}</Text>
                           </View>
                       </View>
                   ) : (
@@ -116,7 +118,7 @@ export default function QueueDisplay({ appointments, onClose, COLORS }: any) {
                                   <Text style={styles.upcomingName} numberOfLines={1}>{item.userName || 'Cliente'}</Text>
                                   <Text style={styles.upcomingService} numberOfLines={1}>{item.serviceName} • {item.barberName}</Text>
                               </View>
-                              <Text style={styles.upcomingTime}>{item.time}</Text>
+                              <Text style={styles.upcomingTime}>{formatTime12h(item.time)}</Text>
                           </View>
                       )}
                   />
