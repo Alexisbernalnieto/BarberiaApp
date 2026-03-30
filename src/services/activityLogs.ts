@@ -1,6 +1,6 @@
 import { collection, addDoc, query, orderBy, limit, getDocs, onSnapshot, Timestamp } from 'firebase/firestore';
-import { db } from '../firebaseClient';
-import { ActivityLog } from '../types';
+import { db } from '@/firebaseClient';
+import { ActivityLog } from '@/types';
 
 const LOGS_COLLECTION = 'activity_logs';
 

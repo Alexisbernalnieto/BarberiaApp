@@ -17,6 +17,19 @@ import { useData } from '../../context/DataContext';
 import { useSidebar } from '../../context/SidebarContext';
 import { createAppointment } from '../../services/appointments';
 
+// Helper: Time to Minutes
+const timeToMinutes = (t: string) => {
+  if (!t) return 0;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+};
+
+const minutesToTime = (mins: number) => {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
 import BookingProgressBar from './BookingProgressBar';
 import BookingStepBranch from './BookingStepBranch';
 import BookingStepServices from './BookingStepServices';
@@ -110,44 +123,88 @@ export default function BookingWizard({
   };
 
   const isSlotTaken = (time: string) => {
-    if (!selectedBarber || !selectedDate) return false;
-    return existingAppointments.some((appt: Appointment) =>
-      appt.date === selectedDate &&
-      appt.time === time &&
-      (appt.barberId === (selectedBarber.uid || selectedBarber.id)) &&
-      appt.status !== 'cancelled'
-    );
+    if (!selectedBarber || !selectedDate || !selectedService) return false;
+    
+    const newStart = timeToMinutes(time);
+    const newDuration = selectedService.duration || 30;
+    const newEnd = newStart + newDuration + 10; // 10 min tolerance
+
+    return existingAppointments.some((appt: Appointment) => {
+      if (appt.date !== selectedDate) return false;
+      if (appt.barberId !== (selectedBarber.uid || selectedBarber.id)) return false;
+      if (appt.status === 'cancelled' || appt.status === 'no_show' || appt.status === 'rescheduled') return false;
+
+      const appStart = timeToMinutes(appt.time);
+      const appDuration = (appt as any).duration || (appt as any).serviceDuration || 30;
+      const appEnd = appStart + appDuration + 10;
+
+      // Overlap formula
+      return (newStart < appEnd && newEnd > appStart);
+    });
   };
 
   const generateTimeSlots = () => {
-    if (!selectedDate || !selectedBranch) return [];
+    if (!selectedDate || !selectedBranch || !selectedBarber || !selectedService) return [];
     
-    const slots = [];
-    const startHour = 10;
-    const endHour = 20;
-
-    for (let h = startHour; h < endHour; h++) {
-      slots.push(`${String(h).padStart(2, '0')}:00`);
-      slots.push(`${String(h).padStart(2, '0')}:30`);
-    }
-
+    const slots: string[] = [];
+    let currentTime = timeToMinutes("10:00"); // Standard open time
+    const closingTime = timeToMinutes("20:00"); // Standard close time
+    const serviceDuration = selectedService.duration || 30;
+    
     const now = new Date();
     const isToday = selectedDate === todayLocal;
+    const currentMins = now.getHours() * 60 + now.getMinutes();
 
-    if (isToday) {
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
+    // Relevant apps for this barber & day
+    const dayApps = existingAppointments
+      .filter((a: any) => 
+        a.date === selectedDate && 
+        a.barberId === (selectedBarber.uid || selectedBarber.id) &&
+        !['cancelled', 'no_show', 'rescheduled'].includes(a.status)
+      )
+      .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
 
-      return slots.filter(slot => {
-        const [slotH, slotM] = slot.split(':').map(Number);
-        return slotH > currentHour || (slotH === currentHour && slotM > currentMinute);
+    // Logic: Advance through the day and find gaps
+    while (currentTime + serviceDuration <= closingTime) {
+      if (isToday && currentTime <= currentMins + 15) {
+        currentTime += 5; // Skip past time
+        continue;
+      }
+
+      // Check conflict
+      const conflict = dayApps.find(app => {
+        const appStart = timeToMinutes(app.time);
+        const appDuration = (app as any).duration || (app as any).serviceDuration || 30;
+        const appEnd = appStart + appDuration + 10;
+        
+        // Potential app range
+        const newStart = currentTime;
+        const newEnd = currentTime + serviceDuration + 10;
+
+        return (newStart < appEnd && newEnd > appStart);
       });
+
+      if (conflict) {
+        // Jump to end of conflict
+        const appStart = timeToMinutes(conflict.time);
+        const appDuration = (conflict as any).duration || (conflict as any).serviceDuration || 30;
+        currentTime = appStart + appDuration + 10;
+      } else {
+        slots.push(minutesToTime(currentTime));
+        // Next candidate in 15 mins to avoid cluttered UI, 
+        // but it will respect even "odd" start times if they come from a jump.
+        currentTime += 15; 
+      }
     }
 
     return slots;
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (directPaymentId?: string) => {
+    // Use direct params to avoid stale closure when called from payment callback
+    const finalPaymentId = directPaymentId || paymentIntentId;
+    const finalIsPaid = !!directPaymentId || isPaid;
+
     const appointmentData = {
       userId: user?.uid || 'walkin-guest',
       userName: isWalkIn ? guestName : user?.name,
@@ -163,9 +220,9 @@ export default function BookingWizard({
       price: selectedService.price,
       duration: selectedService.duration,
       type: isWalkIn ? 'Walk-in' : 'Online',
-      paymentIntentId: paymentIntentId,
-      paid: isPaid,
-      status: isPaid ? 'confirmed' : 'pending_payment',
+      paymentIntentId: finalPaymentId,
+      paid: finalIsPaid,
+      status: finalIsPaid ? 'confirmed' : 'pending_payment',
       createdAt: new Date().toISOString()
     };
 
@@ -174,7 +231,6 @@ export default function BookingWizard({
       const result = await createAppointment(appointmentData as any);
       setBookingStatus('success');
       setIsBookingInProgress(false);
-      // onConfirm(result); // Removing direct callback to wait for success modal interaction
     } catch (error: any) {
       setBookingErrorMessage(error.message || "Error al crear la cita");
       setBookingStatus('error');
@@ -279,10 +335,8 @@ export default function BookingWizard({
                 setPaymentIntentId(id);
                 setIsPaid(true);
                 setBookingStatus('idle');
-                // Automatically proceed to confirmation logic
-                setTimeout(() => {
-                    handleConfirm();
-                }, 500);
+                // Pass payment ID directly to avoid stale closure
+                handleConfirm(id);
               }}
               onPaymentError={(err) => {
                   setBookingErrorMessage(err);
