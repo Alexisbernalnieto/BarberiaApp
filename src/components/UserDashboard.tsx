@@ -35,7 +35,7 @@ import UserProfile from './User/UserProfile';
 import UserSchedules from './User/UserSchedules';
 import UserServicesDetailed from './User/UserServicesDetailed';
 import UserLocations from './User/UserLocations';
-
+import AdminUsers from './Admin/AdminUsers';
 interface UserDashboardProps {
   user: AppUser;
   appointments: Appointment[];
@@ -174,6 +174,14 @@ export default function UserDashboard({
 
             {activeTab === 'location' && (
                 <UserLocations COLORS={COLORS} />
+            )}
+
+            {activeTab === 'admin_users_override' && (
+                <AdminUsers 
+                    COLORS={COLORS} 
+                    isMobile={isMobile} 
+                    onBack={() => setActiveTab('dashboard')} 
+                />
             )}
         </ScrollView>
       </View>

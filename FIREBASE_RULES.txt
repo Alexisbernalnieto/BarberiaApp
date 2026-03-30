@@ -16,12 +16,21 @@ service cloud.firestore {
     
     // --- NUEVO SISTEMA CUSTOM CLAIMS (Rápido, Barato y Seguro) ---
     function hasRole(allowedRoles) {
-      // Verifica directamente en el token (sin lecturas a BD) o permite un rol numérico
-      return request.auth.token.role in allowedRoles;
+      return ('role' in request.auth.token) && (request.auth.token.role in allowedRoles);
     }
     
     function isAdmin() {
-      return isSignedIn() && hasRole(['admin', 0]);
+      let uid = request.auth.uid;
+      let userDoc = get(/databases/$(database)/documents/users/$(uid));
+      return isSignedIn() && (
+        hasRole(['admin', 0]) || 
+        (userDoc != null && (userDoc.data.role == 'admin' || userDoc.data.role == 0)) ||
+        (('email' in request.auth.token) && (
+          request.auth.token.email.lower() == 'alexisb.ti22@utsjr.edu.mx' || 
+          request.auth.token.email.lower() == 'alexisbn.ti22@utsjr.edu.mx' ||
+          request.auth.token.email.lower() == 'alexisbernalnieto@gmail.com'
+        ))
+      );
     }
     
     function isReception() {

@@ -1,6 +1,6 @@
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebaseClient';
-import { Appointment } from '../types';
+import { db } from '@/firebaseClient';
+import { Appointment } from '@/types';
 
 export const calculateMonthlyRevenue = (appointments: Appointment[]) => {
   const currentMonth = new Date().getMonth();

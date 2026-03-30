@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions, Alert, Modal } from 'react-native';
+import { AlertTriangle, CheckCircle2, Check } from 'lucide-react';
 import { logActivity } from '../../services/activityLogs';
 
 export default function AdminCashRegister({ appointments, onClose, COLORS, currentUser }: any) {
@@ -9,8 +10,23 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
 
   const [currentDateObj, setCurrentDateObj] = useState(new Date());
   const [selectedBranch, setSelectedBranch] = useState('Todas'); // 'Todas', 'Centro', 'Lomas'
+  
+  // Modal states
+  const [confirmModal, setConfirmModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  } | null>(null);
+  const [successModal, setSuccessModal] = useState<string | null>(null);
 
   const dateStr = currentDateObj.toISOString().split('T')[0];
+
+  // Helper arrays for Spanish date formatting
+  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+  // Formats to: "Viernes 27 de Marzo 2026"
+  const displayDateStr = `${diasSemana[currentDateObj.getDay()]} ${currentDateObj.getDate()} de ${meses[currentDateObj.getMonth()]} ${currentDateObj.getFullYear()}`;
 
   const goPrevDay = () => {
     const prev = new Date(currentDateObj);
@@ -71,28 +87,18 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
 
   const handleCerrarCaja = () => {
     if (totalRevenue === 0) {
-      if (typeof window !== 'undefined' && window.confirm) {
-        if (!window.confirm("No hay ingresos registrados para hoy. ¿Cerrar caja de todos modos?")) return;
-      } else {
-        // Fallback or React Native Alert
-        Alert.alert("Corte en Cero", "¿No hay ingresos para hoy. Cerrar caja de todos modos?", [
-            { text: "Cancelar", style: "cancel" },
-            { text: "Cerrar", onPress: executeCorte }
-        ]);
-        return;
-      }
+      setConfirmModal({
+        visible: true,
+        title: "Corte en Cero",
+        message: "No hay ingresos registrados para hoy.\n¿Cerrar caja de todos modos?"
+      });
     } else {
-      if (typeof window !== 'undefined' && window.confirm) {
-        if (!window.confirm(`¿Confirmar cierre de caja por un total de $${totalRevenue}?`)) return;
-      } else {
-        Alert.alert("Confirmar Cierre", `¿Confirmar cierre de caja por un total de $${totalRevenue}?`, [
-            { text: "Cancelar", style: "cancel" },
-            { text: "Confirmar", onPress: executeCorte }
-        ]);
-        return;
-      }
+      setConfirmModal({
+        visible: true,
+        title: "Confirmar Cierre",
+        message: `¿Confirmar cierre de caja por un total de $${totalRevenue.toLocaleString()}?`
+      });
     }
-    executeCorte();
   };
 
   const executeCorte = async () => {
@@ -104,11 +110,7 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
         action: 'Corte de Caja',
         details: `Corte de Caja (${selectedBranch}): Total $${totalRevenue} | Efectivo $${totalCash} | Tarjeta $${totalCard} | Fecha: ${dateStr}.`,
       });
-      if (typeof window !== 'undefined' && window.alert) {
-         window.alert("Corte de caja registrado exitosamente en el Historial.");
-      } else {
-         Alert.alert("Éxito", "Corte de caja registrado en el historial.");
-      }
+      setSuccessModal("Corte de caja registrado exitosamente en el Historial.");
     } catch (err) {
       console.error(err);
       if (typeof window !== 'undefined' && window.alert) window.alert("Error al registrar el corte.");
@@ -127,7 +129,7 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
         <TouchableOpacity style={styles.dateBtn} onPress={goPrevDay}>
             <Text style={styles.dateBtnText}>{'< Anterior'}</Text>
         </TouchableOpacity>
-        <Text style={styles.currentDateText}>{dateStr}</Text>
+        <Text style={styles.currentDateText}>{displayDateStr}</Text>
         <TouchableOpacity style={styles.dateBtn} onPress={goNextDay}>
             <Text style={styles.dateBtnText}>{'Siguiente >'}</Text>
         </TouchableOpacity>
@@ -191,6 +193,70 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
             <Text style={styles.cerrarCajaText}>EFECTUAR CORTE DE CAJA</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* CONFIRM MODAL */}
+      <Modal
+        visible={!!confirmModal?.visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setConfirmModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: COLORS.surface, borderColor: 'rgba(212, 175, 55, 0.2)' }]}>
+            <View style={[styles.modalIconContainer, confirmModal?.title === "Corte en Cero" ? { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)' } : { backgroundColor: 'rgba(212, 175, 55, 0.1)', borderColor: 'rgba(212, 175, 55, 0.2)' }]}>
+              {confirmModal?.title === "Corte en Cero" ? <AlertTriangle size={32} color="#EF4444" /> : <CheckCircle2 size={32} color="var(--gold)" />}
+            </View>
+            <Text style={[styles.modalTitle, { color: COLORS.text }]}>{confirmModal?.title}</Text>
+            <Text style={[styles.modalMessage, { color: COLORS.textSecondary }]}>{confirmModal?.message}</Text>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.cancelModalBtn, { backgroundColor: 'rgba(255,255,255,0.05)' }]} 
+                onPress={() => setConfirmModal(null)}
+              >
+                <Text style={[styles.modalBtnText, { color: COLORS.text }]}>CANCELAR</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.confirmModalBtn, confirmModal?.title === "Corte en Cero" ? { backgroundColor: '#EF4444' } : { backgroundColor: 'var(--gold)' }]} 
+                onPress={() => {
+                  setConfirmModal(null);
+                  executeCorte();
+                }}
+              >
+                <Text style={[styles.modalBtnText, { color: confirmModal?.title === "Corte en Cero" ? '#FFF' : '#000' }]}>SÍ, CERRAR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* SUCCESS MODAL */}
+      <Modal
+        visible={!!successModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSuccessModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: COLORS.surface, borderColor: 'rgba(16, 185, 129, 0.2)' }]}>
+            <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.2)' }]}>
+              <Check size={32} color="#10B981" />
+            </View>
+            <Text style={[styles.modalTitle, { color: COLORS.text }]}>¡Éxito!</Text>
+            <Text style={[styles.modalMessage, { color: COLORS.textSecondary }]}>{successModal}</Text>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: '#10B981', flex: 1 }]} 
+                onPress={() => setSuccessModal(null)}
+              >
+                <Text style={[styles.modalBtnText, { color: '#FFF' }]}>ENTENDIDO</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -377,5 +443,74 @@ const getStyles = (COLORS: any, isMobile: boolean) => StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 1,
-  }
+  },
+  // MODAL STYLES
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 20000,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: 'rgb(20, 20, 20)',
+    borderRadius: 24,
+    padding: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+    alignItems: 'center',
+  },
+  modalIconContainer: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: 'rgba(212, 175, 55, 0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(212, 175, 55, 0.2)',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelModalBtn: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  confirmModalBtn: {
+    backgroundColor: 'var(--gold)',
+  },
+  modalBtnText: {
+      color: '#FFF',
+      fontWeight: '700',
+      fontSize: 14,
+  },
 });
