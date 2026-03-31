@@ -8,9 +8,12 @@ import {
   ScrollView,
   useWindowDimensions,
   Animated,
-  Alert
+  Alert,
+  Linking
 } from 'react-native';
 import { updateAppointmentStatus, createAppointment } from '../services/appointments';
+import { db } from '../firebaseClient';
+import { doc, updateDoc } from 'firebase/firestore';
 import {
   Calendar,
   Clock,
@@ -26,7 +29,11 @@ import {
   Award,
   X,
   MessageSquare,
-  AlertCircle
+  AlertCircle,
+  Instagram,
+  Link,
+  Edit2,
+  Save
 } from 'lucide-react';
 import { formatFullDate, formatTime12h } from '../utils/formatters';
 import MainLayout from './Navigation/MainLayout';
@@ -67,6 +74,47 @@ export default function BarberDashboard({
   const [selectedApptForCancel, setSelectedApptForCancel] = useState<Appointment | null>(null);
   const [cancellationReason, setCancellationReason] = useState('');
   const [cancellationType, setCancellationType] = useState('other');
+
+  // Edit Profile States
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState(user.name || '');
+  const [editPhone, setEditPhone] = useState(user.phone || '');
+  const [editInstagram, setEditInstagram] = useState(user.instagram || '');
+  const [editTiktok, setEditTiktok] = useState(user.tiktok || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsSavingProfile(true);
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        name: editName,
+        phone: editPhone,
+        instagram: editInstagram,
+        tiktok: editTiktok
+      });
+      setIsEditingProfile(false);
+      Alert.alert('Éxito', 'Perfil actualizado correctamente.');
+    } catch (error: any) {
+      Alert.alert('Error', 'No se pudo actualizar el perfil: ' + error.message);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const toggleEditProfile = () => {
+    if (isEditingProfile) {
+      // Cancelar - revertir valores
+      setEditName(user.name || '');
+      setEditPhone(user.phone || '');
+      setEditInstagram(user.instagram || '');
+      setEditTiktok(user.tiktok || '');
+      setIsEditingProfile(false);
+    } else {
+      // Iniciar edición
+      setIsEditingProfile(true);
+    }
+  };
 
   const cancelReasons = [
     { id: 'emergency', label: 'Emergencia Personal', icon: '🚑' },
@@ -116,7 +164,7 @@ export default function BarberDashboard({
   const allCompletedAppts = historyAppointments.filter(app => app.status === 'completed');
   const totalGross = allCompletedAppts.reduce((sum, app) => sum + (app.price || 0), 0);
   const totalEarnings = totalGross * 0.5; // 50% commission
-  
+
   const thisWeekGross = allCompletedAppts.filter(app => {
     const diffTime = Math.abs(new Date().getTime() - new Date(app.date).getTime());
     return diffTime <= 7 * 24 * 60 * 60 * 1000;
@@ -157,7 +205,7 @@ export default function BarberDashboard({
     const groups: { [monthYear: string]: number } = {};
     allCompletedAppts.forEach(app => {
       // Create date object
-      const parts = app.date.split('-'); 
+      const parts = app.date.split('-');
       if (parts.length === 3) {
         const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
         const monthYear = d.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
@@ -177,14 +225,14 @@ export default function BarberDashboard({
       groups[sName] = (groups[sName] || 0) + 1;
     });
     return Object.entries(groups)
-      .sort((a,b) => b[1] - a[1])
+      .sort((a, b) => b[1] - a[1])
       .map(([service, count]) => ({ service, count }));
   }, [allCompletedAppts]);
 
   const handleStatusChange = async (appId: string, newStatus: string, cancellationData?: any) => {
     try {
       await updateAppointmentStatus(appId, newStatus as any, user.uid, 'barber', cancellationData);
-      
+
       if (newStatus === 'completed') {
         Alert.alert('¡Excelente!', 'Cita marcada como completada.');
       } else if (newStatus === 'cancelled') {
@@ -206,7 +254,7 @@ export default function BarberDashboard({
 
   const confirmCancellation = () => {
     if (!selectedApptForCancel) return;
-    
+
     handleStatusChange(selectedApptForCancel.id, 'cancelled', {
       reason: cancellationReason || 'Cancelado por el barbero',
       type: cancellationType
@@ -368,8 +416,8 @@ export default function BarberDashboard({
                           <View key={app.id} style={[styles.appCard, { flexDirection: 'column', alignItems: 'stretch' }]} data-glass="true">
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                               <View style={styles.appTime}>
-                                 <Clock size={16} color="var(--gold)" />
-                                 <Text style={styles.timeText}>{formatTime12h(app.time)}</Text>
+                                <Clock size={16} color="var(--gold)" />
+                                <Text style={styles.timeText}>{formatTime12h(app.time)}</Text>
                               </View>
                               <View style={styles.appInfo}>
                                 <Text style={styles.clientName}>{app.userName || 'Cliente'}</Text>
@@ -397,11 +445,11 @@ export default function BarberDashboard({
                                 <TouchableOpacity onPress={() => handleStatusChange(app.id, 'no_show')} style={[styles.actionBtn, { borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
                                   <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>Faltó</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                   onPress={() => {
                                     setSelectedApptForCancel(app);
                                     setShowCancelModal(true);
-                                  }} 
+                                  }}
                                   style={[styles.actionBtn, { borderColor: 'rgba(239, 68, 68, 0.6)', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}
                                 >
                                   <Text style={[styles.actionBtnText, { color: '#EF4444', fontWeight: 'bold' }]}>Cancelar</Text>
@@ -422,12 +470,12 @@ export default function BarberDashboard({
                     {upcomingAppointments.filter(app => app.date > today).slice(0, 5).map((app) => (
                       <View key={app.id} style={styles.upcomingItem}>
                         <View style={styles.upcomingDate}>
-                           <Text style={[styles.upDay, { fontSize: 13, textAlign: 'center' }]}>{formatFullDate(app.date).split(' ')[0]}</Text>
-                           <Text style={[styles.upDay, { fontSize: 18, fontWeight: '900' }]}>{new Date(app.date).getDate() + 1}</Text>
+                          <Text style={[styles.upDay, { fontSize: 13, textAlign: 'center' }]}>{formatFullDate(app.date).split(' ')[0]}</Text>
+                          <Text style={[styles.upDay, { fontSize: 18, fontWeight: '900' }]}>{new Date(app.date).getDate() + 1}</Text>
                         </View>
                         <View style={styles.upInfo}>
-                           <Text style={styles.upClient}>{app.userName}</Text>
-                           <Text style={styles.upService}>{app.serviceName} • {formatTime12h(app.time)}</Text>
+                          <Text style={styles.upClient}>{app.userName}</Text>
+                          <Text style={styles.upService}>{app.serviceName} • {formatTime12h(app.time)}</Text>
                         </View>
                         <ChevronRight size={18} color="var(--text-muted)" />
                       </View>
@@ -479,7 +527,7 @@ export default function BarberDashboard({
             <View style={styles.tabContent}>
               <Text style={styles.sectionTitle}>Tus Métricas Globales</Text>
               <View style={[styles.metricsRow, isMobile ? { flexDirection: 'column' } : { flexWrap: 'wrap', gap: 24 }]}>
-                
+
                 <View style={{
                   flex: isMobile ? undefined : 1, width: isMobile ? '100%' : 'auto', minWidth: 280, maxHeight: 280,
                   backgroundColor: 'var(--bg-card)', borderRadius: 20, borderWidth: 1, borderColor: 'var(--glass-border)',
@@ -492,7 +540,7 @@ export default function BarberDashboard({
                     </View>
                     <Text style={[styles.metricValue, { fontSize: 36, marginBottom: 8, textAlign: 'center' }]}>${thisWeekEarnings.toLocaleString()}</Text>
                     <Text style={[styles.metricLabel, { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }]}>Mi Ganancia 7 Días (50%)</Text>
-                    
+
                     <TouchableOpacity
                       style={{ alignSelf: 'center', flexDirection: 'row', alignItems: 'center', marginTop: 24, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'var(--bg-card)', borderRadius: 24, borderWidth: 1, borderColor: 'var(--gold-subtle)' }}
                       onPress={() => {
@@ -546,7 +594,7 @@ export default function BarberDashboard({
                     </View>
                     <Text style={[styles.metricValue, { fontSize: 36, marginBottom: 8, textAlign: 'center' }]}>${totalEarnings.toLocaleString()}</Text>
                     <Text style={[styles.metricLabel, { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }]}>Total Acumulado (50%)</Text>
-                    
+
                     <TouchableOpacity
                       style={{ alignSelf: 'center', flexDirection: 'row', alignItems: 'center', marginTop: 24, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'var(--bg-card)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.5)' }}
                       onPress={() => {
@@ -646,37 +694,137 @@ export default function BarberDashboard({
 
           {activeTab === 'profile' && (
             <View style={styles.tabContent}>
-              <Text style={styles.sectionTitle}>Mi Perfil</Text>
+              <View style={[styles.headerActions, { width: '100%', justifyContent: 'space-between', marginBottom: 16 }]}>
+                <Text style={styles.sectionTitle}>Mi Perfil</Text>
+                {!isEditingProfile ? (
+                  <TouchableOpacity style={[styles.actionBtn, { borderColor: 'var(--gold)', backgroundColor: 'var(--gold-subtle)', flexDirection: 'row', alignItems: 'center' }]} onPress={toggleEditProfile}>
+                    <Edit2 size={16} color="var(--gold)" style={{ marginRight: 6 }} />
+                    <Text style={[styles.actionBtnText, { color: 'var(--gold)' }]}>Editar Perfil</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <TouchableOpacity style={[styles.actionBtn, { borderColor: 'var(--glass-border)', flexDirection: 'row', alignItems: 'center' }]} onPress={toggleEditProfile} disabled={isSavingProfile}>
+                      <X size={16} color="var(--text-muted)" style={{ marginRight: 6 }} />
+                      <Text style={[styles.actionBtnText, { color: 'var(--text-muted)' }]}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.actionBtn, { borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.1)', flexDirection: 'row', alignItems: 'center' }]} onPress={handleSaveProfile} disabled={isSavingProfile}>
+                      <Save size={16} color="#10B981" style={{ marginRight: 6 }} />
+                      <Text style={[styles.actionBtnText, { color: '#10B981' }]}>
+                        {isSavingProfile ? 'Guardando...' : 'Guardar'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+              
               <View style={styles.profileCard}>
                 <View style={styles.profileAvatarLarge}>
                   <User size={48} color="var(--gold)" />
                 </View>
-                <Text style={styles.profileNameLarge}>{user.name}</Text>
+                
+                {isEditingProfile ? (
+                  <TextInput
+                    style={[styles.editInput, { fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 4 }]}
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Tu Nombre"
+                    placeholderTextColor="var(--text-muted)"
+                  />
+                ) : (
+                  <Text style={styles.profileNameLarge}>{user.name}</Text>
+                )}
+                
                 <Text style={styles.profileRoleLarge}>Especialista Barbero</Text>
 
-                <View style={styles.profileDataList}>
+                <View style={[styles.profileDataList, isEditingProfile && { gap: 24 }]}>
                   <View style={styles.profileDataRow}>
                     <Text style={styles.profileDataLabel}>Correo Electrónico:</Text>
-                    <Text style={styles.profileDataValue}>{user.email}</Text>
-                  </View>
-                  <View style={styles.profileDataRow}>
-                    <Text style={styles.profileDataLabel}>Teléfono:</Text>
-                    <Text style={styles.profileDataValue}>{user.phone || 'No registrado'}</Text>
+                    <Text style={[styles.profileDataValue, { color: 'var(--text-muted)' }]}>{user.email} (No editable)</Text>
                   </View>
                   <View style={styles.profileDataRow}>
                     <Text style={styles.profileDataLabel}>Sucursal Asignada:</Text>
-                    <Text style={styles.profileDataValue}>{user.branch || 'Principal'}</Text>
+                    <Text style={[styles.profileDataValue, { color: 'var(--text-muted)' }]}>{user.branch || 'Principal'} (No editable)</Text>
                   </View>
+                  <View style={styles.profileDataRow}>
+                    <Text style={styles.profileDataLabel}>Teléfono:</Text>
+                    {isEditingProfile ? (
+                      <TextInput
+                        style={[styles.editInput, { width: '50%' }]}
+                        value={editPhone}
+                        onChangeText={setEditPhone}
+                        placeholder="ej. 555 123 4567"
+                        placeholderTextColor="var(--text-muted)"
+                        keyboardType="phone-pad"
+                      />
+                    ) : (
+                      <Text style={styles.profileDataValue}>{user.phone || 'No registrado'}</Text>
+                    )}
+                  </View>
+                  
+                  {isEditingProfile && (
+                    <>
+                      <View style={styles.profileDataRow}>
+                        <Text style={styles.profileDataLabel}>Instagram (Usuario):</Text>
+                        <TextInput
+                          style={[styles.editInput, { width: '50%' }]}
+                          value={editInstagram}
+                          onChangeText={setEditInstagram}
+                          placeholder="ej. @mi_usuario"
+                          placeholderTextColor="var(--text-muted)"
+                          autoCapitalize="none"
+                        />
+                      </View>
+                      <View style={styles.profileDataRow}>
+                        <Text style={styles.profileDataLabel}>TikTok (Usuario):</Text>
+                        <TextInput
+                          style={[styles.editInput, { width: '50%' }]}
+                          value={editTiktok}
+                          onChangeText={setEditTiktok}
+                          placeholder="ej. @mi_usuario"
+                          placeholderTextColor="var(--text-muted)"
+                          autoCapitalize="none"
+                        />
+                      </View>
+                    </>
+                  )}
                 </View>
+
+                {/* Redes Sociales */}
+                {!isEditingProfile && (
+                  <View style={styles.socialContainer}>
+                    <Text style={styles.socialTitle}>Redes Sociales Profesionales</Text>
+                    <View style={styles.socialRow}>
+                      <TouchableOpacity 
+                        style={[styles.socialBtn, { backgroundColor: 'rgba(225, 48, 108, 0.1)', borderColor: 'rgba(225, 48, 108, 0.3)' }]}
+                        onPress={() => user.instagram ? Linking.openURL(`https://instagram.com/${user.instagram.replace('@', '')}`) : Alert.alert('Aviso', 'No tienes un Instagram registrado. Haz click en Editar Perfil.')}
+                      >
+                        <Instagram size={20} color="#E1306C" />
+                        <Text style={[styles.socialBtnText, { color: '#E1306C' }]}>
+                          {user.instagram ? `@${user.instagram.replace('@', '')}` : 'Agregar Instagram'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[styles.socialBtn, { backgroundColor: 'rgba(0, 242, 254, 0.1)', borderColor: 'rgba(0, 242, 254, 0.3)' }]}
+                        onPress={() => user.tiktok ? Linking.openURL(`https://tiktok.com/@${user.tiktok.replace('@', '')}`) : Alert.alert('Aviso', 'No tienes un TikTok registrado. Haz click en Editar Perfil.')}
+                      >
+                        <Link size={20} color="#00F2FE" />
+                        <Text style={[styles.socialBtnText, { color: '#00F2FE' }]}>
+                          {user.tiktok ? `@${user.tiktok.replace('@', '')}` : 'Agregar TikTok'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
               </View>
             </View>
           )}
 
           {activeTab === 'admin_users_override' && (
-            <AdminUsers 
-              COLORS={COLORS} 
-              isMobile={isMobile} 
-              onBack={() => setActiveTab('dashboard')} 
+            <AdminUsers
+              COLORS={COLORS}
+              isMobile={isMobile}
+              onBack={() => setActiveTab('dashboard')}
             />
           )}
         </ScrollView>
@@ -736,17 +884,17 @@ export default function BarberDashboard({
               </View>
 
               <View style={styles.modalFooter}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     setShowCancelModal(false);
                     setSelectedApptForCancel(null);
-                  }} 
+                  }}
                   style={styles.cancelLink}
                 >
                   <Text style={styles.cancelLinkText}>Volver</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={confirmCancellation} 
+                <TouchableOpacity
+                  onPress={confirmCancellation}
                   style={styles.confirmCancelBtn}
                 >
                   <Text style={styles.confirmCancelBtnText}>Confirmar Cancelación</Text>
@@ -1084,6 +1232,55 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 15,
     fontWeight: '600',
+  },
+  editInput: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
+    backgroundColor: 'var(--glass-surface)',
+    borderWidth: 1,
+    borderColor: 'var(--glass-border)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 150,
+    textAlign: 'right',
+  },
+  socialContainer: {
+    width: '100%',
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'var(--glass-border)',
+  },
+  socialTitle: {
+    color: 'var(--text-secondary)',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  socialRow: {
+    flexDirection: 'row',
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  socialBtn: {
+    flex: 1,
+    minWidth: 140,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  socialBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   breakdownContainer: {
     marginTop: 16,
