@@ -1,9 +1,25 @@
-import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import { Clock, CreditCard, Banknote, Scissors, MapPin, X, Hash } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform, ActivityIndicator } from 'react-native';
+import { Clock, CreditCard, Banknote, Scissors, MapPin, X, Hash, ChevronRight } from 'lucide-react';
 import { formatFullDate, formatTime12h } from '../../utils/formatters';
+import { getPaymentMetadata, PaymentMetadata } from '../../services/payments';
 
 const AppointmentDetail = ({ appointment, visible, onClose, COLORS }: any) => {
+    const [metadata, setMetadata] = useState<PaymentMetadata | null>(null);
+    const [loadingMeta, setLoadingMeta] = useState(false);
+
+    useEffect(() => {
+        if (visible && appointment?.paymentIntentId) {
+            setLoadingMeta(true);
+            getPaymentMetadata(appointment.paymentIntentId)
+                .then(data => setMetadata(data))
+                .catch(err => console.error("Could not fetch metadata:", err))
+                .finally(() => setLoadingMeta(false));
+        } else {
+            setMetadata(null);
+        }
+    }, [visible, appointment]);
+
     if (!appointment) return null;
 
     const isPaidOnline = appointment.paymentIntentId || appointment.paid;
@@ -44,15 +60,52 @@ const AppointmentDetail = ({ appointment, visible, onClose, COLORS }: any) => {
                             
                             <View style={styles.divider} />
                             
+                            {/* PREMIUM TICKET SECTION */}
                             <DetailRow icon={isPaidOnline ? CreditCard : Banknote} label="MÉTODO DE PAGO" value={paymentMethod} />
                             
-                            {appointment.paymentIntentId && (
-                                <DetailRow 
-                                    icon={Hash} 
-                                    label="ID TRANSACCIÓN" 
-                                    value={appointment.paymentIntentId.slice(-10).toUpperCase()} 
-                                    mono 
-                                />
+                            {isPaidOnline && appointment.paymentIntentId && (
+                                <View style={styles.stripeCardBox}>
+                                    <View style={styles.stripeCardHeader}>
+                                        <Hash size={14} color="var(--gold)" />
+                                        <Text style={styles.stripeCardTitle}>TICKET DE PAGO ORIGINAL</Text>
+                                    </View>
+                                    
+                                    {loadingMeta ? (
+                                        <View style={styles.metaLoading}>
+                                            <ActivityIndicator size="small" color="var(--gold)" />
+                                            <Text style={styles.metaLoadingText}>Recuperando de Stripe...</Text>
+                                        </View>
+                                    ) : (
+                                        <View style={styles.metaContent}>
+                                            <View style={styles.metaRow}>
+                                                <Text style={styles.metaLabel}>ID TRANSACCIÓN</Text>
+                                                <Text style={[styles.metaValue, styles.monoText]}>{appointment.paymentIntentId.split('_').pop()?.toUpperCase()}</Text>
+                                            </View>
+                                            
+                                            {metadata?.brand && metadata?.last4 && (
+                                                <View style={styles.metaRow}>
+                                                    <Text style={styles.metaLabel}>TARJETA USADA</Text>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                                        <View style={styles.cardBrandChip}>
+                                                            <Text style={styles.cardBrandText}>{metadata.brand.toUpperCase()}</Text>
+                                                        </View>
+                                                        <Text style={styles.metaValue}>•••• {metadata.last4}</Text>
+                                                    </View>
+                                                </View>
+                                            )}
+
+                                            {metadata?.receipt_url && Platform.OS === 'web' && (
+                                                <TouchableOpacity 
+                                                    style={styles.receiptButton}
+                                                    onPress={() => window.open(metadata.receipt_url as string, '_blank')}
+                                                >
+                                                    <Text style={styles.receiptButtonText}>Ver Recibo Oficial</Text>
+                                                    <ChevronRight size={16} color="var(--gold)" />
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                    )}
+                                </View>
                             )}
                         </View>
 
@@ -162,7 +215,90 @@ const styles = StyleSheet.create({
     divider: { height: 1, backgroundColor: 'var(--glass-border)', marginVertical: 8 },
     totalSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderTopWidth: 1, borderColor: 'var(--glass-border)' },
     totalLabel: { color: '#FFF', fontSize: 16, fontWeight: '800', letterSpacing: 1 },
-    totalValue: { color: 'var(--gold)', fontSize: 28, fontWeight: '900' }
+    totalValue: { color: 'var(--gold)', fontSize: 28, fontWeight: '900' },
+    stripeCardBox: {
+        marginTop: 16,
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: 'rgba(212, 175, 55, 0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(212, 175, 55, 0.2)',
+    },
+    stripeCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(212, 175, 55, 0.1)',
+        marginBottom: 16,
+    },
+    stripeCardTitle: {
+        color: 'var(--gold)',
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 2,
+    },
+    metaLoading: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        paddingVertical: 20,
+    },
+    metaLoadingText: {
+        color: 'var(--text-secondary)',
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    metaContent: {
+        gap: 16,
+    },
+    metaRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    metaLabel: {
+        color: 'var(--text-secondary)',
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 1,
+    },
+    metaValue: {
+        color: '#FFF',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    cardBrandChip: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 6,
+    },
+    cardBrandText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 1,
+    },
+    receiptButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 8,
+        paddingVertical: 12,
+        backgroundColor: 'rgba(212, 175, 55, 0.1)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(212, 175, 55, 0.2)',
+    },
+    receiptButtonText: {
+        color: 'var(--gold)',
+        fontSize: 13,
+        fontWeight: '700',
+    }
 });
 
 export default AppointmentDetail;

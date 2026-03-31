@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import { useData } from '../context/DataContext';
+import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useData } from '@/context/DataContext';
 
-import AuthScreen from '../screens/AuthScreen';
-import UserDashboard from '../components/UserDashboard';
-import AdminDashboard from '../components/AdminDashboard';
-import BarberDashboard from '../components/BarberDashboard';
+import AuthScreen from '@/screens/AuthScreen';
+import UserDashboard from '@/components/UserDashboard';
+import AdminDashboard from '@/components/AdminDashboard';
+import BarberDashboard from '@/components/BarberDashboard';
 
-import { createAppointment } from '../services/appointments';
-import { UserRole } from '../types';
-import { SidebarProvider } from '../context/SidebarContext';
+import { createAppointment } from '@/services/appointments';
+import { UserRole } from '@/types';
+import { SidebarProvider } from '@/context/SidebarContext';
 
 export default function AppNavigator() {
   const { currentUser, loading, logout } = useAuth();
@@ -31,12 +31,13 @@ export default function AppNavigator() {
   };
 
   const renderDashboard = () => {
-    if (isRole('admin')) {
+    if (isRole('admin') || isRole('reception')) {
       return (
         <AdminDashboard
           appointments={appointments}
           onLogout={logout}
-          onAddAppointment={createAppointment}
+          onAddAppointment={async (data: any) => { await createAppointment(data); }}
+          role={isRole('admin') ? 'admin' : 'reception'}
           barbers={barbers}
           setBarbers={setBarbers}
           COLORS={COLORS}
@@ -47,7 +48,7 @@ export default function AppNavigator() {
     } else if (isRole('barber')) {
       return (
         <BarberDashboard
-          user={currentUser}
+          user={currentUser!}
           appointments={appointments}
           onLogout={logout}
           COLORS={COLORS}
@@ -58,7 +59,7 @@ export default function AppNavigator() {
     } else {
       return (
         <UserDashboard
-          user={currentUser}
+          user={currentUser!}
           appointments={appointments}
           onLogout={logout}
           COLORS={COLORS}

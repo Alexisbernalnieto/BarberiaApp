@@ -34,6 +34,11 @@ export const functions = getFunctions(app);
 // Inicializar App Check de manera segura para la web contra abusos
 if (Platform.OS === 'web' && typeof window !== 'undefined') {
   try {
+    // Permitir App Check Debug en localhost para evitar 403 y bloqueos en Firestore
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    }
+
     initializeAppCheck(app, {
       provider: new ReCaptchaV3Provider(process.env.EXPO_PUBLIC_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'), // Test key or env var
       isTokenAutoRefreshEnabled: true

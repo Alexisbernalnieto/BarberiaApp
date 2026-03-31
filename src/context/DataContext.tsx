@@ -1,8 +1,8 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { collection, query, onSnapshot, where, orderBy, limit, getDocs, setDoc, doc, Unsubscribe } from 'firebase/firestore';
-import { db } from '../firebaseClient';
-import { useAuth } from './AuthContext';
-import { Appointment, AppUser, Service, Branch } from '../types';
+import { db } from '@/firebaseClient';
+import { useAuth } from '@/context/AuthContext';
+import { Appointment, AppUser, Service, Branch } from '@/types';
 
 interface DataContextType {
   appointments: Appointment[];
@@ -65,11 +65,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubAppointments = onSnapshot(
       qAppointments,
       (snapshot) => {
+        console.log(`[DATA CONTEXT] Snapshot de citas recibido. Total: ${snapshot.size}`);
         const apps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
         setAppointments(apps);
       },
       (error) => {
-        console.error("Error fetching appointments:", error);
+        console.error("[DATA CONTEXT] ERROR cargando citas:", error);
       }
     );
 

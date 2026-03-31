@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
+  TextInput,
   View,
   Text,
   StyleSheet,
@@ -22,12 +23,17 @@ import {
   CheckCircle2,
   Menu,
   User,
-  Award
+  Award,
+  X,
+  MessageSquare,
+  AlertCircle
 } from 'lucide-react';
 import { formatFullDate, formatTime12h } from '../utils/formatters';
 import MainLayout from './Navigation/MainLayout';
+import AdminUsers from './Admin/AdminUsers';
 import { useSidebar } from '../context/SidebarContext';
 import { Appointment, AppUser, UserRole } from '../types';
+import { notifyCancellationToClient } from '../services/notificationDispatcher';
 
 interface BarberDashboardProps {
   appointments: Appointment[];
@@ -57,6 +63,17 @@ export default function BarberDashboard({
   const [showWeeklyBreakdown, setShowWeeklyBreakdown] = useState(false);
   const [showHistoricalBreakdown, setShowHistoricalBreakdown] = useState(false);
   const [showServicesBreakdown, setShowServicesBreakdown] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedApptForCancel, setSelectedApptForCancel] = useState<Appointment | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [cancellationType, setCancellationType] = useState('other');
+
+  const cancelReasons = [
+    { id: 'emergency', label: 'Emergencia Personal', icon: '🚑' },
+    { id: 'overlap', label: 'Cruce de Horario', icon: '⏰' },
+    { id: 'client_request', label: 'Petición del Cliente', icon: '👤' },
+    { id: 'other', label: 'Otro Motivo', icon: '📝' }
+  ];
 
   // Filter appointments assigned to this barber
   const myAppointments = useMemo(() => {
@@ -93,14 +110,18 @@ export default function BarberDashboard({
   }, [myAppointments, today]);
 
   const todaysAppointments = upcomingAppointments.filter(app => app.date === today);
-  const todaysEarnings = todaysAppointments.reduce((sum, app) => sum + (app.price || 0), 0);
+  const todaysGross = todaysAppointments.reduce((sum, app) => sum + (app.price || 0), 0);
+  const todaysEarnings = todaysGross * 0.5; // 50% commission
 
   const allCompletedAppts = historyAppointments.filter(app => app.status === 'completed');
-  const totalEarnings = allCompletedAppts.reduce((sum, app) => sum + (app.price || 0), 0);
-  const thisWeekEarnings = allCompletedAppts.filter(app => {
+  const totalGross = allCompletedAppts.reduce((sum, app) => sum + (app.price || 0), 0);
+  const totalEarnings = totalGross * 0.5; // 50% commission
+  
+  const thisWeekGross = allCompletedAppts.filter(app => {
     const diffTime = Math.abs(new Date().getTime() - new Date(app.date).getTime());
     return diffTime <= 7 * 24 * 60 * 60 * 1000;
   }).reduce((sum, app) => sum + (app.price || 0), 0);
+  const thisWeekEarnings = thisWeekGross * 0.5;
 
   const last7DaysBreakdown = useMemo(() => {
     const breakdown = [];
@@ -117,9 +138,10 @@ export default function BarberDashboard({
         String(d.getDate()).padStart(2, '0')
       ].join('-');
 
-      const dayEarnings = allCompletedAppts
+      const dayGross = allCompletedAppts
         .filter(app => app.date === dateStr)
         .reduce((sum, app) => sum + (app.price || 0), 0);
+      const dayEarnings = dayGross * 0.5;
 
       breakdown.push({
         date: dateStr,
@@ -139,7 +161,8 @@ export default function BarberDashboard({
       if (parts.length === 3) {
         const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
         const monthYear = d.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-        groups[monthYear] = (groups[monthYear] || 0) + (app.price || 0);
+        // Add 50% commission to group
+        groups[monthYear] = (groups[monthYear] || 0) + ((app.price || 0) * 0.5);
       }
     });
     return Object.entries(groups)
@@ -158,16 +181,36 @@ export default function BarberDashboard({
       .map(([service, count]) => ({ service, count }));
   }, [allCompletedAppts]);
 
-  const handleStatusChange = async (appId: string, newStatus: string) => {
+  const handleStatusChange = async (appId: string, newStatus: string, cancellationData?: any) => {
     try {
-      await updateAppointmentStatus(appId, newStatus as any, user.uid, 'barber');
+      await updateAppointmentStatus(appId, newStatus as any, user.uid, 'barber', cancellationData);
+      
       if (newStatus === 'completed') {
         Alert.alert('¡Excelente!', 'Cita marcada como completada.');
+      } else if (newStatus === 'cancelled') {
+        // Trigger Notifications
+        if (selectedApptForCancel) {
+          await notifyCancellationToClient(selectedApptForCancel, cancellationReason || 'Cancelado por el barbero');
+        }
+
+        setShowCancelModal(false);
+        setSelectedApptForCancel(null);
+        setCancellationReason('');
+        Alert.alert('Cita Cancelada', 'Se ha notificado al cliente vía Email/WhatsApp.');
       }
     } catch (error) {
       Alert.alert('Error', 'No se pudo actualizar el estado de la cita.');
       console.error(error);
     }
+  };
+
+  const confirmCancellation = () => {
+    if (!selectedApptForCancel) return;
+    
+    handleStatusChange(selectedApptForCancel.id, 'cancelled', {
+      reason: cancellationReason || 'Cancelado por el barbero',
+      type: cancellationType
+    });
   };
 
   const getNextHalfHour = () => {
@@ -285,7 +328,7 @@ export default function BarberDashboard({
                 </View>
                 <View>
                   <Text style={styles.metricValue}>${todaysEarnings.toLocaleString()}</Text>
-                  <Text style={styles.metricLabel}>Generado Hoy</Text>
+                  <Text style={styles.metricLabel}>Ganancia Neta (50%)</Text>
                 </View>
               </View>
             </View>
@@ -353,6 +396,15 @@ export default function BarberDashboard({
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => handleStatusChange(app.id, 'no_show')} style={[styles.actionBtn, { borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
                                   <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>Faltó</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                  onPress={() => {
+                                    setSelectedApptForCancel(app);
+                                    setShowCancelModal(true);
+                                  }} 
+                                  style={[styles.actionBtn, { borderColor: 'rgba(239, 68, 68, 0.6)', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}
+                                >
+                                  <Text style={[styles.actionBtnText, { color: '#EF4444', fontWeight: 'bold' }]}>Cancelar</Text>
                                 </TouchableOpacity>
                               </View>
                             )}
@@ -439,7 +491,7 @@ export default function BarberDashboard({
                       <TrendingUp size={24} color="var(--gold)" />
                     </View>
                     <Text style={[styles.metricValue, { fontSize: 36, marginBottom: 8, textAlign: 'center' }]}>${thisWeekEarnings.toLocaleString()}</Text>
-                    <Text style={[styles.metricLabel, { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }]}>Ingresos de los últimos 7 días</Text>
+                    <Text style={[styles.metricLabel, { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }]}>Mi Ganancia 7 Días (50%)</Text>
                     
                     <TouchableOpacity
                       style={{ alignSelf: 'center', flexDirection: 'row', alignItems: 'center', marginTop: 24, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'var(--bg-card)', borderRadius: 24, borderWidth: 1, borderColor: 'var(--gold-subtle)' }}
@@ -493,7 +545,7 @@ export default function BarberDashboard({
                       <Award size={24} color="#10B981" />
                     </View>
                     <Text style={[styles.metricValue, { fontSize: 36, marginBottom: 8, textAlign: 'center' }]}>${totalEarnings.toLocaleString()}</Text>
-                    <Text style={[styles.metricLabel, { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }]}>Ingresos Totales (Histórico)</Text>
+                    <Text style={[styles.metricLabel, { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }]}>Total Acumulado (50%)</Text>
                     
                     <TouchableOpacity
                       style={{ alignSelf: 'center', flexDirection: 'row', alignItems: 'center', marginTop: 24, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'var(--bg-card)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.5)' }}
@@ -619,7 +671,90 @@ export default function BarberDashboard({
               </View>
             </View>
           )}
+
+          {activeTab === 'admin_users_override' && (
+            <AdminUsers 
+              COLORS={COLORS} 
+              isMobile={isMobile} 
+              onBack={() => setActiveTab('dashboard')} 
+            />
+          )}
         </ScrollView>
+
+        {/* Cancellation Modal */}
+        {showCancelModal && (
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { width: isMobile ? '95%' : 500 }]} data-glass="true">
+              <View style={styles.modalHeader}>
+                <View style={[styles.iconBox, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+                  <AlertCircle size={24} color="#EF4444" />
+                </View>
+                <TouchableOpacity onPress={() => setShowCancelModal(false)} style={styles.closeBtn}>
+                  <X size={20} color="var(--text-muted)" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalTitle}>Cancelar Cita</Text>
+              <Text style={styles.modalSubtitle}>
+                Esta acción enviará una notificación inmediata al cliente ({selectedApptForCancel?.userName}). Selecciona el motivo.
+              </Text>
+
+              <View style={styles.reasonsGrid}>
+                {cancelReasons.map((reason) => (
+                  <TouchableOpacity
+                    key={reason.id}
+                    onPress={() => setCancellationType(reason.id)}
+                    style={[
+                      styles.reasonCapsule,
+                      cancellationType === reason.id && styles.reasonCapsuleActive
+                    ]}
+                  >
+                    <Text style={styles.reasonIcon}>{reason.icon}</Text>
+                    <Text style={[
+                      styles.reasonLabel,
+                      cancellationType === reason.id && styles.reasonLabelActive
+                    ]}>
+                      {reason.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Información adicional (Opcional)</Text>
+                <View style={[styles.textAreaRow, { paddingVertical: 10 }]}>
+                  <MessageSquare size={16} color="var(--gold)" style={{ marginTop: 4 }} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Escribe un motivo detallado para el cliente..."
+                    placeholderTextColor="var(--text-muted)"
+                    value={cancellationReason}
+                    onChangeText={setCancellationReason}
+                    multiline
+                  />
+                </View>
+              </View>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setShowCancelModal(false);
+                    setSelectedApptForCancel(null);
+                  }} 
+                  style={styles.cancelLink}
+                >
+                  <Text style={styles.cancelLinkText}>Volver</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={confirmCancellation} 
+                  style={styles.confirmCancelBtn}
+                >
+                  <Text style={styles.confirmCancelBtnText}>Confirmar Cancelación</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
     </MainLayout>
   );
@@ -986,5 +1121,126 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 4,
-  }
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: 'var(--bg-card)',
+    borderRadius: 24,
+    padding: 32,
+    borderWidth: 1,
+    borderColor: 'var(--glass-border)',
+    gap: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  modalSubtitle: {
+    color: 'var(--text-secondary)',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  reasonsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  reasonCapsule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'var(--glass-surface)',
+    borderWidth: 1,
+    borderColor: 'var(--glass-border)',
+    gap: 6,
+  },
+  reasonCapsuleActive: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  reasonIcon: {
+    fontSize: 14,
+  },
+  reasonLabel: {
+    color: 'var(--text-secondary)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  reasonLabelActive: {
+    color: '#EF4444',
+  },
+  inputContainer: {
+    gap: 8,
+    marginTop: 8,
+  },
+  inputLabel: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  textAreaRow: {
+    flexDirection: 'row',
+    backgroundColor: 'var(--glass-surface)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    minHeight: 80,
+    borderWidth: 1,
+    borderColor: 'var(--glass-border)',
+  },
+  textInput: {
+    flex: 1,
+    color: '#FFF',
+    fontSize: 14,
+    marginLeft: 10,
+    textAlignVertical: 'top',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 12,
+  },
+  cancelLink: {
+    padding: 8,
+  },
+  cancelLinkText: {
+    color: 'var(--text-muted)',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  confirmCancelBtn: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  confirmCancelBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
 });

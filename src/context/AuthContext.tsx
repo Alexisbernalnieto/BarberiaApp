@@ -16,8 +16,8 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, getDoc, getDocFromCache, setDoc, DocumentReference, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '../firebaseClient';
-import { AppUser, UserRole } from '../types';
+import { auth, db } from '@/firebaseClient';
+import { AppUser, UserRole } from '@/types';
 
 interface AuthContextType {
   currentUser: AppUser | null;
