@@ -15,6 +15,8 @@ export interface AppUser {
   stripeCustomerId?: string;
   rating?: number;
   bio?: string;
+  instagram?: string;
+  tiktok?: string;
 }
 
 export interface Service {
