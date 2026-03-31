@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { subscribeToActivityLogs } from '../../services/activityLogs';
 
 export default function AdminLogsViewer({ COLORS, isMobile }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFilter, setSelectedFilter] = useState('Todos');
+
+  const FILTERS = ['Todos', 'Admin', 'Recepción', 'Cliente', 'Barbero'];
 
   useEffect(() => {
     const unsubscribe = subscribeToActivityLogs((fetchedLogs) => {
@@ -26,8 +29,18 @@ export default function AdminLogsViewer({ COLORS, isMobile }) {
             default: return 'Sistema';
         }
     }
+    const r = String(role || '').toLowerCase();
+    if (r === 'admin' || r === '0') return 'Admin';
+    if (r === 'cliente' || r === 'client' || r === '1') return 'Cliente';
+    if (r === 'recepcion' || r === 'recepción' || r === 'reception' || r === '2') return 'Recepción';
+    if (r === 'barbero' || r === 'barber' || r === '3') return 'Barbero';
     return String(role || 'Sistema').toUpperCase();
   };
+
+  const filteredLogs = logs.filter(log => {
+      if (selectedFilter === 'Todos') return true;
+      return getRoleLabel(log.adminRole) === selectedFilter;
+  });
 
   const getRoleColor = (role) => {
     const r = String(role).toLowerCase();
@@ -78,6 +91,31 @@ export default function AdminLogsViewer({ COLORS, isMobile }) {
       <Text style={[styles.title, { color: COLORS.text, fontSize: isMobile ? 24 : 28 }]}>
         Historial de Actividades
       </Text>
+
+      <View style={styles.filtersContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
+          {FILTERS.map((filter) => (
+            <TouchableOpacity
+              key={filter}
+              style={[
+                styles.filterBtn,
+                { borderColor: COLORS.primary },
+                selectedFilter === filter && { backgroundColor: COLORS.primary }
+              ]}
+              onPress={() => setSelectedFilter(filter)}
+            >
+              <Text 
+                style={[
+                  styles.filterText, 
+                  { color: selectedFilter === filter ? '#000' : COLORS.text }
+                ]}
+              >
+                {filter}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
       
       {loading ? (
         <View style={styles.centerContainer}>
@@ -89,9 +127,14 @@ export default function AdminLogsViewer({ COLORS, isMobile }) {
           <MaterialCommunityIcons name="text-box-search-outline" size={64} color={COLORS.text + '50'} />
           <Text style={[styles.emptyText, { color: COLORS.text + '80' }]}>No hay actividades registradas aún.</Text>
         </View>
+      ) : filteredLogs.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <MaterialCommunityIcons name="text-box-search-outline" size={64} color={COLORS.text + '50'} />
+          <Text style={[styles.emptyText, { color: COLORS.text + '80' }]}>No hay actividades para este filtro.</Text>
+        </View>
       ) : (
         <FlatList
-          data={logs}
+          data={filteredLogs}
           keyExtractor={(item) => item.id}
           renderItem={renderLogItem}
           contentContainerStyle={[styles.listContent, { paddingBottom: isMobile ? 80 : 40 }]}
@@ -113,6 +156,23 @@ const styles = StyleSheet.create({
   },
   listContent: {
     gap: 12,
+  },
+  filtersContainer: {
+    marginBottom: 20,
+  },
+  filtersScroll: {
+    gap: 10,
+    paddingVertical: 4,
+  },
+  filterBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   logCard: {
     padding: 16,

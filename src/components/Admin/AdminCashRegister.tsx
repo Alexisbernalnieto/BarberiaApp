@@ -12,6 +12,15 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
 
   const dateStr = currentDateObj.toISOString().split('T')[0];
 
+  const getFormattedDate = (date: Date) => {
+    const day = date.getDate();
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} de ${month} del ${year}`;
+  };
+  const displayDateStr = getFormattedDate(currentDateObj);
+
   const goPrevDay = () => {
     const prev = new Date(currentDateObj);
     prev.setDate(prev.getDate() - 1);
@@ -127,7 +136,7 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
         <TouchableOpacity style={styles.dateBtn} onPress={goPrevDay}>
             <Text style={styles.dateBtnText}>{'< Anterior'}</Text>
         </TouchableOpacity>
-        <Text style={styles.currentDateText}>{dateStr}</Text>
+        <Text style={styles.currentDateText}>{displayDateStr}</Text>
         <TouchableOpacity style={styles.dateBtn} onPress={goNextDay}>
             <Text style={styles.dateBtnText}>{'Siguiente >'}</Text>
         </TouchableOpacity>
