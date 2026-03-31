@@ -21,10 +21,22 @@ export default function AdminMetrics({ totalToday, totalWalkins, dateLabel, COLO
           <Text style={[styles.metricLabel, { color: COLORS.textSecondary || 'var(--text-secondary)' }]}>Ingresos {dateLabel || 'hoy'}</Text>
         </View>
         <View style={styles.valueRow}>
-          <Text style={[styles.metricValue, { color: COLORS.text || '#FFF' }]}>${totalToday.toLocaleString()}</Text>
-          <View style={styles.trendBadge}>
-             <TrendingUp size={12} color="#10B981" />
-             <Text style={styles.trendText}>+12%</Text>
+          <View>
+            <Text style={[styles.metricValue, { color: COLORS.text || '#FFF' }]}>${totalToday.toLocaleString()}</Text>
+            <Text style={{ color: COLORS.textSecondary || 'var(--text-secondary)', fontSize: 13, fontWeight: '600' }}>
+              Bruto (100%)
+            </Text>
+          </View>
+          
+          <View style={{ height: 30, width: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: 8 }} />
+
+          <View>
+            <Text style={[styles.metricValue, { color: '#10B981', fontSize: 24 }]}>
+              ${(totalToday * 0.5).toLocaleString()}
+            </Text>
+            <Text style={{ color: '#10B981', fontSize: 13, fontWeight: '700' }}>
+              Neto (50%)
+            </Text>
           </View>
         </View>
       </View>

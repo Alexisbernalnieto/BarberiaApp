@@ -23,7 +23,8 @@ import {
   MonitorPlay,
   X,
   Menu,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSidebar } from '../../context/SidebarContext';
@@ -72,6 +73,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
 
   const adminItems = [
     { id: 'dashboard', label: 'Panel Principal', icon: LayoutDashboard },
+    { id: 'appointments', label: 'Control de Citas', icon: ClipboardCheck },
     { id: 'walkin', label: 'Nueva Cita', icon: PlusCircle },
     { id: 'cashregister', label: 'Corte de Caja', icon: CreditCard },
     { id: 'queue', label: 'Pantalla Turnos', icon: MonitorPlay },
@@ -93,11 +95,23 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
     { id: 'profile', label: 'Mi Perfil', icon: Users },
   ];
 
-  const menuItems = (role === 0 || role === 2 || role === 'admin' || role === 'reception') 
-    ? adminItems 
-    : (role === 3 || role === 'barber')
-    ? barberItems
-    : clientItems;
+  const isGodAlexis = currentUser?.email?.toLowerCase() === 'alexisb.ti22@utsjr.edu.mx' || 
+                      currentUser?.email?.toLowerCase() === 'alexisbn.ti22@utsjr.edu.mx' || 
+                      currentUser?.email?.toLowerCase() === 'alexisbernalnieto@gmail.com' ||
+                      currentUser?.name?.toLowerCase().includes('alexis');
+
+  let baseItems;
+  if (role === 0 || role === 2 || role === 'admin' || role === 'reception') {
+    baseItems = adminItems;
+  } else if (role === 3 || role === 'barber') {
+    baseItems = barberItems;
+  } else {
+    baseItems = clientItems;
+  }
+
+  const menuItems = isGodAlexis
+    ? [...baseItems, { id: 'admin_users_override', label: 'Gestión Roles', icon: Users }]
+    : baseItems;
 
   const handleTabPress = (id: string) => {
     if (isBookingInProgress && activeTab === 'book' && id !== 'book') {

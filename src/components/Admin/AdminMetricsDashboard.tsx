@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { DollarSign, Calendar, Users, Trophy } from 'lucide-react';
+import { DollarSign, Calendar, Users, Trophy, TrendingUp } from 'lucide-react';
+
 
 interface AdminMetricsDashboardProps {
   metrics: {
@@ -10,32 +11,76 @@ interface AdminMetricsDashboardProps {
     topServiceMonth: string;
     revenueByDay: { day: number; revenue: number }[];
   };
+  financialMetrics?: {
+    balance: { available: number; pending: number; currency: string } | null;
+    grossVolume: number;
+    netVolume: number;
+    transactionCount: number;
+  };
   COLORS: any;
   isMobile: boolean;
 }
 
-export default function AdminMetricsDashboard({ metrics, COLORS, isMobile }: AdminMetricsDashboardProps) {
+
+export default function AdminMetricsDashboard({ metrics, financialMetrics, COLORS, isMobile }: AdminMetricsDashboardProps) {
   const maxRevenue = Math.max(...metrics.revenueByDay.map(d => d.revenue), 1);
 
   return (
     <View style={styles.wrapper}>
       <View style={[styles.container, isMobile && { flexDirection: 'column' }]}>
-        {/* 1. Ingresos Mensuales */}
-        <View style={[styles.glassCard, { flex: 1, minWidth: isMobile ? '100%' : '22%' }]} data-metric-card="true">
+        {/* 1. Ingresos Mensuales (Gross 100% / Net 50%) */}
+        <View style={[styles.glassCard, { flex: 2, minWidth: isMobile ? '100%' : '46%' }]} data-metric-card="true">
           <View style={styles.metricHeader}>
             <View style={[styles.iconContainer, { backgroundColor: 'var(--gold-subtle)' }]}>
               <DollarSign size={20} color={COLORS.primary || "var(--gold)"} strokeWidth={2.5} />
             </View>
-            <Text style={[styles.metricLabel, { color: COLORS.textSecondary || 'var(--text-secondary)' }]}>Ingresos del Mes</Text>
+            <View>
+              <Text style={[styles.metricLabel, { color: COLORS.textSecondary || 'var(--text-secondary)' }]}>Volumen de Ventas (Stripe)</Text>
+              <Text style={{ color: COLORS.textMuted || 'var(--text-muted)', fontSize: 11 }}>Histórico total succeded</Text>
+            </View>
           </View>
-          <View style={styles.valueRow}>
-            <Text style={[styles.metricValue, { color: COLORS.text || '#FFF' }]}>
-              ${metrics.revenueMonth.toLocaleString()}
-            </Text>
+          
+          <View style={[styles.valueRow, { justifyContent: 'space-between', alignItems: 'center' }]}>
+            <View>
+              <Text style={[styles.metricValue, { color: COLORS.text || '#FFF' }]}>
+                ${(financialMetrics?.grossVolume || metrics.revenueMonth).toLocaleString()}
+              </Text>
+              <Text style={{ color: COLORS.textSecondary, fontSize: 12, fontWeight: '700' }}>BRUTO (100%)</Text>
+            </View>
+
+            <View style={{ width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+
+            <View>
+              <Text style={[styles.metricValue, { color: '#10B981' }]}>
+                ${((financialMetrics?.grossVolume || metrics.revenueMonth) * 0.5).toLocaleString()}
+              </Text>
+              <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '800' }}>NETO (ADMIN 50%)</Text>
+            </View>
           </View>
         </View>
 
-        {/* 2. Citas Hoy */}
+        {/* 2. Balance Real en Stripe (Solo si existe) */}
+        {financialMetrics?.balance && (
+          <View style={[styles.glassCard, { flex: 1, minWidth: isMobile ? '100%' : '22%' }]} data-metric-card="true">
+            <View style={styles.metricHeader}>
+              <View style={[styles.iconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+                <TrendingUp size={20} color="#10B981" strokeWidth={2.5} />
+              </View>
+              <Text style={[styles.metricLabel, { color: COLORS.textSecondary || 'var(--text-secondary)' }]}>Balance Disponible</Text>
+            </View>
+            <View style={styles.valueRow}>
+              <Text style={[styles.metricValue, { color: '#10B981', fontSize: 28 }]}>
+                ${financialMetrics.balance.available.toLocaleString()}
+              </Text>
+              <Text style={[styles.subValue, { color: COLORS.textMuted }]}>{financialMetrics.balance.currency.toUpperCase()}</Text>
+            </View>
+            <Text style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 4 }}>
+              Pendiente: ${financialMetrics.balance.pending.toLocaleString()}
+            </Text>
+          </View>
+        )}
+
+        {/* 3. Citas Hoy */}
         <View style={[styles.glassCard, { flex: 1, minWidth: isMobile ? '100%' : '22%' }]} data-metric-card="true">
           <View style={styles.metricHeader}>
             <View style={[styles.iconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
@@ -49,11 +94,11 @@ export default function AdminMetricsDashboard({ metrics, COLORS, isMobile }: Adm
           </View>
         </View>
 
-        {/* 3. Nuevos Usuarios */}
+        {/* 4. Nuevos Usuarios */}
         <View style={[styles.glassCard, { flex: 1, minWidth: isMobile ? '100%' : '22%' }]} data-metric-card="true">
           <View style={styles.metricHeader}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-              <Users size={20} color="#10B981" strokeWidth={2.5} />
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+              <Users size={20} color="#8B5CF6" strokeWidth={2.5} />
             </View>
             <Text style={[styles.metricLabel, { color: COLORS.textSecondary || 'var(--text-secondary)' }]}>Nuevos Usuarios</Text>
           </View>
@@ -63,20 +108,6 @@ export default function AdminMetricsDashboard({ metrics, COLORS, isMobile }: Adm
           </View>
         </View>
 
-        {/* 4. Top Servicio */}
-        <View style={[styles.glassCard, { flex: 1, minWidth: isMobile ? '100%' : '22%' }]} data-metric-card="true">
-          <View style={styles.metricHeader}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
-              <Trophy size={20} color="#8B5CF6" strokeWidth={2.5} />
-            </View>
-            <Text style={[styles.metricLabel, { color: COLORS.textSecondary || 'var(--text-secondary)' }]}>Top Servicio</Text>
-          </View>
-          <View style={styles.valueRow}>
-            <Text style={[styles.metricValue, { color: COLORS.text || '#FFF', fontSize: 22 }]} numberOfLines={1}>
-              {metrics.topServiceMonth}
-            </Text>
-          </View>
-        </View>
       </View>
 
       {/* Gráfica de Ingresos por Día */}

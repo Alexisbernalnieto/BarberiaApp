@@ -27,24 +27,104 @@ export interface Service {
   branch?: string;
 }
 
+// ─── Appointment Status Lifecycle ────────────────────────────────
+export type AppointmentStatus =
+  | 'pending_payment'  // Creada pero no pagada
+  | 'confirmed'        // Pagada y confirmada
+  | 'checked_in'       // Cliente llegó a la barbería
+  | 'En Local'         // UI-friendly status for checked_in
+  | 'in_progress'      // Corte en progreso
+  | 'completed'        // Servicio terminado
+  | 'no_show'          // Cliente no se presentó (10 min tolerancia)
+  | 'cancelled'        // Cancelada por cliente o admin
+  | 'rescheduled';     // Pospuesta/Reagendada
+
 export interface Appointment {
   id: string;
   userId: string;
   userName: string;
   branch: string;
+  branchId?: string;
   barberId: string | number;
   barberName: string;
-  date: string;
-  time: string;
+  date: string;          // YYYY-MM-DD
+  time: string;          // HH:mm
   serviceId: string | number;
   serviceName: string;
   price: number;
   duration: number;
-  status: 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'En Local' | 'in_progress' | 'no_show';
+  status: AppointmentStatus;
+  type?: 'Online' | 'Walk-in';
   paid: boolean;
   paymentIntentId?: string | null;
   paymentMethod?: 'Cash' | 'Card' | null;
   paidAt?: any;
+  createdAt: any;
+  updatedAt?: any;
+  // ── Lifecycle timestamps ──
+  checkedInAt?: any;
+  completedAt?: any;
+  noShowMarkedAt?: any;
+  cancelledAt?: any;
+  cancelReason?: string;
+  // ── Rescheduling ──
+  rescheduledFrom?: string;    // ID de cita original
+  rescheduledTo?: string;      // ID de nueva cita
+  // ── Barber Reassignment ──
+  reassignedFrom?: string;     // barberId original
+  reassignedFromName?: string; // barberName original
+  reassignmentReason?: string;
+  // ── Internal ──
+  notes?: string;              // Notas internas del admin
+  // ── Refund tracking ──
+  refundStatus?: 'completed' | 'failed';
+  refundId?: string;
+  refundedAt?: any;
+  refundError?: string;
+}
+
+// ─── Barber Daily Work Log ───────────────────────────────────────
+export interface BarberDayLog {
+  id: string;
+  barberId: string;
+  barberName: string;
+  branch: string;
+  date: string;               // YYYY-MM-DD
+  isAbsent?: boolean;
+  absentMarkedAt?: any;
+  absentMarkedBy?: string;
+  clockIn?: any;               // Timestamp
+  clockOut?: any;              // Timestamp
+  totalMinutes?: number;
+  appointmentsCompleted: number;
+  walkInsCompleted: number;
+  noShows: number;
+  revenue: number;
+}
+
+// ─── Notification Types ──────────────────────────────────────────
+export type NotificationType =
+  | 'new_appointment'
+  | 'appointment_cancelled'
+  | 'no_show_alert'
+  | 'barber_absent'
+  | 'appointment_rescheduled'
+  | 'barber_reassigned'
+  | 'walk_in_registered'
+  | 'check_in';
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  message: string;
+  branch?: string;
+  targetRoles: string[];
+  targetUserId?: string;
+  clientName?: string;
+  barberName?: string;
+  service?: string;
+  appointmentId?: string;
+  readBy?: string[];
   createdAt: any;
 }
 
@@ -55,9 +135,10 @@ export interface Branch {
   phone?: string;
   image?: string;
 }
+
 export interface ActivityLog {
   id: string;
-  adminId?: string; // UID del responsable (Admin o Cliente)
+  adminId?: string;
   adminEmail?: string;
   adminRole?: 'admin' | 'reception' | 'client' | 'barber' | 'system';
   action: string;

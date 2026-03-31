@@ -9,7 +9,7 @@ import {
   LayoutGrid,
   History
 } from 'lucide-react';
-import { Appointment } from '../../types';
+import { Appointment } from '@/types';
 
 interface AdminCalendarProps {
   appointments: Appointment[];
@@ -176,9 +176,9 @@ export default function AdminCalendar({ appointments, COLORS, isMobile, selected
                   <Text style={styles.serviceName}>{item.serviceName}</Text>
                   <Text style={styles.priceTag}>${item.price}</Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: item.status === 'En Local' ? 'rgba(16, 185, 129, 0.1)' : 'var(--gold-subtle)' }]}>
-                    <Text style={[styles.statusText, { color: item.status === 'En Local' ? '#10B981' : 'var(--gold)' }]}>
-                        {item.status}
+                <View style={[styles.statusBadge, { backgroundColor: (item.status as string) === 'En Local' || item.status === 'checked_in' ? 'rgba(16, 185, 129, 0.1)' : 'var(--gold-subtle)' }]}>
+                    <Text style={[styles.statusText, { color: (item.status as string) === 'En Local' || item.status === 'checked_in' ? '#10B981' : 'var(--gold)' }]}>
+                        {item.status === 'checked_in' ? 'En Local' : item.status}
                     </Text>
                 </View>
               </View>

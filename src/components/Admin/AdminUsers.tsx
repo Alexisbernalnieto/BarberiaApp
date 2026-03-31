@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, Platform, Modal } from 'react-native';
 import { Search, ArrowLeft, User, Shield, Scissors, UserCheck, Trash2, Edit2, ShieldAlert } from 'lucide-react';
-import { db } from '../../firebaseClient';
+import { db } from '@/firebaseClient';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { AppUser } from '../../types';
-import { logActivity } from '../../services/activityLogs';
-import { useAuth } from '../../context/AuthContext';
+import { AppUser } from '@/types';
+import { logActivity } from '@/services/activityLogs';
+import { useAuth } from '@/context/AuthContext';
 
 const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
   const { currentUser } = useAuth();
@@ -20,16 +20,22 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log("[ADMIN USERS] Iniciando carga de usuarios en Firestore...");
       const q = query(collection(db, 'users'));
       const querySnapshot = await getDocs(q);
+      console.log(`[ADMIN USERS] Snapshot recibido: ${querySnapshot.size} documentos.`);
       const fetchedUsers = querySnapshot.docs.map(doc => ({
         uid: doc.id,
         ...doc.data()
       })) as AppUser[];
       setUsers(fetchedUsers);
     } catch (error: any) {
-      console.error("Error fetching users:", error);
-      Alert.alert("Error de Conexión", "No se pudieron cargar los usuarios: " + error.message);
+      console.error("[ADMIN USERS] Error fatal cargando usuarios:", error);
+      let errorMsg = error.message || "Error desconocido";
+      if (errorMsg.includes('permission-denied') || error.code === 'permission-denied') {
+        errorMsg = "Permisos insuficientes. Tu cuenta no tiene rango de Administrador en la base de datos.";
+      }
+      Alert.alert("Error de Acceso", errorMsg);
     } finally {
       setLoading(false);
     }
@@ -40,6 +46,11 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
   }, []);
 
   const handleUpdateRole = async (user: AppUser, newRole: string) => {
+    if (!currentUser) {
+      Alert.alert("Error", "No tienes permisos (sesión no iniciada)");
+      return;
+    }
+    
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, { role: newRole });
@@ -50,7 +61,7 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
       // Log activity
       await logActivity({
         adminId: currentUser.uid,
-        adminEmail: currentUser.email,
+        adminEmail: currentUser.email || 'unknown',
         adminRole: 'admin',
         action: 'Cambió el rol de un usuario',
         targetUserId: user.uid,
@@ -65,6 +76,11 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
   };
 
   const handleToggleSuspend = async (user: AppUser) => {
+    if (!currentUser) {
+       Alert.alert("Error", "Sesión no detectada");
+       return;
+    }
+
     if (user.status === 'suspended') {
       const performToggle = async () => {
         try {
@@ -73,7 +89,7 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
           
           await logActivity({
             adminId: currentUser.uid,
-            adminEmail: currentUser.email,
+            adminEmail: currentUser.email || 'unknown',
             adminRole: 'admin',
             action: 'Activó a un usuario',
             targetUserId: user.uid,
@@ -105,7 +121,7 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
   };
 
   const confirmSuspendUser = async () => {
-    if (!userToSuspend) return;
+    if (!userToSuspend || !currentUser) return;
     try {
       const finalReason = suspendReason.trim() || 'Tu cuenta ha sido restringida por la administración.';
       await updateDoc(doc(db, 'users', userToSuspend.uid), { 
@@ -120,7 +136,7 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
       
       await logActivity({
         adminId: currentUser.uid,
-        adminEmail: currentUser.email,
+        adminEmail: currentUser.email || 'unknown',
         adminRole: 'admin',
         action: 'Suspendió a un usuario',
         targetUserId: userToSuspend.uid,
@@ -143,8 +159,8 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
         setUsers(prev => prev.map(u => u.uid === user.uid ? { ...u, status: 'deleted' } as AppUser : u));
 
         await logActivity({
-          adminId: currentUser.uid,
-          adminEmail: currentUser.email,
+          adminId: currentUser?.uid || 'system',
+          adminEmail: currentUser?.email || 'system',
           adminRole: 'admin',
           action: 'Eliminó un usuario',
           targetUserId: user.uid,
@@ -218,7 +234,15 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
                   <Text style={[styles.userName, { color: COLORS.text }]}>{user.name || 'Sin Nombre'}</Text>
                   <Text style={[styles.userEmail, { color: COLORS.textSecondary }]}>{user.email}</Text>
                   <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                    <Text style={[styles.roleBadge, { color: COLORS.primary }]}>{String(user.role || 'cliente').toUpperCase()}</Text>
+                    <Text style={[styles.roleBadge, { color: COLORS.primary }]}>
+                      {(() => {
+                        const r = user.role;
+                        if (r === 0 || r === 'admin') return 'ADMIN';
+                        if (r === 2 || r === 'reception') return 'RECEP';
+                        if (r === 3 || r === 'barber') return 'BARBERO';
+                        return 'CLIENTE';
+                      })()}
+                    </Text>
                     {user.status === 'suspended' && (
                       <Text style={[styles.roleBadge, { color: '#EF4444', backgroundColor: 'rgba(239,68,68,0.1)', paddingHorizontal: 6, borderRadius: 4 }]}>SUSPENDIDO</Text>
                     )}

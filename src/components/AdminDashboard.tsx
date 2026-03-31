@@ -9,9 +9,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { db } from '../firebaseClient';
-import { useAuth } from '../context/AuthContext';
-import { calculateMonthlyRevenue, getTodayAppointmentsStats, fetchNewUsersCount, getTopServiceMonth, getMonthlyRevenueByDay } from '../services/metrics';
+import { db } from '@/firebaseClient';
+import { useAuth } from '@/context/AuthContext';
+import { calculateMonthlyRevenue, getTodayAppointmentsStats, fetchNewUsersCount, getTopServiceMonth, getMonthlyRevenueByDay } from '@/services/metrics';
 import { 
   collection, 
   query, 
@@ -22,29 +22,32 @@ import {
   arrayUnion, 
   writeBatch 
 } from 'firebase/firestore';
-import { formatFullDate } from '../utils/formatters';
+import { formatFullDate } from '@/utils/formatters';
 
 // Core Components
-import MainLayout from './Navigation/MainLayout';
-import AdminHeader from './Admin/AdminHeader';
-import AdminMetrics from './Admin/AdminMetrics';
-import AdminMetricsDashboard from './Admin/AdminMetricsDashboard';
-import AdminQuickActions from './Admin/AdminQuickActions';
-import AdminAgenda from './Admin/AdminAgenda';
-import AdminUsers from './Admin/AdminUsers';
-import AdminHistory from './Admin/AdminHistory';
-import AdminBarbers from './Admin/AdminBarbers';
-import AdminServices from './Admin/AdminServices';
-import AdminFinances from './Admin/AdminFinances';
-import CheckoutManager from './Admin/CheckoutManager';
-import BookingWizard from './Booking/BookingWizard';
-import NotificationsModal from './Admin/NotificationsModal';
-import AdminCashRegister from './Admin/AdminCashRegister';
-import QueueDisplay from './Admin/QueueDisplay';
+import MainLayout from '@/components/Navigation/MainLayout';
+import AdminHeader from '@/components/Admin/AdminHeader';
+import AdminMetrics from '@/components/Admin/AdminMetrics';
+import AdminMetricsDashboard from '@/components/Admin/AdminMetricsDashboard';
+import AdminQuickActions from '@/components/Admin/AdminQuickActions';
+import AdminAgenda from '@/components/Admin/AdminAgenda';
+import AdminUsers from '@/components/Admin/AdminUsers';
+import AdminHistory from '@/components/Admin/AdminHistory';
+import BarberManagement from '@/components/Admin/BarberManagement';
+import AdminServices from '@/components/Admin/AdminServices';
+import AdminFinances from '@/components/Admin/AdminFinances';
+import CheckoutManager from '@/components/Admin/CheckoutManager';
+import BookingWizard from '@/components/Booking/BookingWizard';
+import NotificationsModal from '@/components/Admin/NotificationsModal';
+import AdminCashRegister from '@/components/Admin/AdminCashRegister';
+import QueueDisplay from '@/components/Admin/QueueDisplay';
+import AppointmentCommandCenter from '@/components/Admin/AppointmentCommandCenter';
 
-import { Appointment, AppUser, UserRole } from '../types';
+import { Appointment, AppUser, UserRole } from '@/types';
+import { getFinancialMetrics, FinancialMetrics } from '@/services/payments';
 
 interface AdminDashboardProps {
+
   appointments: Appointment[];
   onLogout: () => void;
   onAddAppointment: (data: any) => Promise<void>;
@@ -79,18 +82,24 @@ export default function AdminDashboard({
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
-    if (!role) return;
+    if (role === undefined && role === null) return;
+
+    // Normalize role to string — notifications use string targetRoles ['admin', 'reception']
+    // but user role can be numeric (0 = admin, 2 = reception)
+    const roleStr = (role === 0 || role === 'admin') ? 'admin' 
+                   : (role === 2 || role === 'reception') ? 'reception' 
+                   : String(role);
 
     const q = query(
       collection(db, 'notifications'),
-      where('targetRoles', 'array-contains', role),
+      where('targetRoles', 'array-contains', roleStr),
       orderBy('createdAt', 'desc')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const notifs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
         .filter((n: any) => {
-          const isRead = n.readBy && n.readBy.includes(role);
+          const isRead = n.readBy && n.readBy.includes(roleStr);
           return !isRead;
         });
       setNotifications(notifs);
@@ -104,10 +113,14 @@ export default function AdminDashboard({
   const handleMarkAsRead = async () => {
     if (!notifications.length) return;
 
+    const roleStr = (role === 0 || role === 'admin') ? 'admin' 
+                   : (role === 2 || role === 'reception') ? 'reception' 
+                   : String(role);
+
     const batch = writeBatch(db);
     notifications.forEach(n => {
       const ref = doc(db, 'notifications', n.id);
-      batch.update(ref, { readBy: arrayUnion(role) });
+      batch.update(ref, { readBy: arrayUnion(roleStr) });
     });
 
     try {
@@ -121,6 +134,7 @@ export default function AdminDashboard({
 
   // Metrics for dashboard
   const [newUsersCount, setNewUsersCount] = useState<number>(0);
+  const [financialMetrics, setFinancialMetrics] = useState<FinancialMetrics | undefined>();
 
   useEffect(() => {
     const getNewUsers = async () => {
@@ -129,6 +143,19 @@ export default function AdminDashboard({
     };
     getNewUsers();
   }, []);
+
+  useEffect(() => {
+    const fetchFinance = async () => {
+      try {
+        const fm = await getFinancialMetrics();
+        setFinancialMetrics(fm);
+      } catch (err) {
+        console.error("Error fetching financial metrics:", err);
+      }
+    };
+    fetchFinance();
+  }, []);
+
 
   const metrics = useMemo(() => ({
     revenueMonth: calculateMonthlyRevenue(appointments),
@@ -147,17 +174,9 @@ export default function AdminDashboard({
   const totalWalkins = dayAppointments.filter(app => (app as any).type === 'Walk-in').length;
 
   const handleWalkIn = async (data: any) => {
-    try {
-      await onAddAppointment({
-        ...data,
-        type: 'Walk-in',
-        paid: true,
-        status: 'confirmed'
-      });
-      setActiveTab('dashboard');
-    } catch (error: any) {
-      console.error("Error creating walk-in:", error);
-    }
+    // BookingWizard already creates the appointment successfully.
+    // We just need to close the modal.
+    setActiveTab('dashboard');
   };
 
   return (
@@ -195,6 +214,37 @@ export default function AdminDashboard({
                 isMobile={isMobile}
               />
 
+              {/* Stripe Quick Balance */}
+              {financialMetrics && financialMetrics.balance && (
+                <View style={[styles.stripeCard, isMobile && { width: '100%' }]} data-glass="true">
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <View style={[styles.iconBox, { backgroundColor: '#635BFF' }]}>
+                         <MaterialCommunityIcons name="credit-card-outline" size={24} color="#FFF" />
+                      </View>
+                      <View>
+                        <Text style={styles.stripeTitle}>Stripe Balance</Text>
+                        <Text style={styles.stripeStatus}>Conectado • En Vivo</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity onPress={() => setActiveTab('finances')} style={styles.detailsBtn}>
+                       <Text style={styles.detailsBtnText}>Ver Detalles</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', gap: 40 }}>
+                     <View>
+                        <Text style={styles.stripeLabel}>Disponible</Text>
+                        <Text style={styles.stripeAmount}>${(financialMetrics.balance.available / 100).toLocaleString()} {financialMetrics.balance.currency.toUpperCase()}</Text>
+                     </View>
+                     <View>
+                        <Text style={styles.stripeLabel}>Pendiente</Text>
+                        <Text style={[styles.stripeAmount, { color: 'var(--text-secondary)' }]}>${(financialMetrics.balance.pending / 100).toLocaleString()} {financialMetrics.balance.currency.toUpperCase()}</Text>
+                     </View>
+                  </View>
+                </View>
+              )}
+
               <View style={[styles.mainGridRow, isMobile && { flexDirection: 'column' }]}>
                   <View style={styles.agendaSection}>
                       <AdminAgenda
@@ -218,12 +268,21 @@ export default function AdminDashboard({
           {activeTab === 'metrics' && (
             <AdminMetricsDashboard
               metrics={metrics}
+              financialMetrics={financialMetrics}
               COLORS={COLORS}
               isMobile={isMobile}
             />
           )}
 
           {activeTab === 'users' && (
+            <AdminUsers 
+              COLORS={COLORS} 
+              isMobile={isMobile} 
+              onBack={() => setActiveTab('dashboard')} 
+            />
+          )}
+
+          {activeTab === 'admin_users_override' && (
             <AdminUsers 
               COLORS={COLORS} 
               isMobile={isMobile} 
@@ -248,15 +307,18 @@ export default function AdminDashboard({
           )}
 
           {activeTab === 'barbers' && (
-            <AdminBarbers 
+            <BarberManagement 
+                appointments={appointments}
                 COLORS={COLORS}
-                isMobile={isMobile}
-                onBack={() => setActiveTab('dashboard')}
+                barbers={barbers}
+                setBarbers={setBarbers}
+                onClose={() => setActiveTab('dashboard')}
             />
           )}
 
           {activeTab === 'finances' && (
             <AdminFinances 
+                appointments={appointments}
                 COLORS={COLORS}
                 isMobile={isMobile}
                 onBack={() => setActiveTab('dashboard')}
@@ -309,6 +371,16 @@ export default function AdminDashboard({
             </Modal>
           )}
 
+          {activeTab === 'appointments' && (
+            <AppointmentCommandCenter
+              appointments={appointments}
+              COLORS={COLORS}
+              isMobile={isMobile}
+              onBack={() => setActiveTab('dashboard')}
+              onOpenWalkIn={() => setActiveTab('walkin')}
+            />
+          )}
+
         </ScrollView>
       </View>
 
@@ -334,7 +406,56 @@ const styles = StyleSheet.create({
     gap: 32,
   },
   dashboardGrid: {
-    gap: 32,
+    gap: 24,
+  },
+  stripeCard: {
+    backgroundColor: 'var(--bg-card)',
+    padding: 24,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 91, 255, 0.2)',
+    marginBottom: 8,
+  },
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stripeTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  stripeStatus: {
+    color: '#635BFF',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  stripeLabel: {
+    color: 'var(--text-muted)',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  stripeAmount: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  detailsBtn: {
+    backgroundColor: 'rgba(99, 91, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  detailsBtnText: {
+    color: '#635BFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   mainGridRow: {
     flexDirection: 'row',
