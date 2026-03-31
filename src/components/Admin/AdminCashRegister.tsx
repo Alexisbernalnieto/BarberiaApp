@@ -12,12 +12,17 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
 
   const dateStr = currentDateObj.toISOString().split('T')[0];
 
+  // Arreglos de ayuda para formato de fecha en español
+  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+  // Formato: "Viernes, 27 de Marzo del 2026"
   const getFormattedDate = (date: Date) => {
-    const day = date.getDate();
-    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-    return `${day} de ${month} del ${year}`;
+    const diaSemana = diasSemana[date.getDay()];
+    const dia = date.getDate();
+    const mes = meses[date.getMonth()];
+    const anio = date.getFullYear();
+    return `${diaSemana}, ${dia} de ${mes} del ${anio}`;
   };
   const displayDateStr = getFormattedDate(currentDateObj);
 
