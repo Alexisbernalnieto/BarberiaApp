@@ -38,45 +38,52 @@ interface CreateAppointmentParams {
   type?: 'Online' | 'Walk-in';
   paymentIntentId?: string;
   notes?: string;
+  appointmentId?: string; // Pre-generated ID
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 1. CREAR CITA (Online o Walk-in)
+// 1. HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Genera un ID de cita legible y único.
+ * Formato: CT-XXXXXX o LM-XXXXXX
+ */
+export const generateAppointmentId = (branchName: string, type: string = 'Online') => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let suffix = '';
+  for (let i = 0; i < 6; i++) {
+    suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  const branchLower = (branchName || '').toLowerCase();
+  const isLomas = branchLower.includes('loma');
+  const isCentro = branchLower.includes('centro') || branchLower.includes('matriz');
+  const isWalkIn = type === 'Walk-in';
+
+  let prefix: string;
+  if (isLomas) {
+    prefix = isWalkIn ? 'LMW' : 'LM';
+  } else if (isCentro) {
+    prefix = isWalkIn ? 'CTW' : 'CT';
+  } else {
+    prefix = isWalkIn ? 'GNW' : 'GN';
+  }
+
+  return `${prefix}-${suffix}`;
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 2. CREAR CITA (Online o Walk-in)
 // ═══════════════════════════════════════════════════════════════
 export const createAppointment = async (params: CreateAppointmentParams) => {
   const {
     userId, userName, branch, branchId, barberId, barberName,
     date, time, serviceId, serviceName, price, duration,
-    type, paymentIntentId, notes,
+    type, paymentIntentId, notes, appointmentId,
   } = params;
 
-  // Generate unique, readable appointment ID
-  // Format: CT-JNSD8S (Centro), CTW-JN4KJ2 (Centro Walk-in), LM-IRNJ89 (Lomas), LMW-J23NKN (Lomas Walk-in)
-  const generateAppointmentId = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No I, O, 0, 1 to avoid confusion
-    let suffix = '';
-    for (let i = 0; i < 6; i++) {
-      suffix += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-
-    const branchLower = (branch || '').toLowerCase();
-    const isLomas = branchLower.includes('loma');
-    const isCentro = branchLower.includes('centro') || branchLower.includes('matriz');
-    const isWalkIn = type === 'Walk-in';
-
-    let prefix: string;
-    if (isLomas) {
-      prefix = isWalkIn ? 'LMW' : 'LM';
-    } else if (isCentro) {
-      prefix = isWalkIn ? 'CTW' : 'CT';
-    } else {
-      prefix = isWalkIn ? 'GNW' : 'GN'; // Generic fallback
-    }
-
-    return `${prefix}-${suffix}`;
-  };
-
-  const uniqueId = generateAppointmentId();
+  const uniqueId = appointmentId || generateAppointmentId(branch, type);
   const appointmentRef = doc(db, 'appointments', uniqueId);
 
   try {
@@ -637,6 +644,104 @@ export const isAppointmentPastTolerance = (appointmentTime: string, appointmentD
 // ═══════════════════════════════════════════════════════════════
 // LEGACY COMPAT — updateAppointmentStatus (used by BarberDashboard)
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// 12. NO-SHOW JUSTIFICATION & RE-SCHEDULE AUTHORIZATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Permite al cliente enviar una justificación para su inasistencia
+ * y solicitar una reprogramación sin costo.
+ */
+export const submitNoShowJustification = async (appointmentId: string, justification: string) => {
+  const appointmentRef = doc(db, 'appointments', appointmentId);
+  try {
+    return await runTransaction(db, async (transaction) => {
+      const appDoc = await transaction.get(appointmentRef);
+      if (!appDoc.exists()) throw new Error('La cita no existe.');
+
+      const data = appDoc.data();
+
+      transaction.update(appointmentRef, {
+        noShowJustification: justification,
+        rescheduleRequested: true,
+        updatedAt: Timestamp.now(),
+      });
+
+      // Notificar al Administrador
+      createNotification({
+        type: 'reschedule_request',
+        message: `${data.userName} solicitó reprogramación por inasistencia`,
+        branch: data.branch,
+        targetRoles: ['admin', 'reception'],
+        clientName: data.userName,
+        barberName: data.barberName,
+        service: data.serviceName,
+        appointmentId,
+      });
+
+      logActivity({
+        adminId: data.userId,
+        adminRole: 'client',
+        action: 'Solicitó reprogramación (No-Show)',
+        details: `Cita ID: ${appointmentId}\nJustificación: ${justification}`,
+        targetUserId: appointmentId,
+      });
+      
+      return true;
+    });
+  } catch (error) {
+    console.error('Submit justification failed: ', error);
+    throw error;
+  }
+};
+
+/**
+ * El administrador autoriza la reprogramación basada en la justificación.
+ */
+export const authorizeReschedule = async (appointmentId: string, adminId: string) => {
+  const appointmentRef = doc(db, 'appointments', appointmentId);
+  try {
+    return await runTransaction(db, async (transaction) => {
+      const appDoc = await transaction.get(appointmentRef);
+      if (!appDoc.exists()) throw new Error('La cita no existe.');
+
+      const data = appDoc.data();
+
+      transaction.update(appointmentRef, {
+        rescheduleAuthorized: true,
+        justificationReviewedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+
+      // Notificar al Cliente
+      createNotification({
+        type: 'reschedule_authorized',
+        message: `¡Tu reprogramación ha sido autorizada! Ya puedes agendar tu nueva cita.`,
+        branch: data.branch,
+        targetRoles: ['client'],
+        targetUserId: data.userId,
+        clientName: data.userName,
+        barberName: data.barberName,
+        service: data.serviceName,
+        appointmentId,
+      });
+
+      logActivity({
+        adminId,
+        adminRole: 'admin',
+        action: 'Autorizó reprogramación',
+        details: `Cita ID: ${appointmentId} - Cliente: ${data.userName}`,
+        targetUserId: appointmentId,
+      });
+      
+      return true;
+    });
+  } catch (error) {
+    console.error('Authorize reschedule failed: ', error);
+    throw error;
+  }
+};
+
 export const updateAppointmentStatus = async (
   appointmentId: string,
   newStatus: AppointmentStatus,

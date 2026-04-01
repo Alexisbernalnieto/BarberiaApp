@@ -1,5 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Alert, Platform } from 'react-native';
+import { useTheme } from './ThemeContext';
+import SessionExpiredModal from '@/components/Common/SessionExpiredModal';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -36,6 +38,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [offlineError, setOfflineError] = useState(false);
+  const [showExpiredModal, setShowExpiredModal] = useState(false);
+  const { COLORS } = useTheme();
 
   const mapRole = (role: number | string): UserRole => {
     if (typeof role !== 'number') return role as UserRole;
@@ -59,18 +63,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         timeoutId = setTimeout(() => {
           console.log("Inactivity timeout reached. Logging out...");
           logout();
-          if (Platform.OS === 'web') {
-            window.alert("Tu sesión ha expirado por inactividad.");
-          } else {
-            Alert.alert("Sesión Expirada", "Tu sesión ha sido cerrada por inactividad.");
-          }
+          setShowExpiredModal(true);
         }, INACTIVITY_TIMEOUT);
       }
     };
 
     // Set persistence for web to session only (clears on tab close)
     if (Platform.OS === 'web') {
-      setPersistence(auth, browserSessionPersistence).catch(err => {
+      setPersistence(auth, browserLocalPersistence).catch(err => {
         console.error("Error setting session persistence:", err);
       });
       
@@ -298,6 +298,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <AuthContext.Provider value={{ currentUser, loading, login, register, logout, resetPassword, resendVerificationEmail, offlineError }}>
       {children}
+      <SessionExpiredModal 
+        visible={showExpiredModal} 
+        onClose={() => setShowExpiredModal(false)} 
+        COLORS={COLORS} 
+      />
     </AuthContext.Provider>
   );
 };

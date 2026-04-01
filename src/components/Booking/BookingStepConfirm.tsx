@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, ScrollView } from 'react-native';
-import { Ticket, MapPin, Scissors, User as UserIcon, Calendar, Clock } from 'lucide-react';
+import { Ticket, MapPin, Scissors, User as UserIcon, Calendar, Clock, Hash } from 'lucide-react';
 import { formatFullDate, formatTime12h } from '../../utils/formatters';
 
 interface BookingStepConfirmProps {
@@ -15,6 +15,7 @@ interface BookingStepConfirmProps {
   selectedBarber: any;
   selectedDate: string;
   selectedTime: string | null;
+  appointmentId: string | null;
 }
 
 export default function BookingStepConfirm({
@@ -29,6 +30,7 @@ export default function BookingStepConfirm({
   selectedBarber,
   selectedDate,
   selectedTime,
+  appointmentId,
 }: BookingStepConfirmProps) {
   return (
     <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
@@ -38,8 +40,8 @@ export default function BookingStepConfirm({
       <View style={styles.ticketCard}>
         <View style={styles.ticketHeader}>
           <Ticket size={32} color={COLORS.primary} />
-          <Text style={styles.ticketTitle}>EL CORONEL</Text>
-          <Text style={styles.ticketSubtitle}>EST. 2024</Text>
+          <Text style={styles.ticketTitle}>EL CORONEL BARBÓN</Text>
+          <Text style={styles.ticketSubtitle}>Peluquería y Barbería de alto nivel</Text>
         </View>
 
         <View style={styles.ticketContent}>
@@ -58,6 +60,14 @@ export default function BookingStepConfirm({
                     </View>
                 </View>
             )}
+
+            <View style={styles.ticketRow}>
+                <View style={[styles.rowCenter, { flex: 1 }]}>
+                    <Hash size={14} color={COLORS.primary} style={{ marginRight: 8 }} />
+                    <Text style={styles.ticketLabel}>ID de Cita</Text>
+                </View>
+                <Text style={[styles.ticketValue, { flex: 1, color: COLORS.primary, fontWeight: '900' }]}>{appointmentId || 'Generando...'}</Text>
+            </View>
 
             <View style={styles.ticketRow}>
                 <View style={[styles.rowCenter, { flex: 1 }]}>

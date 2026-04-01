@@ -42,6 +42,7 @@ import NotificationsModal from '@/components/Admin/NotificationsModal';
 import AdminCashRegister from '@/components/Admin/AdminCashRegister';
 import QueueDisplay from '@/components/Admin/QueueDisplay';
 import AppointmentCommandCenter from '@/components/Admin/AppointmentCommandCenter';
+import RescheduleRequests from '@/components/Admin/RescheduleRequests';
 
 import { Appointment, AppUser, UserRole } from '@/types';
 import { getFinancialMetrics, FinancialMetrics } from '@/services/payments';
@@ -378,6 +379,15 @@ export default function AdminDashboard({
               isMobile={isMobile}
               onBack={() => setActiveTab('dashboard')}
               onOpenWalkIn={() => setActiveTab('walkin')}
+            />
+          )}
+
+          {activeTab === 'reschedule_requests' && (
+            <RescheduleRequests 
+              appointments={appointments}
+              COLORS={COLORS}
+              adminId={currentUser?.uid || ''}
+              onUpdate={() => setActiveTab('dashboard')}
             />
           )}
 

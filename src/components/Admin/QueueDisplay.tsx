@@ -56,7 +56,10 @@ export default function QueueDisplay({ appointments, onClose, COLORS }: any) {
             <View style={styles.logoBadge}>
                 <Text style={styles.logoText}>B</Text>
             </View>
-            <Text style={styles.brandTitle}>EL CORONEL</Text>
+            <View>
+                <Text style={styles.brandTitle}>EL CORONEL BARBÓN</Text>
+                <Text style={{ color: '#D4AF37', fontSize: 10, letterSpacing: 2, fontWeight: '700', marginTop: 2 }}>PELUQUERÍA Y BARBERÍA DE ALTO NIVEL</Text>
+            </View>
         </View>
         <View style={styles.headerRight}>
             <Text style={styles.dateText}>{dateString}</Text>

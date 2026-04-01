@@ -376,15 +376,20 @@ export const getBarberManagementStyles = (COLORS, isMobile) =>
       backgroundColor: 'transparent',
     },
     serviceChipActive: {
-      backgroundColor: COLORS.secondary,
-      borderColor: COLORS.secondary,
+      backgroundColor: COLORS.primary,
+      borderColor: COLORS.primary,
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
     },
     serviceChipText: {
       color: COLORS.textSecondary,
       fontSize: 12,
     },
     serviceChipTextActive: {
-      color: '#fff',
+      color: '#000',
       fontWeight: 'bold',
     },
     detailsActions: {

@@ -46,6 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const [showExitConfirm, setShowExitConfirm] = React.useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
   const [pendingAction, setPendingAction] = React.useState<{type: 'tab' | 'logout', id?: string} | null>(null);
 
   const getRoleLabel = (r: any) => {
@@ -129,7 +130,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
         setShowExitConfirm(true);
         return;
     }
-    logout();
+    setShowLogoutConfirm(true);
   };
 
   const confirmExit = () => {
@@ -151,7 +152,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
         <View style={[styles.logo, { borderColor: COLORS.primary }]}>
           <Text style={[styles.logoText, { color: COLORS.primary }]}>B</Text>
         </View>
-        <Text style={[styles.brandName, { color: COLORS.mode === 'dark' ? '#FFFFFF' : COLORS.text }]}>EL CORONEL</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.brandName, { color: COLORS.mode === 'dark' ? '#FFFFFF' : COLORS.text }]}>EL CORONEL BARBÓN</Text>
+          <Text style={[styles.brandSlogan, { color: COLORS.textSecondary }]}>Peluquería y Barbería de alto nivel</Text>
+        </View>
         {isMobile && (
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <X size={24} color={COLORS.text} />
@@ -197,7 +201,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
       <View style={styles.footer}>
         <View style={[styles.divider, { backgroundColor: COLORS.border }]} />
         <View style={styles.userSection}>
-          <View style={[styles.userAvatar, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: COLORS.border }]}>
+          <View style={[
+            styles.userAvatar, 
+            { 
+              backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', 
+              borderColor: COLORS.border 
+            }
+          ]}>
              <Text style={[styles.avatarInitial, { color: COLORS.primary }]}>{currentUser?.name?.charAt(0) || 'U'}</Text>
           </View>
           <View style={styles.userDetails}>
@@ -216,7 +226,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
         </TouchableOpacity>
       </View>
 
-      {/* MODAL DE CONFIRMACIÓN GLOBAL */}
+      {/* MODAL DE CONFIRMACIÓN DE SALIDA (BOOKING) */}
       <Modal
         visible={showExitConfirm}
         transparent={true}
@@ -246,6 +256,45 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
                 onPress={confirmExit}
               >
                 <Text style={styles.modalBtnText}>SÍ, SALIR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE CONFIRMACIÓN DE CIERRE DE SESIÓN */}
+      <Modal
+        visible={showLogoutConfirm}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutConfirm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(15, 23, 42, 0.1)' }]}>
+            <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}>
+              <LogOut size={32} color="#EF4444" />
+            </View>
+            <Text style={[styles.modalTitle, { color: COLORS.text }]}>¿Cerrar Sesión?</Text>
+            <Text style={[styles.modalMessage, { color: COLORS.textSecondary }]}>
+                ¿Estás seguro de que deseas cerrar tu sesión actual?
+            </Text>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.cancelModalBtn, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]} 
+                onPress={() => setShowLogoutConfirm(false)}
+              >
+                <Text style={[styles.modalBtnText, { color: COLORS.text }]}>CANCELAR</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.confirmModalBtn]} 
+                onPress={() => {
+                  setShowLogoutConfirm(false);
+                  logout();
+                }}
+              >
+                <Text style={styles.modalBtnText}>CERRAR SESIÓN</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -281,7 +330,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
   }
 
   return (
-    <View style={styles.sidebarDesktop}>
+    <View style={[styles.sidebarDesktop, { borderColor: COLORS.border }]}>
       {renderContent()}
     </View>
   );
@@ -291,7 +340,6 @@ const styles = StyleSheet.create({
   sidebarDesktop: {
     width: 280,
     borderRightWidth: 1,
-    borderColor: 'var(--glass-border)',
     height: Platform.OS === 'web' ? ('100vh' as any) : '100%',
     position: Platform.OS === 'web' ? ('fixed' as any) : 'relative',
     left: 0,
@@ -347,6 +395,13 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     flex: 1,
   },
+  brandSlogan: {
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 2,
+    opacity: 0.8,
+  },
   closeBtn: {
     padding: 4,
   },
@@ -387,7 +442,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'var(--glass-border)',
     marginBottom: 24,
   },
   userSection: {
@@ -399,14 +453,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'var(--glass-surface)',
     borderWidth: 1,
-    borderColor: 'var(--glass-border)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    color: 'var(--gold)',
     fontWeight: 'bold',
   },
   userDetails: {
@@ -418,7 +469,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   userRole: {
-    color: 'var(--text-secondary)',
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1,

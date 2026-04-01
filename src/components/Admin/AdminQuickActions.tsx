@@ -13,7 +13,7 @@ export default function AdminQuickActions({ setViewMode, COLORS, isMobile }: Adm
     { id: 'cashregister', label: 'Corte de Caja', icon: CreditCard, color: COLORS.primary || 'var(--gold)' },
     { id: 'barbers', label: 'Barberos', icon: Scissors, color: '#3B82F6' },
     { id: 'services', label: 'Servicios', icon: Tag, color: '#10B981' },
-    { id: 'walkin', label: 'Nueva Cita', icon: PlusCircle, color: '#F59E0B' },
+    { id: 'reschedule_requests', label: 'Solicitudes', icon: PlusCircle, color: '#EF4444' },
     { id: 'history', label: 'Historial', icon: History, color: '#8B5CF6' },
   ];
 

@@ -11,7 +11,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   StyleSheet,
-  Modal
+  Modal,
+  ImageBackground,
+  Image
 } from 'react-native';
 import { 
   Mail, 
@@ -29,8 +31,17 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
 export default function AuthScreen() {
-  const { width } = useWindowDimensions();
-  const isMobile = width < 900;
+  const { width, height } = useWindowDimensions();
+  const [isReady, setIsReady] = useState(false);
+  
+  // Robust mobile detection: width threshold OR vertical orientation
+  const isMobile = width < 768 || width < height;
+
+  useEffect(() => {
+    // Tiny delay to allow window dimensions to settle on web/mobile initial load
+    const timer = setTimeout(() => setIsReady(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const { login, register, resetPassword } = useAuth();
   const { COLORS, toggleTheme, isDarkMode } = useTheme();
@@ -94,7 +105,34 @@ export default function AuthScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: COLORS.background }]}>
+    <ImageBackground 
+      source={require('../assets/auth-bg.png')} 
+      style={[
+        styles.container, 
+        { 
+          flexDirection: isMobile ? 'column' : 'row',
+          opacity: isReady ? 1 : 0 // Hide initial calculation frame
+        }
+      ]}
+      resizeMode="cover"
+    >
+      <View style={[styles.overlay, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.7)' }]} />
+      
+      <TouchableOpacity 
+        onPress={toggleTheme}
+        style={[
+          styles.themeToggle, 
+          { 
+            backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', 
+            borderColor: COLORS.border,
+            top: isMobile ? 15 : 40,
+            right: isMobile ? 15 : 40,
+          }
+        ]}
+      >
+        {isDarkMode ? <Sun size={20} color={COLORS.primary} /> : <Moon size={20} color={COLORS.text} />}
+      </TouchableOpacity>
+
       {/* Success Modal */}
       <Modal
         visible={showSuccessModal}
@@ -127,17 +165,18 @@ export default function AuthScreen() {
         </View>
       </Modal>
 
-      {/* Background Decor */}
+
+      {/* Desktop Perspective Branding */}
       {!isMobile && (
-        <View style={[styles.brandSide, { backgroundColor: COLORS.mode === 'dark' ? '#080808' : '#0F172A' }]} data-brand-side="true">
+        <View style={styles.brandSide} data-brand-side="true">
           <View style={styles.brandContent} data-brand-content="true">
-            <View style={[styles.logoWrapper, { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(197, 160, 33, 0.3)' }]}>
+            <View style={[styles.logoWrapper, { backgroundColor: 'rgba(212, 175, 55, 0.05)', borderColor: 'rgba(212, 175, 55, 0.3)' }]}>
                <Scissors size={48} color={COLORS.primary} />
             </View>
-            <Text style={[styles.brandTitle, { color: COLORS.primary }]} data-brand-title="true">EL CORONEL</Text>
-            <Text style={[styles.brandSubtitle, { color: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.8)' : 'rgba(197, 160, 33, 0.7)' }]}>EXECUTIVE BARBER SHOP</Text>
+            <Text style={[styles.brandTitle, { color: COLORS.primary }]} data-brand-title="true">EL CORONEL BARBÓN</Text>
+            <Text style={[styles.brandSubtitle, { color: 'rgba(212, 175, 55, 0.8)' }]}>Peluquería y Barbería de alto nivel</Text>
             <View style={[styles.divider, { backgroundColor: COLORS.primary }]} />
-            <Text style={[styles.quote, { color: 'rgba(255,255,255,0.6)' }]}>Donde la tradición se encuentra con la distinción.</Text>
+            <Text style={[styles.quote, { color: 'rgba(255,255,255,0.7)' }]}>Donde la tradición se encuentra con la distinción.</Text>
           </View>
         </View>
       )}
@@ -146,16 +185,63 @@ export default function AuthScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.formSide}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity onPress={toggleTheme} style={[styles.themeToggle, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: COLORS.border }]}>
-            {isDarkMode ? <Sun size={20} color={COLORS.primary} /> : <Moon size={20} color={COLORS.text} />}
-          </TouchableOpacity>
+        <ScrollView 
+          contentContainerStyle={[
+            styles.scrollContent, 
+            { 
+              paddingHorizontal: isMobile ? 8 : 40,
+              paddingVertical: isMobile ? 32 : 40,
+              minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%',
+              width: '100%'
+            }
+          ]} 
+          showsVerticalScrollIndicator={false}
+        >
 
-          <Animated.View style={[styles.formCard, { opacity: fadeAnim, backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} data-form-card="true">
-            <View style={styles.formHeader}>
-              <Text style={[styles.formTitle, { color: COLORS.text }]}>{isLogin ? 'Bienvenido' : 'Crea tu Cuenta'}</Text>
-              <Text style={[styles.formSubtitle, { color: COLORS.textSecondary }]}>
-                {isLogin ? 'Ingresa tus credenciales para continuar' : 'Únete a la membresía exclusiva de El Coronel'}
+          {/* Mobile Branding Header */}
+          {isMobile && (
+            <View style={styles.mobileHeader}>
+              <View style={[styles.mobileLogo, { borderColor: COLORS.primary + '40', width: width < 360 ? 50 : 70, height: width < 360 ? 50 : 70 }]}>
+                <Scissors size={width < 360 ? 20 : 28} color={COLORS.primary} />
+              </View>
+              <Text style={[styles.mobileTitle, { color: COLORS.primary, fontSize: width < 360 ? 22 : 28 }]} numberOfLines={2}>
+                EL CORONEL{'\n'}BARBÓN
+              </Text>
+              <Text 
+                style={[
+                  styles.mobileSubtitle, 
+                  { 
+                    color: COLORS.primary + 'CC', 
+                    fontSize: width < 360 ? 7 : 8,
+                    letterSpacing: width < 360 ? 1 : 2
+                  }
+                ]}
+              >
+                Peluquería y Barbería de alto nivel
+              </Text>
+            </View>
+          )}
+
+            <Animated.View 
+              style={[
+                styles.formCard, 
+                { 
+                  opacity: fadeAnim, 
+                  padding: isMobile ? (width < 400 ? 16 : 24) : 40,
+                  width: isMobile ? '100%' : '100%',
+                  maxWidth: isMobile ? undefined : 440,
+                  backgroundColor: COLORS.mode === 'dark' ? 'rgba(10, 10, 10, 0.85)' : 'rgba(255, 255, 255, 0.9)',
+                  borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.3)' : 'rgba(15, 23, 42, 0.1)' 
+                }
+              ]} 
+              data-form-card="true"
+            >
+            <View style={[styles.formHeader, isMobile && width < 400 && { marginBottom: 20 }]}>
+              <Text style={[styles.formTitle, { color: COLORS.text, fontSize: isMobile && width < 400 ? 24 : 32 }]}>
+                {isLogin ? 'Bienvenido' : 'Crea tu Cuenta'}
+              </Text>
+              <Text style={[styles.formSubtitle, { color: COLORS.textSecondary, fontSize: isMobile && width < 400 ? 13 : 15 }]}>
+                {isLogin ? 'Ingresa tus credenciales para continuar' : 'Únete a la membresía exclusiva de EL CORONEL BARBÓN'}
               </Text>
             </View>
 
@@ -262,21 +348,27 @@ export default function AuthScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'row',
+    minHeight: Platform.OS === 'web' ? ('100vh' as any) : '100%',
+    width: Platform.OS === 'web' ? ('100vw' as any) : '100%',
   },
   brandSide: {
-    flex: 1.2,
+    flexGrow: 1.2,
+    flexBasis: 400,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 60,
-    backgroundColor: '#080808',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: -1,
+    minHeight: '100%',
   },
   brandContent: {
     alignItems: 'center',
@@ -324,16 +416,16 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   themeToggle: {
-    position: Platform.OS === 'web' ? ('fixed' as any) : 'absolute',
-    top: 40,
-    right: 40,
+    position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as any,
+    top: 20,
+    right: 20,
     width: 44,
     height: 44,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10,
+    zIndex: 9999,
   },
   formCard: {
     width: '100%',
@@ -345,6 +437,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.4,
     shadowRadius: 40,
+  },
+  mobileHeader: {
+    alignItems: 'center',
+    marginBottom: 32,
+    gap: 8,
+  },
+  mobileLogo: {
+    width: 70,
+    height: 70,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+    marginBottom: 8,
+  },
+  mobileTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 4,
+    textAlign: 'center',
+  },
+  mobileSubtitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textAlign: 'center',
   },
   formHeader: {
     marginBottom: 32,
