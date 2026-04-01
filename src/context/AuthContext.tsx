@@ -109,27 +109,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
              console.log("Could not reload user (might be offline)");
           }
           
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          let isStaffAccount = false;
+          let userData = null;
+
+          if (userDoc.exists()) {
+            userData = userDoc.data();
+            const roleNum = userData.role;
+            isStaffAccount = roleNum === 0 || roleNum === 2 || roleNum === 3 || roleNum === 'admin' || roleNum === 'barber' || roleNum === 'reception';
+          }
+          
           const freshUser = auth.currentUser || user;
           const tokenResult = await getIdTokenResult(freshUser, true).catch(() => null);
           const isVerified = tokenResult ? !!tokenResult.claims.email_verified : freshUser.emailVerified;
           
-          // Block unverified users from entering the app
+          // Block unverified users from entering the app, EXCEPT for staff or @barberia.com accounts
           const isSystemAccount = freshUser.email?.endsWith('@barberia.com');
-          if (!isVerified && !isSystemAccount) {
+          if (!isVerified && !isSystemAccount && !isStaffAccount) {
              setCurrentUser(null);
              setLoading(false);
              return;
           }
 
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            
+          if (userData) {
             // Check for suspension
-            if (data.status === 'suspended' || data.status === 'deleted') {
-              const msg = data.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
+            if (userData.status === 'suspended' || userData.status === 'deleted') {
+              const msg = userData.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
               if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
               else Alert.alert('Acceso Denegado', msg);
               
@@ -137,8 +143,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               return;
             }
             
-            const role = mapRole(data.role);
-            setCurrentUser({ ...data, uid: user.uid, email: user.email, role } as AppUser);
+            const role = mapRole(userData.role);
+            setCurrentUser({ ...userData, uid: user.uid, email: user.email, role } as AppUser);
 
             // Real-time listener for status/role changes
             unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
@@ -202,8 +208,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const isVerified = tokenResult ? !!tokenResult.claims.email_verified : freshUser.emailVerified;
 
       const isSystemAccount = freshUser.email?.endsWith('@barberia.com');
+      
+      // Fetch user data to check role for verification bypass
+      const userDoc = await getDoc(doc(db, 'users', user.uid)).catch(() => null);
+      let isStaffAccount = false;
+      if (userDoc && userDoc.exists()) {
+        const roleNum = userDoc.data().role;
+        isStaffAccount = roleNum === 0 || roleNum === 2 || roleNum === 3 || roleNum === 'admin' || roleNum === 'barber' || roleNum === 'reception';
+      }
 
-      if (!isVerified && !isSystemAccount) {
+      if (!isVerified && !isSystemAccount && !isStaffAccount) {
         if (Platform.OS === 'web') {
           const resend = window.confirm("Tu cuenta aún no está verificada. Revisa tu bandeja de entrada o spam para encontrar el enlace de activación enviado al registrarte.\n\n¿Deseas reenviar el correo de verificación?");
           if (resend) {

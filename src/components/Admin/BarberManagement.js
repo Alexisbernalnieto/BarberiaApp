@@ -96,25 +96,38 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
                 return;
             }
 
+            let secondaryAuth;
+            let userCredential;
+
             try {
                 // Secondary auth instance to not sign out current admin
                 let secondaryApp = getApps().find(app => app.name === 'Secondary');
                 if (!secondaryApp) {
                     secondaryApp = initializeApp(firebaseConfig, 'Secondary');
                 }
-                const secondaryAuth = getAuth(secondaryApp);
-                const userCredential = await createUserWithEmailAndPassword(secondaryAuth, editingBarber.email, editingBarber.password);
+                secondaryAuth = getAuth(secondaryApp);
+                userCredential = await createUserWithEmailAndPassword(secondaryAuth, editingBarber.email, editingBarber.password);
                 const uid = userCredential.user.uid;
                 
-                // Sign out from secondary app immediately to clear its session
-                await signOut(secondaryAuth);
-
                 // Prepare data for Firestore
                 const { password, ...firestoreData } = barberToSave;
                 firestoreData.id = uid;
                 
-                // Save in users collection
-                await setDoc(doc(db, 'users', uid), firestoreData);
+                try {
+                    // Save in users collection
+                    await setDoc(doc(db, 'users', uid), firestoreData);
+                } catch (firestoreError) {
+                    // ROLLBACK: Delete the auth user if Firestore fails to avoid "dangling" accounts
+                    try {
+                        await userCredential.user.delete();
+                    } catch (deleteError) {
+                        console.error("Critical: Could not rollback auth user creation:", deleteError);
+                    }
+                    throw firestoreError;
+                }
+                
+                // Sign out from secondary app immediately to clear its session
+                await signOut(secondaryAuth);
                 
                 // Update local state
                 setBarbers([...barbers, firestoreData]);
@@ -132,18 +145,24 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
                 setViewMode('list');
             } catch (error) {
                 console.error("Error creating barber:", error);
+                
+                // Ensure secondaryAuth is signed out even on error
+                if (secondaryAuth) {
+                  try { await signOut(secondaryAuth); } catch(e) {}
+                }
+
                 let title = 'Error al registrar';
                 let message = 'Hubo un problema al crear la cuenta del barbero.';
                 
                 if (error.code === 'auth/email-already-in-use') {
                     title = 'Correo ya registrado';
-                    message = 'Este correo electrónico ya está en uso en el sistema. Puede pertenecer a un cliente o a otro barbero.';
+                    message = 'Este correo electrónico ya está en uso. Si falló un registro previo, contacta a soporte para limpiar la cuenta.';
                 } else if (error.code === 'auth/invalid-email') {
                     message = 'El correo electrónico ingresado no tiene un formato válido.';
                 } else if (error.code === 'auth/weak-password') {
                     message = 'La contraseña es demasiado débil (mínimo 6 caracteres).';
-                } else if (error.message.includes('permission-denied')) {
-                    message = 'Error de permisos en Firestore. Contacta al soporte técnico.';
+                } else if (error.message.includes('permission-denied') || error.code === 'permission-denied') {
+                    message = 'Error de permisos en Firestore. No se pudo crear el perfil del barbero.';
                 }
                 
                 showStatus('error', title, message);
