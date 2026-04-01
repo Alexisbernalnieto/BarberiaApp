@@ -54,7 +54,7 @@ service cloud.firestore {
     // USUARIOS
     match /users/{userId} {
       // Cualquiera puede registrarse (crear su propio doc)
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow create: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
       
       // Leer: 
       // - El propio usuario
