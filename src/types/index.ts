@@ -17,6 +17,7 @@ export interface AppUser {
   bio?: string;
   instagram?: string;
   tiktok?: string;
+  isOnBreak?: boolean;
 }
 
 export interface Service {
