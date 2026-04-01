@@ -9,7 +9,8 @@ import {
   useWindowDimensions,
   Animated,
   Alert,
-  Linking
+  Linking,
+  Switch
 } from 'react-native';
 import { updateAppointmentStatus, createAppointment } from '../services/appointments';
 import { db } from '../firebaseClient';
@@ -74,6 +75,19 @@ export default function BarberDashboard({
   const [selectedApptForCancel, setSelectedApptForCancel] = useState<Appointment | null>(null);
   const [cancellationReason, setCancellationReason] = useState('');
   const [cancellationType, setCancellationType] = useState('other');
+
+  const [isOnBreak, setIsOnBreak] = useState(user.isOnBreak || false);
+  
+  const toggleBreak = async (value: boolean) => {
+    setIsOnBreak(value);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { isOnBreak: value });
+    } catch (e) {
+      console.error(e);
+      // Revert if error
+      setIsOnBreak(!value);
+    }
+  };
 
   // Edit Profile States
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -261,52 +275,7 @@ export default function BarberDashboard({
     });
   };
 
-  const getNextHalfHour = () => {
-    const now = new Date();
-    const minutes = now.getMinutes();
-    const isPastHalf = minutes >= 30;
-
-    // Advance to next half hour block
-    now.setHours(now.getHours() + (isPastHalf ? 1 : 0));
-    now.setMinutes(isPastHalf ? 0 : 30);
-
-    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  };
-
-  const handleTakeBreak = () => {
-    const nextTime = getNextHalfHour();
-    Alert.alert(
-      'Tomar un descanso',
-      `¿Deseas bloquear tu agenda a las ${nextTime} por 30 minutos?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Bloquear',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await createAppointment({
-                userId: 'system',
-                userName: '☕ Descanso (Bloqueado)',
-                branch: user.branch || 'Principal',
-                barberId: user.uid,
-                barberName: user.name || 'Barbero',
-                date: today,
-                time: nextTime,
-                serviceId: 'break',
-                serviceName: 'Descanso de 30m',
-                price: 0,
-                duration: 30
-              });
-              Alert.alert('Éxito', 'Ese horario ha sido bloqueado exitosamente.');
-            } catch (error: any) {
-              Alert.alert('Aviso', error.message || 'No se pudo bloquear el horario.');
-            }
-          }
-        }
-      ]
-    );
-  };
+  // getNextHalfHour and handleTakeBreak logic replaced by toggleBreak Switch
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -346,9 +315,18 @@ export default function BarberDashboard({
             </View>
 
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.breakBtn} onPress={handleTakeBreak}>
-                <Text style={styles.breakBtnText}>☕ Descanso</Text>
-              </TouchableOpacity>
+              <View style={[styles.breakBtn, { flexDirection: 'row', alignItems: 'center', backgroundColor: isOnBreak ? 'rgba(16, 185, 129, 0.1)' : 'var(--glass-surface)', borderColor: isOnBreak ? '#10B981' : 'var(--glass-border)', paddingHorizontal: 12, paddingVertical: 6 }]}>
+                <Text style={[styles.breakBtnText, { color: isOnBreak ? '#10B981' : 'var(--text-muted)' }]}>
+                  {isOnBreak ? 'En Descanso' : 'Descanso'}
+                </Text>
+                <Switch 
+                  value={isOnBreak} 
+                  onValueChange={toggleBreak} 
+                  trackColor={{ false: '#4B5563', true: 'rgba(16, 185, 129, 0.5)' }}
+                  thumbColor={isOnBreak ? '#10B981' : '#FFF'}
+                  style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }], marginLeft: 4 }}
+                />
+              </View>
               <TouchableOpacity style={styles.headerBtn} onPress={toggleTheme}>
                 {isDarkMode ? <Sun size={20} color="var(--gold)" /> : <Moon size={20} color="var(--text-secondary)" />}
               </TouchableOpacity>
