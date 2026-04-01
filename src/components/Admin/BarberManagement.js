@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
-import { db } from '../../firebaseClient';
-import { doc, updateDoc } from 'firebase/firestore';
+import { db, auth, firebaseConfig } from '../../firebaseClient';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, signOut, getAuth } from 'firebase/auth';
+import { initializeApp, getApp, getApps } from 'firebase/app';
 import BarberListView from './BarberListView';
 import BarberFormView from './BarberFormView';
 import BarberDetailsView from './BarberDetailsView';
 import { DAYS, DEFAULT_SCHEDULE, getBarberManagementStyles } from './BarberManagementStyles';
 import { logActivity } from '../../services/activityLogs';
+import StatusModal from './StatusModal';
 
 export default function BarberManagement({ appointments, onClose, COLORS, barbers, setBarbers }) {
   const { width } = useWindowDimensions();
@@ -27,6 +30,19 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
   const [editingBarber, setEditingBarber] = useState(null); // Used for form
   const [selectedBranchFilter, setSelectedBranchFilter] = useState('Todos'); // 'Todos', 'Centro', 'Lomas'
   const [selectedDay, setSelectedDay] = useState(1); // 0=Domingo, 1=Lunes, etc.
+  
+  // Status Modal state
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [statusModalConfig, setStatusModalConfig] = useState({
+    type: 'success',
+    title: '',
+    message: ''
+  });
+
+  const showStatus = (type, title, message) => {
+    setStatusModalConfig({ type, title, message });
+    setStatusModalVisible(true);
+  };
 
   // Calculate stats for a barber
   const getBarberStats = (barberName) => {
@@ -44,32 +60,97 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
         // Ensure schedule exists
         const barberToSave = {
             ...editingBarber,
-            schedule: editingBarber.schedule || DEFAULT_SCHEDULE
+            schedule: editingBarber.schedule || DEFAULT_SCHEDULE,
+            active: editingBarber.active === undefined ? true : editingBarber.active,
+            role: 'barber'
         };
 
         if (editingBarber.id) {
             // Edit existing
             try {
-                await updateDoc(doc(db, 'users', editingBarber.id), barberToSave);
+                // Remove password if it was somehow in the object (it shouldn't be for existing)
+                const { password, ...updateData } = barberToSave;
+                await updateDoc(doc(db, 'users', editingBarber.id), updateData);
                 // Optimistic update
                 setBarbers(barbers.map(b => b.id === editingBarber.id ? barberToSave : b));
                 await logActivity({
-                    adminEmail: 'admin@admin.com',
+                    adminEmail: auth.currentUser?.email || 'admin@admin.com',
                     adminRole: 'admin',
                     action: 'Actualizó perfil de un barbero',
                     details: `Barbero: ${editingBarber.name}`,
                     targetUserId: editingBarber.id
                 });
-                Alert.alert('Éxito', 'Barbero actualizado correctamente');
+                showStatus('success', '¡Éxito!', 'Barber@ actualizad@ correctamente');
             } catch (error) {
                 console.error("Error updating barber:", error);
-                Alert.alert('Error', 'No se pudo actualizar el barbero');
+                showStatus('error', 'Error', 'No se pudo actualizar el barbero');
             }
         } else {
-            // Add new
-            Alert.alert('Aviso', 'Para registrar nuevos barberos, por favor ve a "Gestión de Usuarios" y asigna el rol de Barbero a un usuario registrado.');
-            return;
+            // Add new barber
+            if (!editingBarber.email || !editingBarber.password) {
+                showStatus('error', 'Faltan datos', 'Se requiere correo y contraseña para dar de alta al barbero');
+                return;
+            }
+            if (editingBarber.password.length < 6) {
+                showStatus('error', 'Contraseña débil', 'La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+
+            try {
+                // Secondary auth instance to not sign out current admin
+                let secondaryApp = getApps().find(app => app.name === 'Secondary');
+                if (!secondaryApp) {
+                    secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+                }
+                const secondaryAuth = getAuth(secondaryApp);
+                const userCredential = await createUserWithEmailAndPassword(secondaryAuth, editingBarber.email, editingBarber.password);
+                const uid = userCredential.user.uid;
+                
+                // Sign out from secondary app immediately to clear its session
+                await signOut(secondaryAuth);
+
+                // Prepare data for Firestore
+                const { password, ...firestoreData } = barberToSave;
+                firestoreData.id = uid;
+                
+                // Save in users collection
+                await setDoc(doc(db, 'users', uid), firestoreData);
+                
+                // Update local state
+                setBarbers([...barbers, firestoreData]);
+                
+                await logActivity({
+                    adminEmail: auth.currentUser?.email || 'admin@admin.com',
+                    adminRole: 'admin',
+                    action: 'Registró nuevo barbero',
+                    details: `Barbero: ${editingBarber.name} (${editingBarber.email})`,
+                    targetUserId: uid
+                });
+
+                showStatus('success', '¡Registrado!', 'El barbero ha sido dado de alta correctamente.');
+                setEditingBarber(null);
+                setViewMode('list');
+            } catch (error) {
+                console.error("Error creating barber:", error);
+                let title = 'Error al registrar';
+                let message = 'Hubo un problema al crear la cuenta del barbero.';
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    title = 'Correo ya registrado';
+                    message = 'Este correo electrónico ya está en uso en el sistema. Puede pertenecer a un cliente o a otro barbero.';
+                } else if (error.code === 'auth/invalid-email') {
+                    message = 'El correo electrónico ingresado no tiene un formato válido.';
+                } else if (error.code === 'auth/weak-password') {
+                    message = 'La contraseña es demasiado débil (mínimo 6 caracteres).';
+                } else if (error.message.includes('permission-denied')) {
+                    message = 'Error de permisos en Firestore. Contacta al soporte técnico.';
+                }
+                
+                showStatus('error', title, message);
+                return;
+            }
         }
+        if (!editingBarber.id) return; // For new ones, it sets null inside try block
         setEditingBarber(null);
         setViewMode('list');
     }
@@ -102,18 +183,28 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
   };
 
   const toggleServiceSelection = (serviceName) => {
-      const currentServices = editingBarber.services || [];
-      if (currentServices.includes(serviceName)) {
-          setEditingBarber({
-              ...editingBarber,
-              services: currentServices.filter(s => s !== serviceName)
-          });
-      } else {
-          setEditingBarber({
-              ...editingBarber,
-              services: [...currentServices, serviceName]
-          });
-      }
+    const currentServices = editingBarber.services || [];
+    if (currentServices.includes(serviceName)) {
+        setEditingBarber({
+            ...editingBarber,
+            services: currentServices.filter(s => s !== serviceName)
+        });
+    } else {
+        setEditingBarber({
+            ...editingBarber,
+            services: [...currentServices, serviceName]
+        });
+    }
+  };
+  
+  const toggleAllServices = (allServiceNames) => {
+    const currentServices = editingBarber.services || [];
+    const allSelected = allServiceNames.every(name => currentServices.includes(name));
+    
+    setEditingBarber({
+        ...editingBarber,
+        services: allSelected ? [] : allServiceNames
+    });
   };
 
   const updateSchedule = (dayIndex, field, value) => {
@@ -162,9 +253,11 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
           setSelectedDay={setSelectedDay}
           updateSchedule={updateSchedule}
           toggleServiceSelection={toggleServiceSelection}
+          toggleAllServices={toggleAllServices}
           setViewMode={setViewMode}
           handleSave={handleSave}
           DEFAULT_SCHEDULE={DEFAULT_SCHEDULE}
+          COLORS={COLORS}
         />
       )}
       {viewMode === 'details' && selectedBarber && (
@@ -178,6 +271,13 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
           setEditingBarber={setEditingBarber}
         />
       )}
+
+      <StatusModal 
+        visible={statusModalVisible}
+        config={statusModalConfig}
+        onClose={() => setStatusModalVisible(false)}
+        COLORS={COLORS}
+      />
     </View>
   );
 }

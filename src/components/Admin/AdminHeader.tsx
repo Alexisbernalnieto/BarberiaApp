@@ -36,11 +36,11 @@ export default function AdminHeader({
           </TouchableOpacity>
         )}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[styles.title, { color: COLORS.text || '#FFF', fontSize: isMobile ? 20 : 28 }]} numberOfLines={1}>
-            El Coronel
+          <Text style={[styles.title, { color: COLORS.text || '#FFF', fontSize: isMobile ? 18 : 24 }]} numberOfLines={1}>
+            EL CORONEL BARBÓN
           </Text>
-          <Text style={[styles.subtitleHeader, { color: COLORS.textSecondary || 'var(--text-secondary)', fontSize: isMobile ? 12 : 16 }]}>
-            Panel Administrador
+          <Text style={[styles.subtitleHeader, { color: COLORS.primary || '#D4AF37', fontSize: isMobile ? 9 : 11, letterSpacing: 1, marginTop: -2, textTransform: 'uppercase' }]}>
+            Peluquería y Barbería de alto nivel
           </Text>
         </View>
       </View>
@@ -73,10 +73,6 @@ export default function AdminHeader({
 
         <TouchableOpacity onPress={toggleTheme} style={styles.iconBtn}>
           {isDarkMode ? <Sun size={isMobile ? 20 : 24} color={COLORS.primary || "var(--gold)"} /> : <Moon size={isMobile ? 20 : 24} color={COLORS.textSecondary || "var(--text-secondary)"} />}
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={onLogout} style={[styles.iconBtn, styles.logoutBtn]}>
-          <LogOut size={isMobile ? 18 : 22} color="#EF4444" />
         </TouchableOpacity>
       </View>
     </View>

@@ -508,11 +508,12 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       width: '100%',
     } as ViewStyle,
     modalBtn: {
-      flex: 1,
-      paddingVertical: 16,
-      borderRadius: 14,
+      paddingVertical: 18,
+      paddingHorizontal: 24,
+      borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
+      minWidth: 140,
     } as ViewStyle,
     cancelModalBtn: {
       backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
@@ -524,9 +525,10 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
     } as ViewStyle,
     modalBtnText: {
         color: '#FFF',
-        fontWeight: '800',
-        fontSize: 14,
-        letterSpacing: 0.5,
+        fontWeight: '900',
+        fontSize: 16,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     } as TextStyle,
     inputWrapper: {
       flexDirection: 'row',

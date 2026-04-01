@@ -38,8 +38,8 @@ export default function UserSummary({ nextAppointment, activeTab, setActiveTab, 
         
         <View style={styles.cardHeader}>
             <View>
-                <Text style={[styles.brandTitle, { color: COLORS.primary }]}>EL CORONEL</Text>
-                <Text style={[styles.brandSubtitle, { color: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.8)' : 'rgba(197, 160, 33, 0.7)' }]}>EXECUTIVE BARBER SHOP</Text>
+                <Text style={[styles.brandTitle, { color: COLORS.primary }]}>EL CORONEL BARBÓN</Text>
+                <Text style={[styles.brandSubtitle, { color: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.8)' : 'rgba(197, 160, 33, 0.7)' }]}>Peluquería y Barbería de alto nivel</Text>
             </View>
             <Scissors size={28} color={COLORS.primary} />
         </View>

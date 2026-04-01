@@ -46,7 +46,15 @@ export default function BarberListView({
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => {
-          setEditingBarber({ name: '', role: '', services: [], branch: 'Centro' });
+          setEditingBarber({ 
+            name: '', 
+            role: '', 
+            services: [], 
+            branch: 'Centro', 
+            active: true, 
+            email: '', 
+            password: '' 
+          });
           setViewMode('form');
         }}
       >
@@ -82,11 +90,11 @@ export default function BarberListView({
                 <View
                   style={[
                     styles.statusBadge,
-                    item.active ? styles.activeBadge : styles.inactiveBadge,
+                    item.active !== false ? styles.activeBadge : styles.inactiveBadge,
                   ]}
                 >
                   <Text style={styles.statusText}>
-                    {item.active ? 'ACTIVO' : 'INACTIVO'}
+                    {item.active !== false ? 'ACTIVO' : 'INACTIVO'}
                   </Text>
                 </View>
               </View>

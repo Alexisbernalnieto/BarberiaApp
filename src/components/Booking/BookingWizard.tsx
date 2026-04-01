@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, useWindowDimensions, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, useWindowDimensions, TextInput, Modal, ActivityIndicator } from 'react-native';
 import { 
     Scissors, 
     User, 
@@ -15,7 +15,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useSidebar } from '../../context/SidebarContext';
-import { createAppointment } from '../../services/appointments';
+import { createAppointment, generateAppointmentId } from '../../services/appointments';
 
 // Helper: Time to Minutes
 const timeToMinutes = (t: string) => {
@@ -90,6 +90,7 @@ export default function BookingWizard({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [bookingStatus, setBookingStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [bookingErrorMessage, setBookingErrorMessage] = useState('');
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const dToday = new Date();
   const todayLocal = `${dToday.getFullYear()}-${String(dToday.getMonth() + 1).padStart(2, '0')}-${String(dToday.getDate()).padStart(2, '0')}`;
@@ -106,7 +107,13 @@ export default function BookingWizard({
     if (currentStep === 1 && selectedBranch) goToStep(2);
     else if (currentStep === 2 && selectedService) goToStep(3);
     else if (currentStep === 3 && selectedBarber) goToStep(4);
-    else if (currentStep === 4 && selectedDate && selectedTime) goToStep(5);
+    else if (currentStep === 4 && selectedDate && selectedTime) {
+      if (!previewId) {
+        const newId = generateAppointmentId(selectedBranch?.name || 'Sucursal Matriz', isWalkIn ? 'Walk-in' : 'Online');
+        setPreviewId(newId);
+      }
+      goToStep(5);
+    }
     else if (currentStep === 5) goToStep(6);
   };
 
@@ -127,7 +134,7 @@ export default function BookingWizard({
     
     const newStart = timeToMinutes(time);
     const newDuration = selectedService.duration || 30;
-    const newEnd = newStart + newDuration + 10; // 10 min tolerance
+    const newEnd = newStart + newDuration + 10; // 10 min tolerance for new app
 
     return existingAppointments.some((appt: Appointment) => {
       if (appt.date !== selectedDate) return false;
@@ -136,7 +143,7 @@ export default function BookingWizard({
 
       const appStart = timeToMinutes(appt.time);
       const appDuration = (appt as any).duration || (appt as any).serviceDuration || 30;
-      const appEnd = appStart + appDuration + 10;
+      const appEnd = appStart + appDuration + 10 + 10; // 10 tolerance + 10 rest
 
       // Overlap formula
       return (newStart < appEnd && newEnd > appStart);
@@ -146,9 +153,19 @@ export default function BookingWizard({
   const generateTimeSlots = () => {
     if (!selectedDate || !selectedBranch || !selectedBarber || !selectedService) return [];
     
+    // Get day index (0=Domingo, 1=Lunes, etc.)
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const dayIndex = new Date(year, month - 1, day).getDay();
+    
+    // Get barber schedule for this day
+    const barberSchedule = selectedBarber.schedule || {};
+    const dayConfig = barberSchedule[dayIndex] || { start: '10:00', end: '19:00', active: true };
+    
+    if (!dayConfig.active) return [];
+
     const slots: string[] = [];
-    let currentTime = timeToMinutes("10:00"); // Standard open time
-    const closingTime = timeToMinutes("20:00"); // Standard close time
+    let currentTime = timeToMinutes(dayConfig.start);
+    const closingTime = timeToMinutes(dayConfig.end);
     const serviceDuration = selectedService.duration || 30;
     
     const now = new Date();
@@ -165,7 +182,8 @@ export default function BookingWizard({
       .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
 
     // Logic: Advance through the day and find gaps
-    while (currentTime + serviceDuration <= closingTime) {
+    // Must fit service + 10 min tolerance within the shift
+    while (currentTime + serviceDuration + 10 <= closingTime) {
       if (isToday && currentTime <= currentMins + 15) {
         currentTime += 5; // Skip past time
         continue;
@@ -175,9 +193,9 @@ export default function BookingWizard({
       const conflict = dayApps.find(app => {
         const appStart = timeToMinutes(app.time);
         const appDuration = (app as any).duration || (app as any).serviceDuration || 30;
-        const appEnd = appStart + appDuration + 10;
+        const appEnd = appStart + appDuration + 10 + 10; // Tolerance + Rest
         
-        // Potential app range
+        // Potential new app range (including its own 10 min tolerance)
         const newStart = currentTime;
         const newEnd = currentTime + serviceDuration + 10;
 
@@ -185,14 +203,15 @@ export default function BookingWizard({
       });
 
       if (conflict) {
-        // Jump to end of conflict
+        // Jump to end of conflict: app start + duration + tolerance + rest
         const appStart = timeToMinutes(conflict.time);
         const appDuration = (conflict as any).duration || (conflict as any).serviceDuration || 30;
-        currentTime = appStart + appDuration + 10;
+        currentTime = appStart + appDuration + 10 + 10;
+        
+        // Ensure we snap to a "clean" 5-minute mark if needed, though timeToMinutes already does this
       } else {
         slots.push(minutesToTime(currentTime));
-        // Next candidate in 15 mins to avoid cluttered UI, 
-        // but it will respect even "odd" start times if they come from a jump.
+        // Next candidate in 15 mins to avoid cluttered UI
         currentTime += 15; 
       }
     }
@@ -223,6 +242,7 @@ export default function BookingWizard({
       paymentIntentId: finalPaymentId,
       paid: finalIsPaid,
       status: finalIsPaid ? 'confirmed' : 'pending_payment',
+      appointmentId: previewId || undefined,
       createdAt: new Date().toISOString()
     };
 
@@ -241,6 +261,10 @@ export default function BookingWizard({
   useEffect(() => {
     if (selectedBranch || currentStep > 1) {
         setIsBookingInProgress(true);
+    }
+
+    if (currentStep === 1) {
+      setPreviewId(null); // Reset ID if we go back to branch selection
     }
     
     // Cleanup on unmount
@@ -323,6 +347,7 @@ export default function BookingWizard({
               selectedBarber={selectedBarber}
               selectedDate={selectedDate}
               selectedTime={selectedTime}
+              appointmentId={previewId}
             />
           )}
           {currentStep === 6 && (
@@ -412,48 +437,55 @@ export default function BookingWizard({
         </View>
       </Modal>
 
-      {/* MODALES DE ESTADO */}
-      <Modal visible={bookingStatus === 'processing'} transparent animationType="fade">
+      {/* MODAL DE ESTADO (Procesado, Éxito, Error) */}
+      <Modal 
+        visible={bookingStatus !== 'idle'} 
+        transparent 
+        animationType={bookingStatus === 'processing' ? 'fade' : 'slide'}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(212, 175, 55, 0.1)', borderColor: 'rgba(212, 175, 55, 0.2)' }]}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, borderLeftColor: 'var(--gold)', borderTopColor: 'var(--gold)', borderRightColor: 'transparent', borderBottomColor: 'transparent', borderLeftWidth: 3, borderTopWidth: 3 }} />
-            </View>
-            <Text style={styles.modalTitle}>Procesando...</Text>
-            <Text style={styles.modalMessage}>Estamos asegurando tu lugar en El Coronel. No cierres esta ventana.</Text>
-          </View>
-        </View>
-      </Modal>
+            {bookingStatus === 'processing' && (
+              <>
+                <View style={[styles.modalIconContainer, { backgroundColor: 'transparent', borderColor: 'transparent' }]}>
+                  <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
+                <Text style={styles.modalTitle}>Procesando...</Text>
+                <Text style={styles.modalMessage}>Estamos asegurando tu lugar en El Coronel Barbón. No cierres esta ventana.</Text>
+              </>
+            )}
 
-      <Modal visible={bookingStatus === 'success'} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.2)' }]}>
-              <CheckCircle2 size={32} color="#10B981" />
-            </View>
-            <Text style={styles.modalTitle}>¡Cita Agendada!</Text>
-            <Text style={styles.modalMessage}>Tu reserva en El Coronel ha sido confirmada con éxito. Te esperamos pronto.</Text>
-            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: 'var(--gold)' }]} onPress={() => {
-                setBookingStatus('idle');
-                if (onConfirm) onConfirm({});
-            }}>
-              <Text style={[styles.modalBtnText, { color: '#000' }]}>EXCELENTE</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+            {bookingStatus === 'success' && (
+              <>
+                <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                  <CheckCircle2 size={32} color="#10B981" />
+                </View>
+                <Text style={styles.modalTitle}>¡Cita Agendada!</Text>
+                <Text style={styles.modalMessage}>Tu reserva en El Coronel Barbón ha sido confirmada con éxito. Te esperamos pronto.</Text>
+                <TouchableOpacity 
+                  style={[styles.modalBtn, { backgroundColor: COLORS.primary }]} 
+                  onPress={() => {
+                    setBookingStatus('idle');
+                    if (onConfirm) onConfirm({});
+                  }}
+                >
+                  <Text style={[styles.modalBtnText, { color: '#000' }]}>EXCELENTE</Text>
+                </TouchableOpacity>
+              </>
+            )}
 
-      <Modal visible={bookingStatus === 'error'} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}>
-              <AlertTriangle size={32} color="#EF4444" />
-            </View>
-            <Text style={styles.modalTitle}>Algo salió mal</Text>
-            <Text style={styles.modalMessage}>{bookingErrorMessage || "No pudimos procesar tu cita en este momento. Por favor intenta de nuevo."}</Text>
-            <TouchableOpacity style={[styles.modalBtn, styles.cancelModalBtn]} onPress={() => setBookingStatus('idle')}>
-              <Text style={styles.modalBtnText}>REINTENTAR</Text>
-            </TouchableOpacity>
+            {bookingStatus === 'error' && (
+              <>
+                <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}>
+                  <AlertTriangle size={32} color="#EF4444" />
+                </View>
+                <Text style={styles.modalTitle}>Algo salió mal</Text>
+                <Text style={styles.modalMessage}>{bookingErrorMessage || "No pudimos procesar tu cita en este momento. Por favor intenta de nuevo."}</Text>
+                <TouchableOpacity style={[styles.modalBtn, styles.cancelModalBtn]} onPress={() => setBookingStatus('idle')}>
+                  <Text style={styles.modalBtnText}>REINTENTAR</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </Modal>

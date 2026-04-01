@@ -59,7 +59,7 @@ export default function BarberDetailsView({
           Servicios Habilitados:
         </Text>
         <View style={styles.tagsContainer}>
-          {selectedBarber.services.map((service, index) => (
+          {(selectedBarber.services || []).map((service, index) => (
             <View key={index} style={styles.tag}>
               <Text style={styles.tagText}>{service}</Text>
             </View>
@@ -97,19 +97,19 @@ export default function BarberDetailsView({
       <View style={styles.statsGrid}>
         <View style={styles.bigStatBox}>
           <Text style={styles.bigStatValue}>
-            ${selectedBarber.totalEarnings}
+            ${selectedBarber.totalEarnings || 0}
           </Text>
           <Text style={styles.bigStatLabel}>Ingresos Totales</Text>
         </View>
         <View style={styles.bigStatBox}>
-          <Text style={styles.bigStatValue}>{selectedBarber.totalServices}</Text>
+          <Text style={styles.bigStatValue}>{selectedBarber.totalServices || 0}</Text>
           <Text style={styles.bigStatLabel}>Cortes Realizados</Text>
         </View>
       </View>
 
       <Text style={styles.sectionTitle}>Historial de Citas</Text>
       <FlatList
-        data={selectedBarber.history}
+        data={selectedBarber.history || []}
         keyExtractor={(_, index) => index.toString()}
         renderItem={({ item }) => (
           <View style={styles.historyRow}>

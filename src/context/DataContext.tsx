@@ -178,9 +178,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (barbersSnap.size < 3) {
           console.log("[DATA CONTEXT] Seeding initial barbers into 'barbers' collection...");
           const initialBarbers = [
-            { id: 'barber1', name: 'Alex Bernal', email: 'alex@barber.com', role: 'barber', branch: 'Centro', rating: 4.9 },
-            { id: 'barber2', name: 'Juan Perez', email: 'juan@barber.com', role: 'barber', branch: 'Lomas', rating: 4.8 },
-            { id: 'barber3', name: 'Carlos Ruiz', email: 'carlos@barber.com', role: 'barber', branch: 'Ambas', rating: 5.0 }
+            { id: 'barber1', name: 'Alex Bernal', email: 'alex@barber.com', role: 'barber', branch: 'Centro', rating: 4.9, active: true },
+            { id: 'barber2', name: 'Juan Perez', email: 'juan@barber.com', role: 'barber', branch: 'Lomas', rating: 4.8, active: true },
+            { id: 'barber3', name: 'Carlos Ruiz', email: 'carlos@barber.com', role: 'barber', branch: 'Ambas', rating: 5.0, active: true }
           ];
           for (const b of initialBarbers) {
             await setDoc(doc(db, 'barbers', b.id), b);

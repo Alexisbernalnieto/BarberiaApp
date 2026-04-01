@@ -81,6 +81,11 @@ export interface Appointment {
   refundId?: string;
   refundedAt?: any;
   refundError?: string;
+  // ── No-Show Management ──
+  noShowJustification?: string;
+  rescheduleRequested?: boolean;
+  rescheduleAuthorized?: boolean;
+  justificationReviewedAt?: any;
 }
 
 // ─── Barber Daily Work Log ───────────────────────────────────────
@@ -111,6 +116,8 @@ export type NotificationType =
   | 'appointment_rescheduled'
   | 'barber_reassigned'
   | 'walk_in_registered'
+  | 'reschedule_request'
+  | 'reschedule_authorized'
   | 'check_in';
 
 export interface AppNotification {

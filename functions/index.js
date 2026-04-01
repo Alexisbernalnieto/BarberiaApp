@@ -559,8 +559,78 @@ exports.scheduledFirestoreExport = onSchedule(
   }
 );
 
+// 7) GESTIÓN DE CITAS NO-SHOW (Cron Job cada 10 minutos)
+exports.scheduledNoShowUpdate = onSchedule(
+  {
+    schedule: "*/10 * * * *",
+    timeZone: "America/Mexico_City",
+    timeoutSeconds: 300,
+    memory: "256MiB"
+  },
+  async (event) => {
+    const now = new Date();
+    const toleranceMinutes = 15;
+    const db = admin.firestore();
+
+    try {
+      console.log("Iniciando detección de No-Show...");
+      const snapshot = await db.collection("appointments")
+        .where("status", "==", "confirmed")
+        .get();
+
+      const batch = db.batch();
+      let count = 0;
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data.date || !data.time) return;
+
+        const [year, month, day] = data.date.split("-").map(Number);
+        const [hour, min] = data.time.split(":").map(Number);
+        
+        const appointmentTime = new Date(year, month - 1, day, hour, min);
+        const expirationTime = new Date(appointmentTime.getTime() + (toleranceMinutes * 60000));
+
+        if (now > expirationTime) {
+          batch.update(doc.ref, {
+            status: "no_show",
+            noShowMarkedAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+
+          const notifId = `no_show_${doc.id}`;
+          const notifRef = db.collection("notifications").doc(notifId);
+          batch.set(notifRef, {
+            type: "no_show_alert",
+            message: `Tu cita de las ${data.time} ha sido marcada como inasistencia.`,
+            targetUserId: data.userId,
+            clientName: data.userName,
+            barberName: data.barberName,
+            service: data.serviceName,
+            appointmentId: doc.id,
+            branch: data.branch,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            readBy: []
+          });
+
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        await batch.commit();
+        console.log(`✅ Citas marcadas como no-show: ${count}`);
+      }
+      return null;
+    } catch (error) {
+      console.error("❌ Error en scheduledNoShowUpdate:", error);
+      return null;
+    }
+  }
+);
+
 /* ============================================================
-   7) EMAIL NOTIFICATIONS — APPOINTMENT EVENTS
+   8) EMAIL NOTIFICATIONS — APPOINTMENT EVENTS
    Sends professional branded emails when key appointment events
    occur (barber absence, reschedule, no-show, etc.)
    
@@ -591,12 +661,8 @@ function buildEmailTemplate(title, bodyContent, ctaText, ctaUrl) {
           
           <!-- Logo Header -->
           <tr>
-            <td align="center" style="padding:40px 40px 20px;border-bottom:1px solid rgba(212,175,55,0.1);">
-              <div style="width:48px;height:48px;border:2px solid #D4AF37;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;">
-                <span style="color:#D4AF37;font-size:24px;font-weight:900;">B</span>
-              </div>
-              <h2 style="color:#D4AF37;font-size:14px;letter-spacing:3px;font-weight:900;margin:0;text-transform:uppercase;">EL CORONEL</h2>
-              <p style="color:rgba(255,255,255,0.4);font-size:10px;letter-spacing:2px;margin:4px 0 0;text-transform:uppercase;">Executive Barber Shop</p>
+            <td align="center" style="padding:40px 40px 20px;">
+              <img src="https://firebasestorage.googleapis.com/v0/b/barberia-app-c4c2b.appspot.com/o/assets%2Flogo_el_coronel.png?alt=media" alt="El Coronel" width="120" style="display:block;">
             </td>
           </tr>
           
@@ -656,7 +722,7 @@ exports.sendAppointmentEmail = onDocumentWritten(
     const { type, targetUserId, clientName, barberName, service, appointmentId, branch } = notification;
 
     // Only certain types warrant an email to the client
-    const emailTypes = ['barber_absent', 'barber_reassigned', 'appointment_rescheduled', 'appointment_cancelled'];
+    const emailTypes = ['barber_absent', 'barber_reassigned', 'appointment_rescheduled', 'appointment_cancelled', 'no_show_alert'];
     if (!emailTypes.includes(type) || !targetUserId) return null;
 
     try {
@@ -743,6 +809,23 @@ exports.sendAppointmentEmail = onDocumentWritten(
             <p>Puedes agendar una nueva cita cuando gustes.</p>
           `;
           ctaText = 'Agendar nueva cita';
+          ctaUrl = appUrl;
+          break;
+
+        case 'no_show_alert':
+          subject = '⚠️ Te extrañamos en tu cita — El Coronel';
+          bodyContent = `
+            <p>Hola <strong style="color:#FFFFFF;">${clientName || userData.name || 'Cliente'}</strong>,</p>
+            <p>Notamos que no pudiste asistir a tu cita programada. Debido a esto, la cita ha sido marcada como inasistencia.</p>
+            <div style="background-color:rgba(212,175,55,0.08);border-radius:14px;padding:20px;margin:16px 0;border-left:3px solid #D4AF37;">
+              <p style="margin:0;color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Servicio</p>
+              <p style="margin:4px 0 0;color:#FFFFFF;font-weight:700;">${service || 'Tu servicio'}</p>
+              <p style="margin:12px 0 0;color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Barbero</p>
+              <p style="margin:4px 0 0;color:#FFFFFF;font-weight:700;">${barberName || 'Tu barbero'}</p>
+            </div>
+            <p>Si tuviste algún inconveniente, puedes solicitar una reprogramación directamente desde la aplicación entrando a tu panel de cliente.</p>
+          `;
+          ctaText = 'Ver mi panel';
           ctaUrl = appUrl;
           break;
 

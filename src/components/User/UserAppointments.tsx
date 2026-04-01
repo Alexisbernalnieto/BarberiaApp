@@ -38,6 +38,7 @@ export default function UserAppointments({ user, appointments, COLORS, isMobile 
     >
       <View style={styles.cardHeader}>
         <View style={styles.serviceInfo}>
+          <Text style={[styles.idLabel, { color: COLORS.primary }]}>ID: {item.id}</Text>
           <Text style={[styles.serviceName, { color: COLORS.text }]}>{item.serviceName}</Text>
           <Text style={[styles.barberName, { color: COLORS.textSecondary }]}>con {item.barberName}</Text>
         </View>
@@ -47,6 +48,10 @@ export default function UserAppointments({ user, appointments, COLORS, isMobile 
       </View>
       
       <View style={styles.cardFooter}>
+         <View style={styles.dateTime}>
+            <MaterialCommunityIcons name="map-marker-outline" size={16} color={COLORS.primary} />
+            <Text style={[styles.footerText, { color: COLORS.textSecondary }]}>{item.branch}</Text>
+         </View>
          <View style={styles.dateTime}>
             <MaterialCommunityIcons name="calendar-month" size={16} color={COLORS.primary} />
             <Text style={[styles.footerText, { color: COLORS.textSecondary }]}>{formatFullDate(item.date)}</Text>
@@ -122,12 +127,13 @@ const styles = StyleSheet.create({
   card: { padding: 20, borderRadius: 20, borderWidth: 1, gap: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   serviceInfo: { flex: 1 },
+  idLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 2, opacity: 0.8 },
   serviceName: { fontSize: 18, fontWeight: '700' },
   barberName: { fontSize: 14, marginTop: 4 },
   priceBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   priceText: { fontWeight: '800', fontSize: 16 },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  dateTime: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+  dateTime: { flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 2 },
   footerText: { fontSize: 13, fontWeight: '600' },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 0.5 },
   statusText: { fontSize: 10, fontWeight: '800' },

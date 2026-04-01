@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform, ActivityIndicator } from 'react-native';
-import { Clock, CreditCard, Banknote, Scissors, MapPin, X, Hash, ChevronRight } from 'lucide-react';
+import { Clock, CreditCard, Banknote, Scissors, MapPin, X, Hash, ChevronRight, User } from 'lucide-react';
 import { formatFullDate, formatTime12h } from '../../utils/formatters';
 import { getPaymentMetadata, PaymentMetadata } from '../../services/payments';
 
@@ -32,8 +32,8 @@ const AppointmentDetail = ({ appointment, visible, onClose, COLORS }: any) => {
                     
                     <View style={styles.header}>
                         <View style={{ alignItems: 'center' }}>
-                            <Text style={styles.brandTitle}>EL CORONEL</Text>
-                            <Text style={styles.brandSubtitle}>BARBER SHOP</Text>
+                            <Text style={styles.brandTitle}>EL CORONEL BARBÓN</Text>
+                            <Text style={styles.brandSubtitle}>Peluquería y Barbería de alto nivel</Text>
                         </View>
                         <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
                             <X size={24} color="var(--text-secondary)" />
@@ -54,7 +54,9 @@ const AppointmentDetail = ({ appointment, visible, onClose, COLORS }: any) => {
                         </View>
 
                         <View style={styles.detailsList}>
+                            <DetailRow icon={Hash} label="ID RESERVACIÓN" value={appointment.id} mono />
                             <DetailRow icon={MapPin} label="SUCURSAL" value={appointment.branch || 'Sucursal Matriz'} />
+                            <DetailRow icon={User} label="BARBERO" value={appointment.barberName} />
                             <DetailRow icon={Scissors} label="SERVICIO" value={appointment.serviceName} />
                             <DetailRow icon={Clock} label="FECHA Y HORA" value={`${formatFullDate(appointment.date)} a las ${formatTime12h(appointment.time)}`} />
                             
@@ -207,11 +209,11 @@ const styles = StyleSheet.create({
     typeBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
     typeText: { color: '#FFF', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
     detailsList: { padding: 24, paddingTop: 0 },
-    detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 },
-    detailLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 14 },
+    detailLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 0, marginRight: 16 },
     detailLabel: { color: 'var(--text-secondary)', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
-    detailValue: { color: '#FFF', fontSize: 14, fontWeight: '600' },
-    monoText: { fontFamily: Platform.OS === 'web' ? 'monospace' : undefined, color: 'var(--gold)', letterSpacing: 1 },
+    detailValue: { color: '#FFF', fontSize: 14, fontWeight: '600', flex: 1, textAlign: 'right' },
+    monoText: { fontFamily: Platform.OS === 'web' ? 'monospace' : undefined, color: 'var(--gold)', letterSpacing: 1, flex: 1, textAlign: 'right' },
     divider: { height: 1, backgroundColor: 'var(--glass-border)', marginVertical: 8 },
     totalSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderTopWidth: 1, borderColor: 'var(--glass-border)' },
     totalLabel: { color: '#FFF', fontSize: 16, fontWeight: '800', letterSpacing: 1 },
@@ -269,6 +271,8 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 14,
         fontWeight: '700',
+        flex: 1,
+        textAlign: 'right'
     },
     cardBrandChip: {
         paddingHorizontal: 8,

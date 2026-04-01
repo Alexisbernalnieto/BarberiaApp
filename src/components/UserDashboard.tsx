@@ -36,6 +36,8 @@ import UserSchedules from './User/UserSchedules';
 import UserServicesDetailed from './User/UserServicesDetailed';
 import UserLocations from './User/UserLocations';
 import AdminUsers from './Admin/AdminUsers';
+import NoShowModal from './User/NoShowModal';
+import { submitNoShowJustification } from '../services/appointments';
 interface UserDashboardProps {
   user: AppUser;
   appointments: Appointment[];
@@ -66,6 +68,33 @@ export default function UserDashboard({
   const myAppointments = useMemo(() => {
     return appointments.filter(app => app.userId === user.email || app.userId === user.uid);
   }, [appointments, user.email, user.uid]);
+
+  const [noShowModalVisible, setNoShowModalVisible] = useState(false);
+  const [currentNoShowApp, setCurrentNoShowApp] = useState<Appointment | null>(null);
+
+  // Check for no-shows that haven't been justified yet
+  React.useEffect(() => {
+    const pendingNoShow = myAppointments.find(app => 
+      app.status === 'no_show' && 
+      !app.rescheduleRequested && 
+      !app.rescheduleAuthorized
+    );
+
+    if (pendingNoShow) {
+      setCurrentNoShowApp(pendingNoShow);
+      setNoShowModalVisible(true);
+    }
+  }, [myAppointments]);
+
+  const handleSubmitJustification = async (appointmentId: string, justification: string) => {
+    try {
+      await submitNoShowJustification(appointmentId, justification);
+    } catch (error) {
+      console.error("Error submitting justification:", error);
+      alert("Error al enviar la justificación. Por favor intenta de nuevo.");
+      throw error;
+    }
+  };
 
   const handleBookingComplete = (data: any) => {
     setActiveTab('appointments');
@@ -103,9 +132,6 @@ export default function UserDashboard({
             <View style={styles.headerActions}>
                 <TouchableOpacity style={[styles.headerBtn, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(0,0,0,0.05)' }]} onPress={toggleTheme}>
                     {isDarkMode ? <Sun size={20} color={COLORS.primary} /> : <Moon size={20} color={COLORS.textSecondary} />}
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(0,0,0,0.05)' }]} onPress={handleLogoutWithGuard}>
-                    <UserIcon size={20} color={COLORS.textSecondary} />
                 </TouchableOpacity>
             </View>
         </View>
@@ -185,6 +211,14 @@ export default function UserDashboard({
             )}
         </ScrollView>
       </View>
+      
+      <NoShowModal
+        visible={noShowModalVisible}
+        appointment={currentNoShowApp}
+        onClose={() => setNoShowModalVisible(false)}
+        onSubmitJustification={handleSubmitJustification}
+        COLORS={COLORS}
+      />
     </MainLayout>
   );
 }

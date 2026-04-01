@@ -304,9 +304,6 @@ export default function BarberDashboard({
               <TouchableOpacity style={styles.headerBtn} onPress={toggleTheme}>
                 {isDarkMode ? <Sun size={20} color="var(--gold)" /> : <Moon size={20} color="var(--text-secondary)" />}
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.headerBtn, { borderColor: 'rgba(239, 68, 68, 0.2)' }]} onPress={onLogout}>
-                <LogOut size={20} color="#EF4444" />
-              </TouchableOpacity>
             </View>
           </View>
 

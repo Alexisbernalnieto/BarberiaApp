@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SERVICES } from '../../data/mockData';
 
 export default function BarberFormView({
@@ -11,10 +12,14 @@ export default function BarberFormView({
   setSelectedDay,
   updateSchedule,
   toggleServiceSelection,
+  toggleAllServices,
   setViewMode,
   handleSave,
   DEFAULT_SCHEDULE,
+  COLORS,
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+
   const availableServices = SERVICES.filter(
     service =>
       !service.branch ||
@@ -52,6 +57,43 @@ export default function BarberFormView({
           placeholder="Ej. Master Barber"
           placeholderTextColor="#666"
         />
+
+        <Text style={styles.label}>Correo Electrónico</Text>
+        <TextInput
+          style={styles.input}
+          value={editingBarber.email}
+          onChangeText={text => setEditingBarber({ ...editingBarber, email: text })}
+          placeholder="correo@ejemplo.com"
+          placeholderTextColor="#666"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        {!editingBarber.id && (
+          <>
+            <Text style={styles.label}>Contraseña</Text>
+            <View style={{ position: 'relative', justifyContent: 'center' }}>
+              <TextInput
+                style={[styles.input, { paddingRight: 50 }]}
+                value={editingBarber.password}
+                onChangeText={text => setEditingBarber({ ...editingBarber, password: text })}
+                placeholder="Mínimo 6 caracteres"
+                placeholderTextColor="#666"
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)}
+                style={{ position: 'absolute', right: 15, padding: 5 }}
+              >
+                <MaterialCommunityIcons 
+                  name={showPassword ? "eye-off" : "eye"} 
+                  size={24} 
+                  color="#999" 
+                />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
 
         <Text style={styles.label}>Estatus</Text>
         <TouchableOpacity 
@@ -203,9 +245,26 @@ export default function BarberFormView({
           </View>
         </View>
 
-        <Text style={styles.label}>
-          Servicios Habilitados {editingBarber.services?.length || 0}
-        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <Text style={[styles.label, { marginBottom: 0 }]}>
+            Servicios Habilitados {editingBarber.services?.length || 0}
+          </Text>
+          <TouchableOpacity 
+            onPress={() => toggleAllServices(availableServices.map(s => s.name))}
+            style={{ 
+              backgroundColor: COLORS.surfaceHighlight, 
+              paddingHorizontal: 12, 
+              paddingVertical: 6, 
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: COLORS.primary
+            }}
+          >
+            <Text style={{ color: COLORS.primary, fontSize: 12, fontWeight: 'bold' }}>
+              {availableServices.every(s => editingBarber.services?.includes(s.name)) ? 'DESMARCAR TODOS' : 'MARCAR TODOS'}
+            </Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.servicesGrid}>
           {availableServices.map(service => {
             const isSelected =

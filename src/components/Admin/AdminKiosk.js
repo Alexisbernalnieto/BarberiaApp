@@ -91,7 +91,7 @@ export default function AdminKiosk({
             <MaterialCommunityIcons name="store" size={isMobile ? 22 : 28} color={COLORS.primary} />
             <View style={{ marginLeft: 10 }}>
               <Text style={styles.headerTitle}>Recepción</Text>
-              <Text style={styles.headerSubtitle}>El Coronel Barbón</Text>
+              <Text style={styles.headerSubtitle}>EL CORONEL BARBÓN</Text>
             </View>
           </View>
           <View style={styles.headerRight}>
@@ -115,9 +115,7 @@ export default function AdminKiosk({
                 />
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={onLogout} style={[styles.headerBtn, styles.logoutBtn]}>
-              <MaterialCommunityIcons name="logout" size={18} color={COLORS.error || '#EF4444'} />
-            </TouchableOpacity>
+
           </View>
         </View>
 

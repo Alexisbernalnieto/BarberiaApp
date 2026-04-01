@@ -6,7 +6,7 @@ export default function UserLocations({ COLORS }: any) {
   const locations = [
     {
       id: 'centro',
-      name: 'El Coronel - Centro',
+      name: 'EL CORONEL BARBÓN - Centro',
       address: 'Mariano Abasolo 59 B, Centro, San Juan del Río, Qro.',
       phone: '+52 427 123 4567',
       coords: '20.3889,-99.9961',
@@ -14,7 +14,7 @@ export default function UserLocations({ COLORS }: any) {
     },
     {
       id: 'lomas',
-      name: 'El Coronel - Lomas',
+      name: 'EL CORONEL BARBÓN - Lomas',
       address: 'Av. Lomas de San Juan 1129, Lomas de San Juan, San Juan del Río, Qro.',
       phone: '+52 427 987 6543',
       coords: '20.3754,-99.9823',
