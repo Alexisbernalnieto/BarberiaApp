@@ -524,6 +524,26 @@ export const getBarberManagementStyles = (COLORS, isMobile) =>
       fontSize: 20,
       marginTop: 10,
     },
+    breakSection: {
+      marginTop: 20,
+      paddingTop: 15,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255,255,255,0.1)',
+    },
+    breakTitle: {
+      color: COLORS.primary,
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginBottom: 10,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    breakInputsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 15,
+      marginBottom: 10,
+    },
     scheduleSummary: {
       marginTop: 10,
       gap: 8,

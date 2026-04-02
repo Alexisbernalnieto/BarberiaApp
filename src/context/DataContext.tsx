@@ -3,6 +3,8 @@ import { collection, query, onSnapshot, where, orderBy, limit, getDocs, setDoc, 
 import { db } from '@/firebaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { Appointment, AppUser, Service, Branch } from '@/types';
+import { isAppointmentExpired } from '@/utils/formatters';
+import { updateAppointmentStatus, cleanupExpiredAppointments } from '@/services/appointments';
 
 interface DataContextType {
   appointments: Appointment[];
@@ -38,6 +40,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const r = currentUser.role;
     const isAdminOrRecep = r === 0 || r === 2 || r === 'admin' || r === 'reception';
     const isBarber = r === 3 || r === 'barber';
+
+    // Run cleanup once on load
+    cleanupExpiredAppointments(currentUser.uid).catch(console.error);
 
     let qAppointments;
 
@@ -195,6 +200,33 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     seedData();
   }, [currentUser]);
+
+  // Background reconciliation for expired appointments
+  useEffect(() => {
+    if (appointments.length === 0) return;
+
+    const reconcileAppointments = async () => {
+      const expired = appointments.filter(app => 
+        (app.status === 'confirmed' || app.status === 'checked_in' || app.status === 'in_progress') && 
+        isAppointmentExpired(app.date, app.time)
+      );
+
+      if (expired.length > 0) {
+        console.log(`[DATA CONTEXT] Reconciliando ${expired.length} citas expiradas a estado 'unhandled'.`);
+        for (const app of expired) {
+          try {
+            await updateAppointmentStatus(app.id, 'unhandled', 'system', 'system' as any);
+          } catch (e) {
+            console.error(`[DATA CONTEXT] Error reconciliando cita ${app.id}:`, e);
+          }
+        }
+      }
+    };
+
+    // Delay a bit to avoid interference with initial load
+    const timer = setTimeout(reconcileAppointments, 2000);
+    return () => clearTimeout(timer);
+  }, [appointments]);
 
   return (
     <DataContext.Provider value={{ appointments, barbers, setBarbers, services, branches }}>

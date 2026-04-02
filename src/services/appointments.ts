@@ -5,7 +5,7 @@
 // garantizar consistencia y evitar race conditions.
 // ═══════════════════════════════════════════════════════════════
 import { db } from '@/firebaseClient';
-import { doc, runTransaction, Timestamp, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, runTransaction, Timestamp, collection, query, where, getDocs, writeBatch, getDoc } from 'firebase/firestore';
 import { logActivity } from '@/services/activityLogs';
 import { createNotification } from '@/services/notificationService';
 import { incrementDayMetrics } from '@/services/barberTracking';
@@ -115,7 +115,7 @@ export const createAppointment = async (params: CreateAppointmentParams) => {
       throw new Error('Lo sentimos, este horario ya tiene un servicio que se cruza con el tiempo solicitado.');
     }
 
-    return await runTransaction(db, async (transaction) => {
+    const result = await runTransaction(db, async (transaction) => {
 
       const appointmentType = type || 'Online';
       const isPaid = !!paymentIntentId || appointmentType === 'Walk-in';
@@ -143,34 +143,35 @@ export const createAppointment = async (params: CreateAppointmentParams) => {
       };
 
       transaction.set(appointmentRef, payload);
-
-      // Activity Log
-      logActivity({
-        adminId: userId,
-        adminRole: appointmentType === 'Walk-in' ? 'admin' : 'client',
-        action: appointmentType === 'Walk-in' ? 'Registró Walk-in' : 'Reservó una cita',
-        details: `Cliente: ${userName}\nBarbero: ${barberName}\nServicio: ${serviceName}\nFecha: ${date} a las ${time}\nSucursal: ${branch}`,
-        targetUserId: uniqueId,
-      });
-
-      // Notification to Admin
-      createNotification({
-        type: appointmentType === 'Walk-in' ? 'walk_in_registered' : 'new_appointment',
-        message: appointmentType === 'Walk-in'
-          ? `Walk-in registrado: ${userName} con ${barberName}`
-          : `${userName} agendó una cita con ${barberName}`,
-        branch,
-        targetRoles: ['admin', 'reception'],
-        clientName: userName,
-        barberName,
-        service: serviceName,
-        appointmentId: uniqueId,
-        date,
-        time,
-      });
-
       return { id: uniqueId, ...payload };
     });
+
+    // --- Side Effects (Outside Transaction) ---
+    const appointmentType = type || 'Online';
+    logActivity({
+      adminId: userId,
+      adminRole: appointmentType === 'Walk-in' ? 'admin' : 'client',
+      action: appointmentType === 'Walk-in' ? 'Registró Walk-in' : 'Reservó una cita',
+      details: `Cliente: ${userName}\nBarbero: ${barberName}\nServicio: ${serviceName}\nFecha: ${date} a las ${time}\nSucursal: ${branch}`,
+      targetUserId: uniqueId,
+    });
+
+    createNotification({
+      type: appointmentType === 'Walk-in' ? 'walk_in_registered' : 'new_appointment',
+      message: appointmentType === 'Walk-in'
+        ? `Walk-in registrado: ${userName} con ${barberName}`
+        : `${userName} agendó una cita con ${barberName}`,
+      branch,
+      targetRoles: ['admin', 'reception'],
+      clientName: userName,
+      barberName,
+      service: serviceName,
+      appointmentId: uniqueId,
+      date,
+      time,
+    });
+
+    return result;
   } catch (error) {
     console.error('Transaction failed: ', error);
     throw error;
@@ -572,6 +573,20 @@ export const getBarberAppointmentsForDate = async (barberId: string, date: strin
 // 10. DETECTAR SLOTS DISPONIBLES (con duración + tolerancia)
 // ═══════════════════════════════════════════════════════════════
 export const getAvailableSlotsForBarber = async (barberId: string, date: string, serviceDuration: number = 30) => {
+  // Fetch barber's schedule for this specific day
+  const barberDoc = await getDoc(doc(db, 'users', barberId));
+  if (!barberDoc.exists()) return [];
+
+  const barberData = barberDoc.data();
+  const dateObj = new Date(date + 'T12:00:00');
+  const dayIndex = dateObj.getDay(); // 0 is Sunday, 1 is Monday...
+  const daySchedule = barberData.schedule && barberData.schedule[dayIndex];
+
+  if (!daySchedule || !daySchedule.active) return [];
+
+  const startMin = timeToMinutes(daySchedule.start || "10:00");
+  const endMin = timeToMinutes(daySchedule.end || "20:00");
+
   const q = query(
     collection(db, 'appointments'),
     where('barberId', '==', barberId),
@@ -584,13 +599,19 @@ export const getAvailableSlotsForBarber = async (barberId: string, date: string,
     .sort((a: any, b: any) => timeToMinutes((a as any).time) - timeToMinutes((b as any).time));
 
   const allSlots: string[] = [];
-  let currentTime = timeToMinutes("10:00");
-  const closingTime = timeToMinutes("20:00");
+  let currentTime = startMin;
+  const closingTime = endMin;
 
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const isToday = date === todayStr;
   const currentMins = now.getHours() * 60 + now.getMinutes();
+
+  // Breaks configuration
+  const break1Start = daySchedule.break1Start ? timeToMinutes(daySchedule.break1Start) : null;
+  const break1End = daySchedule.break1End ? timeToMinutes(daySchedule.break1End) : null;
+  const break2Start = daySchedule.break2Start ? timeToMinutes(daySchedule.break2Start) : null;
+  const break2End = daySchedule.break2End ? timeToMinutes(daySchedule.break2End) : null;
 
   while (currentTime + serviceDuration <= closingTime) {
     if (isToday && currentTime <= currentMins + 15) {
@@ -598,21 +619,31 @@ export const getAvailableSlotsForBarber = async (barberId: string, date: string,
       continue;
     }
 
+    const slotStart = currentTime;
+    const slotEnd = currentTime + serviceDuration + NO_SHOW_TOLERANCE_MINUTES;
+
+    // Check conflict with appointments
     const conflict = booked.find((app: any) => {
       const appStart = timeToMinutes(app.time);
-      const appDuration = (app as any).duration || (app as any).serviceDuration || 30;
-      const appEnd = appStart + appDuration + NO_SHOW_TOLERANCE_MINUTES;
-
-      const newStart = currentTime;
-      const newEnd = currentTime + serviceDuration + NO_SHOW_TOLERANCE_MINUTES;
-
-      return (newStart < appEnd && newEnd > appStart);
+      const appDur = (app as any).duration || (app as any).serviceDuration || 30;
+      const appEnd = appStart + appDur + NO_SHOW_TOLERANCE_MINUTES;
+      return (slotStart < appEnd && slotEnd > appStart);
     });
 
-    if (conflict) {
-      const appStart = timeToMinutes((conflict as any).time);
-      const appDuration = (conflict as any).duration || (conflict as any).serviceDuration || 30;
-      currentTime = appStart + appDuration + NO_SHOW_TOLERANCE_MINUTES;
+    // Check conflict with breaks
+    const inBreak1 = break1Start !== null && break1End !== null && (slotStart < break1End && slotEnd > break1Start);
+    const inBreak2 = break2Start !== null && break2End !== null && (slotStart < break2End && slotEnd > break2Start);
+
+    if (conflict || inBreak1 || inBreak2) {
+      if (conflict) {
+        const appStart = timeToMinutes((conflict as any).time);
+        const appDur = (conflict as any).duration || (conflict as any).serviceDuration || 30;
+        currentTime = appStart + appDur + NO_SHOW_TOLERANCE_MINUTES;
+      } else if (inBreak1) {
+        currentTime = break1End;
+      } else if (inBreak2) {
+        currentTime = break2End;
+      }
     } else {
       const h = Math.floor(currentTime / 60);
       const m = currentTime % 60;
@@ -655,7 +686,7 @@ export const isAppointmentPastTolerance = (appointmentTime: string, appointmentD
 export const submitNoShowJustification = async (appointmentId: string, justification: string) => {
   const appointmentRef = doc(db, 'appointments', appointmentId);
   try {
-    return await runTransaction(db, async (transaction) => {
+    const result = await runTransaction(db, async (transaction) => {
       const appDoc = await transaction.get(appointmentRef);
       if (!appDoc.exists()) throw new Error('La cita no existe.');
 
@@ -666,29 +697,31 @@ export const submitNoShowJustification = async (appointmentId: string, justifica
         rescheduleRequested: true,
         updatedAt: Timestamp.now(),
       });
-
-      // Notificar al Administrador
-      createNotification({
-        type: 'reschedule_request',
-        message: `${data.userName} solicitó reprogramación por inasistencia`,
-        branch: data.branch,
-        targetRoles: ['admin', 'reception'],
-        clientName: data.userName,
-        barberName: data.barberName,
-        service: data.serviceName,
-        appointmentId,
-      });
-
-      logActivity({
-        adminId: data.userId,
-        adminRole: 'client',
-        action: 'Solicitó reprogramación (No-Show)',
-        details: `Cita ID: ${appointmentId}\nJustificación: ${justification}`,
-        targetUserId: appointmentId,
-      });
       
-      return true;
+      return data;
     });
+
+    // --- Side Effects (Outside Transaction) ---
+    createNotification({
+      type: 'reschedule_request',
+      message: `${result.userName} solicitó reprogramación por inasistencia`,
+      branch: result.branch,
+      targetRoles: ['admin', 'reception'],
+      clientName: result.userName,
+      barberName: result.barberName,
+      service: result.serviceName,
+      appointmentId,
+    });
+
+    logActivity({
+      adminId: result.userId,
+      adminRole: 'client',
+      action: 'Solicitó reprogramación (No-Show)',
+      details: `Cita ID: ${appointmentId}\nJustificación: ${justification}`,
+      targetUserId: appointmentId,
+    });
+
+    return true;
   } catch (error) {
     console.error('Submit justification failed: ', error);
     throw error;
@@ -701,7 +734,7 @@ export const submitNoShowJustification = async (appointmentId: string, justifica
 export const authorizeReschedule = async (appointmentId: string, adminId: string) => {
   const appointmentRef = doc(db, 'appointments', appointmentId);
   try {
-    return await runTransaction(db, async (transaction) => {
+    const result = await runTransaction(db, async (transaction) => {
       const appDoc = await transaction.get(appointmentRef);
       if (!appDoc.exists()) throw new Error('La cita no existe.');
 
@@ -712,30 +745,32 @@ export const authorizeReschedule = async (appointmentId: string, adminId: string
         justificationReviewedAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       });
-
-      // Notificar al Cliente
-      createNotification({
-        type: 'reschedule_authorized',
-        message: `¡Tu reprogramación ha sido autorizada! Ya puedes agendar tu nueva cita.`,
-        branch: data.branch,
-        targetRoles: ['client'],
-        targetUserId: data.userId,
-        clientName: data.userName,
-        barberName: data.barberName,
-        service: data.serviceName,
-        appointmentId,
-      });
-
-      logActivity({
-        adminId,
-        adminRole: 'admin',
-        action: 'Autorizó reprogramación',
-        details: `Cita ID: ${appointmentId} - Cliente: ${data.userName}`,
-        targetUserId: appointmentId,
-      });
       
-      return true;
+      return data;
     });
+
+    // --- Side Effects (Outside Transaction) ---
+    createNotification({
+      type: 'reschedule_authorized',
+      message: `¡Tu reprogramación ha sido autorizada! Ya puedes agendar tu nueva cita.`,
+      branch: result.branch,
+      targetRoles: ['client'],
+      targetUserId: result.userId,
+      clientName: result.userName,
+      barberName: result.barberName,
+      service: result.serviceName,
+      appointmentId,
+    });
+
+    logActivity({
+      adminId,
+      adminRole: 'admin',
+      action: 'Autorizó reprogramación',
+      details: `Cita ID: ${appointmentId} - Cliente: ${result.userName}`,
+      targetUserId: appointmentId,
+    });
+    
+    return true;
   } catch (error) {
     console.error('Authorize reschedule failed: ', error);
     throw error;
@@ -752,11 +787,11 @@ export const updateAppointmentStatus = async (
   const appointmentRef = doc(db, 'appointments', appointmentId);
 
   try {
-    await runTransaction(db, async (transaction) => {
+    const appData = await runTransaction(db, async (transaction) => {
       const appDoc = await transaction.get(appointmentRef);
       if (!appDoc.exists()) throw new Error('La cita no existe.');
 
-      const appData = appDoc.data();
+      const data = appDoc.data();
       const updatePayload: any = {
         status: newStatus,
         updatedAt: Timestamp.now(),
@@ -775,49 +810,105 @@ export const updateAppointmentStatus = async (
         }
       }
 
+      if (newStatus === 'unhandled') {
+        updatePayload.unhandledAt = Timestamp.now();
+      }
+
       transaction.update(appointmentRef, updatePayload);
-
-      logActivity({
-        adminId,
-        adminRole,
-        action: `Actualizó estado a ${newStatus}`,
-        details: `Cita ID: ${appointmentId}\nCliente: ${appData.userName}\nNuevo Estado: ${newStatus}`,
-        targetUserId: appointmentId,
-      });
-
-      // Update metrics on completion
-      if (newStatus === 'completed') {
-        incrementDayMetrics(appData.barberId, appData.date, appData.branch, {
-          appointmentsCompleted: 1,
-          walkInsCompleted: appData.type === 'Walk-in' ? 1 : 0,
-          revenue: appData.price || 0,
-        });
-      }
-      if (newStatus === 'no_show') {
-        incrementDayMetrics(appData.barberId, appData.date, appData.branch, { noShows: 1 });
-      }
-
-      // NO-SHOW or CANCELLED notifications
-      if (newStatus === 'cancelled' || newStatus === 'no_show') {
-        createNotification({
-          type: newStatus === 'cancelled' ? 'appointment_cancelled' : 'no_show_alert',
-          message: newStatus === 'cancelled' 
-            ? `Tu cita ha sido cancelada${cancellationData ? ': ' + cancellationData.reason : ''}`
-            : `No-show marcado para la cita de ${appData.userName}`,
-          branch: appData.branch,
-          targetRoles: ['admin'],
-          targetUserId: appData.userId, // Notificar al cliente también
-          clientName: appData.userName,
-          barberName: appData.barberName,
-          appointmentId: appointmentId,
-          date: appData.date,
-          time: appData.time,
-        });
-      }
+      return data;
     });
+
+    // --- Side Effects (Outside Transaction) ---
+    logActivity({
+      adminId,
+      adminRole,
+      action: `Actualizó estado a ${newStatus}`,
+      details: `Cita ID: ${appointmentId}\nCliente: ${appData.userName}\nNuevo Estado: ${newStatus}`,
+      targetUserId: appointmentId,
+    });
+
+    // Update metrics on completion
+    if (newStatus === 'completed') {
+      await incrementDayMetrics(appData.barberId, appData.date, appData.branch, {
+        appointmentsCompleted: 1,
+        walkInsCompleted: appData.type === 'Walk-in' ? 1 : 0,
+        revenue: appData.price || 0,
+      });
+    }
+    if (newStatus === 'no_show') {
+      await incrementDayMetrics(appData.barberId, appData.date, appData.branch, { noShows: 1 });
+    }
+
+    // NO-SHOW or CANCELLED notifications
+    if (newStatus === 'cancelled' || newStatus === 'no_show') {
+      createNotification({
+        type: newStatus === 'cancelled' ? 'appointment_cancelled' : 'no_show_alert',
+        message: newStatus === 'cancelled' 
+          ? `Tu cita ha sido cancelada${cancellationData ? ': ' + cancellationData.reason : ''}`
+          : `No-show marcado para la cita de ${appData.userName}`,
+        branch: appData.branch,
+        targetRoles: ['admin'],
+        targetUserId: appData.userId, // Notificar al cliente también
+        clientName: appData.userName,
+        barberName: appData.barberName,
+        appointmentId: appointmentId,
+        date: appData.date,
+        time: appData.time,
+      });
+    }
     return true;
   } catch (error) {
     console.error('Update status transaction failed: ', error);
     throw error;
+  }
+};
+
+/**
+ * Cleanup Service: Marks all past-due 'confirmed' or 'checked_in' appointments
+ * as 'unhandled' if they are older than 2 hours from their scheduled time.
+ */
+export const cleanupExpiredAppointments = async (currentUserId?: string) => {
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const appointmentsRef = collection(db, 'appointments');
+    
+    // Query active appointments that might be expired
+    const q = query(
+      appointmentsRef,
+      where('status', 'in', ['confirmed', 'checked_in', 'En Local']),
+      where('date', '<=', todayStr)
+    );
+
+    const snapshot = await getDocs(q);
+    const now = new Date();
+    const batch = writeBatch(db);
+    let count = 0;
+
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const [hours, minutes] = data.time.split(':').map(Number);
+      const apptDateTime = new Date(data.date);
+      apptDateTime.setHours(hours, minutes, 0, 0);
+
+      // Buffer: 120 minutes past the appointment time
+      const expirationThreshold = new Date(apptDateTime.getTime() + 120 * 60 * 1000);
+
+      if (now > expirationThreshold) {
+        batch.update(docSnap.ref, {
+          status: 'unhandled',
+          updatedAt: Timestamp.now(),
+          unhandledAt: Timestamp.now(),
+          notes: (data.notes || '') + '\n[Auto-Expire: No se registró actividad]'
+        });
+        count++;
+      }
+    });
+
+    if (count > 0) {
+      await batch.commit();
+      console.log(`[Cleanup] Se marcaron ${count} citas como 'no manejadas'.`);
+    }
+  } catch (err) {
+    console.error('[Cleanup Error]', err);
   }
 };
