@@ -116,17 +116,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           if (userDoc.exists()) {
             userData = userDoc.data();
-            const roleNum = userData.role;
-            isStaffAccount = roleNum === 0 || roleNum === 2 || roleNum === 3 || roleNum === 'admin' || roleNum === 'barber' || roleNum === 'reception';
+            const role = userData.role;
+            // Check for staff roles (0=admin, 2=reception, 3=barber, or strings)
+            isStaffAccount = role === 0 || role === 2 || role === 3 || 
+                             role === 'admin' || role === 'barber' || role === 'reception';
+            
+            console.log(`AuthContext: Persistent session check for ${user.email}. isStaff: ${isStaffAccount}, role: ${role}`);
           }
           
           const freshUser = auth.currentUser || user;
           const tokenResult = await getIdTokenResult(freshUser, true).catch(() => null);
           const isVerified = tokenResult ? !!tokenResult.claims.email_verified : freshUser.emailVerified;
           
-          // Block unverified users from entering the app, EXCEPT for staff or @barberia.com accounts
           const isSystemAccount = freshUser.email?.endsWith('@barberia.com');
+          
+          // Block unverified users from entering the app, EXCEPT for staff or @barberia.com accounts
           if (!isVerified && !isSystemAccount && !isStaffAccount) {
+             console.log("AuthContext: Blocking unverified client session.");
              setCurrentUser(null);
              setLoading(false);
              return;
@@ -210,14 +216,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const isSystemAccount = freshUser.email?.endsWith('@barberia.com');
       
       // Fetch user data to check role for verification bypass
-      const userDoc = await getDoc(doc(db, 'users', user.uid)).catch(() => null);
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef).catch((err) => {
+        console.error("AuthContext: Error fetching user doc for bypass check:", err);
+        return null;
+      });
+
       let isStaffAccount = false;
       if (userDoc && userDoc.exists()) {
-        const roleNum = userDoc.data().role;
-        isStaffAccount = roleNum === 0 || roleNum === 2 || roleNum === 3 || roleNum === 'admin' || roleNum === 'barber' || roleNum === 'reception';
+        const userData = userDoc.data();
+        const role = userData.role;
+        // Check for all staff roles (0=admin, 2=reception, 3=barber, or strings)
+        isStaffAccount = role === 0 || role === 2 || role === 3 || 
+                         role === 'admin' || role === 'barber' || role === 'reception';
+        
+        console.log(`AuthContext: Login attempt for ${freshUser.email}. isStaff: ${isStaffAccount}, role: ${role}`);
+      } else {
+        console.warn(`AuthContext: User document not found for UID: ${user.uid} during login. Verification bypass may fail.`);
       }
 
+      // BYPASS: If they are staff or have a system email, skip verification check
       if (!isVerified && !isSystemAccount && !isStaffAccount) {
+        console.log(`AuthContext: Blocking unverified client account (${freshUser.email}).`);
         if (Platform.OS === 'web') {
           const resend = window.confirm("Tu cuenta aún no está verificada. Revisa tu bandeja de entrada o spam para encontrar el enlace de activación enviado al registrarte.\n\n¿Deseas reenviar el correo de verificación?");
           if (resend) {

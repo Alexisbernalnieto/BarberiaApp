@@ -34,11 +34,21 @@ service cloud.firestore {
     }
     
     function isReception() {
-      return isSignedIn() && hasRole(['reception', 2]);
+      let uid = request.auth.uid;
+      let userDoc = get(/databases/$(database)/documents/users/$(uid));
+      return isSignedIn() && (
+        hasRole(['reception', 2]) ||
+        (userDoc != null && (userDoc.data.role == 'reception' || userDoc.data.role == 2))
+      );
     }
     
     function isBarber() {
-      return isSignedIn() && hasRole(['barber', 3]);
+      let uid = request.auth.uid;
+      let userDoc = get(/databases/$(database)/documents/users/$(uid));
+      return isSignedIn() && (
+        hasRole(['barber', 3]) ||
+        (userDoc != null && (userDoc.data.role == 'barber' || userDoc.data.role == 3))
+      );
     }
     
     function isStaff() {
@@ -78,7 +88,7 @@ service cloud.firestore {
       let data = request.resource.data;
       return data.keys().hasAll(['userId', 'userName', 'barberId', 'date', 'time', 'serviceId', 'price', 'status']) &&
              data.price >= 0 &&
-             data.status in ['pending_payment', 'confirmed', 'completed', 'cancelled', 'En Local', 'in_progress', 'no_show'];
+             data.status in ['pending_payment', 'confirmed', 'completed', 'cancelled', 'checked_in', 'in_progress', 'no_show', 'unhandled'];
     }
     
     function isValidLog() {
@@ -109,10 +119,15 @@ service cloud.firestore {
       
       // Actualizar:
       allow update: if isSignedIn() && (
-        // Solo Admin o Recepción pueden marcar como pagado o completar
-        (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paid', 'paymentMethod', 'status', 'paidAt'])) ||
+        // Solo Admin, Recepción o el propio Barbero pueden actualizar campos de seguimiento
+        (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'paid', 'paymentMethod', 'status', 'paidAt', 'updatedAt', 
+          'checkedInAt', 'inProgressAt', 'completedAt', 'noShowMarkedAt', 
+          'cancelledAt', 'cancellationReason', 'cancellationType', 'unhandledAt',
+          'notes'
+        ])) ||
         
-        // El dueño puede cancelar? (A implementar después)
+        // El dueño puede cancelar su propia cita
         (isOwner(resource.data.userId) && request.resource.data.status == 'cancelled')
       );
       
@@ -136,6 +151,21 @@ service cloud.firestore {
     match /barbers/{barberId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // REGISTROS DIARIOS DE BARBEROS (METRICAS)
+    match /barber_day_logs/{logId} {
+      // Staff puede leer sus propios logs y admin todos
+      allow read: if isSignedIn() && isStaff();
+      
+      // Crear/Actualizar: Solo el propio barbero o Admin
+      allow create, update: if isSignedIn() && (
+        isAdmin() || 
+        (isBarber() && (
+          // El ID del documento suele ser log_UID_date, o el campo barberId coincide
+          request.resource.data.barberId == request.auth.uid
+        ))
+      );
     }
 
     // NOTIFICACIONES

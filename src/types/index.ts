@@ -18,6 +18,7 @@ export interface AppUser {
   instagram?: string;
   tiktok?: string;
   isOnBreak?: boolean;
+  schedule?: any[] | Record<string, any>;
 }
 
 export interface Service {
@@ -40,6 +41,7 @@ export type AppointmentStatus =
   | 'completed'        // Servicio terminado
   | 'no_show'          // Cliente no se presentó (10 min tolerancia)
   | 'cancelled'        // Cancelada por cliente o admin
+  | 'unhandled'        // No atendida / Expirada por falta de acción
   | 'rescheduled';     // Pospuesta/Reagendada
 
 export interface Appointment {

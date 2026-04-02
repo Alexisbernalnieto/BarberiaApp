@@ -212,35 +212,94 @@ export default function BarberFormView({
             </View>
 
             {daySchedule.active && (
-              <View style={styles.timeInputsRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Entrada</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={daySchedule.start}
-                    onChangeText={text =>
-                      updateSchedule(selectedDay, 'start', text)
-                    }
-                    placeholder="HH:MM"
-                    placeholderTextColor="#666"
-                    maxLength={5}
-                  />
+              <>
+                <View style={styles.timeInputsRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>Entrada</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={daySchedule.start}
+                      onChangeText={text =>
+                        updateSchedule(selectedDay, 'start', text)
+                      }
+                      placeholder="HH:MM"
+                      placeholderTextColor="#666"
+                      maxLength={5}
+                    />
+                  </View>
+                  <Text style={styles.timeSeparator}>-</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>Salida</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={daySchedule.end}
+                      onChangeText={text =>
+                        updateSchedule(selectedDay, 'end', text)
+                      }
+                      placeholder="HH:MM"
+                      placeholderTextColor="#666"
+                      maxLength={5}
+                    />
+                  </View>
                 </View>
-                <Text style={styles.timeSeparator}>-</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Salida</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={daySchedule.end}
-                    onChangeText={text =>
-                      updateSchedule(selectedDay, 'end', text)
-                    }
-                    placeholder="HH:MM"
-                    placeholderTextColor="#666"
-                    maxLength={5}
-                  />
+
+                {/* Breaks Section */}
+                <View style={styles.breakSection}>
+                  <Text style={styles.breakTitle}>Descansos</Text>
+                  
+                  <View style={styles.breakInputsRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.label}>Descanso 1 (Inicio)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={daySchedule.break1Start}
+                        onChangeText={text => updateSchedule(selectedDay, 'break1Start', text)}
+                        placeholder="HH:MM"
+                        placeholderTextColor="#666"
+                        maxLength={5}
+                      />
+                    </View>
+                    <Text style={styles.timeSeparator}>-</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.label}>Descanso 1 (Fin)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={daySchedule.break1End}
+                        onChangeText={text => updateSchedule(selectedDay, 'break1End', text)}
+                        placeholder="HH:MM"
+                        placeholderTextColor="#666"
+                        maxLength={5}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.breakInputsRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.label}>Descanso 2 (Inicio)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={daySchedule.break2Start}
+                        onChangeText={text => updateSchedule(selectedDay, 'break2Start', text)}
+                        placeholder="HH:MM"
+                        placeholderTextColor="#666"
+                        maxLength={5}
+                      />
+                    </View>
+                    <Text style={styles.timeSeparator}>-</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.label}>Descanso 2 (Fin)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={daySchedule.break2End}
+                        onChangeText={text => updateSchedule(selectedDay, 'break2End', text)}
+                        placeholder="HH:MM"
+                        placeholderTextColor="#666"
+                        maxLength={5}
+                      />
+                    </View>
+                  </View>
                 </View>
-              </View>
+              </>
             )}
           </View>
         </View>

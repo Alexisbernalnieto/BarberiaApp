@@ -176,8 +176,8 @@ export default function AdminCalendar({ appointments, COLORS, isMobile, selected
                   <Text style={styles.serviceName}>{item.serviceName}</Text>
                   <Text style={styles.priceTag}>${item.price}</Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: (item.status as string) === 'En Local' || item.status === 'checked_in' ? 'rgba(16, 185, 129, 0.1)' : 'var(--gold-subtle)' }]}>
-                    <Text style={[styles.statusText, { color: (item.status as string) === 'En Local' || item.status === 'checked_in' ? '#10B981' : 'var(--gold)' }]}>
+                <View style={[styles.statusBadge, { backgroundColor: item.status === 'checked_in' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(212, 175, 55, 0.1)' }]}>
+                    <Text style={[styles.statusText, { color: item.status === 'checked_in' ? '#10B981' : '#D4AF37' }]}>
                         {item.status === 'checked_in' ? 'En Local' : item.status}
                     </Text>
                 </View>

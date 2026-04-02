@@ -52,6 +52,8 @@ export const getNotificationLabel = (type: NotificationType): string => {
     appointment_rescheduled: 'Cita Reprogramada',
     barber_reassigned: 'Barbero Reasignado',
     walk_in_registered: 'Walk-in',
+    reschedule_request: 'Solicitud de Cambio',
+    reschedule_authorized: 'Cambio Autorizado',
     check_in: 'Check-in',
   };
   return labels[type] || 'Notificación';
@@ -69,6 +71,8 @@ export const getNotificationStyle = (type: NotificationType) => {
     appointment_rescheduled: { color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.1)' },
     barber_reassigned: { color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.1)' },
     walk_in_registered: { color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
+    reschedule_request: { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.1)' },
+    reschedule_authorized: { color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
     check_in: { color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
   };
   return styles[type] || { color: '#888', bg: 'rgba(136,136,136,0.1)' };

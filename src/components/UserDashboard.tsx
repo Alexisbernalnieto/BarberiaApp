@@ -38,6 +38,7 @@ import UserLocations from './User/UserLocations';
 import AdminUsers from './Admin/AdminUsers';
 import NoShowModal from './User/NoShowModal';
 import { submitNoShowJustification } from '../services/appointments';
+import { isAppointmentExpired } from '../utils/formatters';
 interface UserDashboardProps {
   user: AppUser;
   appointments: Appointment[];
@@ -142,11 +143,13 @@ export default function UserDashboard({
           showsVerticalScrollIndicator={false}
         >
             {activeTab === 'dashboard' && (
-                <UserSummary 
-                    user={user}
-                    nextAppointment={myAppointments.find(a => a.status === 'confirmed')}
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
+            <UserSummary 
+                user={user}
+                nextAppointment={myAppointments
+                    .filter(a => (a.status === 'confirmed' || a.status === 'checked_in' || a.status === 'in_progress') && !isAppointmentExpired(a.date, a.time))
+                    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))[0]}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
                     COLORS={COLORS}
                 />
             )}

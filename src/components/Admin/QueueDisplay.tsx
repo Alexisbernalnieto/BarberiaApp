@@ -30,8 +30,8 @@ export default function QueueDisplay({ appointments, onClose, COLORS }: any) {
     // Sort by time
     todayApps.sort((a: any, b: any) => a.time.localeCompare(b.time));
 
-    // Determine current app (Prioritize 'En Local', otherwise the first one)
-    let current = todayApps.find((app: any) => app.status === 'En Local');
+    // Determine current app (Prioritize 'checked_in', otherwise the first one)
+    let current = todayApps.find((app: any) => app.status === 'checked_in');
     if (!current && todayApps.length > 0) {
       current = todayApps[0];
     }

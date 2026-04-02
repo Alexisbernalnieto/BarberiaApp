@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
 import { db, auth, firebaseConfig } from '../../firebaseClient';
 import { doc, updateDoc, setDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, signOut, getAuth } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut, getAuth, deleteUser } from 'firebase/auth';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import BarberListView from './BarberListView';
 import BarberFormView from './BarberFormView';
@@ -106,6 +106,11 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
                     secondaryApp = initializeApp(firebaseConfig, 'Secondary');
                 }
                 secondaryAuth = getAuth(secondaryApp);
+                // Ensure no previous user is signed in on the secondary auth
+                if (secondaryAuth.currentUser) {
+                  await signOut(secondaryAuth);
+                }
+
                 userCredential = await createUserWithEmailAndPassword(secondaryAuth, editingBarber.email, editingBarber.password);
                 const uid = userCredential.user.uid;
                 
@@ -117,11 +122,17 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
                     // Save in users collection
                     await setDoc(doc(db, 'users', uid), firestoreData);
                 } catch (firestoreError) {
+                    console.error("BarberManagement: Firestore write failed after Auth creation. Rolling back...", firestoreError);
                     // ROLLBACK: Delete the auth user if Firestore fails to avoid "dangling" accounts
                     try {
-                        await userCredential.user.delete();
+                        const freshUser = secondaryAuth.currentUser;
+                        if (freshUser) {
+                            await deleteUser(freshUser);
+                            console.log("BarberManagement: Successfully rolled back Auth user.");
+                        }
                     } catch (deleteError) {
-                        console.error("Critical: Could not rollback auth user creation:", deleteError);
+                        console.error("Critical: Could not rollback auth user creation via deleteUser:", deleteError);
+                        // Fallback: We might need to at least log this very clearly
                     }
                     throw firestoreError;
                 }
@@ -156,22 +167,21 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
                 
                 if (error.code === 'auth/email-already-in-use') {
                     title = 'Correo ya registrado';
-                    message = 'Este correo electrónico ya está en uso. Si falló un registro previo, contacta a soporte para limpiar la cuenta.';
+                    message = 'Este correo electrónico ya está en uso. Si falló un registro previo pero no ves al barbero en la lista, el administrador debe borrar el usuario manualmente de la consola de Firebase o usar otro correo.';
                 } else if (error.code === 'auth/invalid-email') {
-                    message = 'El correo electrónico ingresado no tiene un formato válido.';
+                    title = 'Correo inválido';
+                    message = 'El formato del correo electrónico no es correcto.';
                 } else if (error.code === 'auth/weak-password') {
-                    message = 'La contraseña es demasiado débil (mínimo 6 caracteres).';
-                } else if (error.message.includes('permission-denied') || error.code === 'permission-denied') {
-                    message = 'Error de permisos en Firestore. No se pudo crear el perfil del barbero.';
+                    title = 'Contraseña débil';
+                    message = 'La contraseña debe ser más fuerte según las políticas de Firebase.';
+                } else if (error.code === 'permission-denied') {
+                    title = 'Permiso denegado';
+                    message = 'Tu cuenta no tiene permisos para crear nuevos usuarios en la base de datos.';
                 }
                 
                 showStatus('error', title, message);
-                return;
             }
         }
-        if (!editingBarber.id) return; // For new ones, it sets null inside try block
-        setEditingBarber(null);
-        setViewMode('list');
     }
   };
 

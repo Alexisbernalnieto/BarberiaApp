@@ -346,6 +346,13 @@ const styles = StyleSheet.create({
     top: 0,
     zIndex: 100,
   },
+  brandSlogan: {
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 2,
+    opacity: 0.8,
+  },
   sidebarInner: {
     flex: 1,
     padding: 24,
@@ -393,14 +400,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: 2,
-    flex: 1,
-  },
-  brandSlogan: {
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 2,
-    opacity: 0.8,
   },
   closeBtn: {
     padding: 4,

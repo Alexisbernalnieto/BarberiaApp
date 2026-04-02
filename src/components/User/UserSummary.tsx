@@ -13,6 +13,8 @@ import {
     Watch
 } from 'lucide-react';
 import { Appointment } from '../../types';
+import { formatFullDate, formatTime12h } from '../../utils/formatters';
+import { CreditCard, Banknote } from 'lucide-react';
 
 interface UserSummaryProps {
   nextAppointment?: Appointment;
@@ -103,26 +105,79 @@ export default function UserSummary({ nextAppointment, activeTab, setActiveTab, 
           <Text style={[styles.sectionTitle, { color: COLORS.textMuted }]}>TU PRÓXIMA EXPERIENCIA</Text>
           {nextAppointment ? (
             <TouchableOpacity 
-              style={[styles.appointmentCard, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.3)' : 'rgba(0,0,0,0.1)' }]}
+              style={[styles.appointmentCard, { backgroundColor: COLORS.surface, borderColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.4)' : 'rgba(0,0,0,0.1)' }]}
               onPress={() => setActiveTab('appointments')}
             >
-              <View style={styles.appointmentInfo}>
-                 <Text style={[styles.serviceName, { color: COLORS.text }]}>{nextAppointment.serviceName}</Text>
-                 <View style={styles.detailsRow}>
-                    <View style={styles.detailItem}>
-                        <Calendar size={14} color={COLORS.textSecondary} />
-                        <Text style={[styles.detailText, { color: COLORS.textSecondary }]}>{nextAppointment.date}</Text>
+               <View style={styles.appointmentInfo}>
+                 <View style={styles.apptHeaderRow}>
+                   <Text style={[styles.serviceName, { color: COLORS.text }]}>{nextAppointment.serviceName.toUpperCase()}</Text>
+                   <View style={[styles.statusMiniBadge, { backgroundColor: COLORS.primary + '20' }]}>
+                      <Star size={10} color={COLORS.primary} fill={COLORS.primary} />
+                      <Text style={[styles.statusMiniText, { color: COLORS.primary }]}>CONFIRMADA</Text>
+                   </View>
+                 </View>
+                 
+                 <View style={styles.mainDetailsGrid}>
+                    <View style={styles.detailsRow}>
+                        <View style={styles.detailItem}>
+                            <View style={styles.iconCircle}>
+                                <Calendar size={14} color={COLORS.primary} />
+                            </View>
+                            <Text style={[styles.detailText, { color: COLORS.text }]}>{formatFullDate(nextAppointment.date)}</Text>
+                        </View>
+                        <View style={styles.detailItem}>
+                            <View style={styles.iconCircle}>
+                                <Clock size={14} color={COLORS.primary} />
+                            </View>
+                            <Text style={[styles.detailText, { color: COLORS.text }]}>{formatTime12h(nextAppointment.time)}</Text>
+                        </View>
                     </View>
-                    <View style={styles.detailItem}>
-                        <Clock size={14} color={COLORS.textSecondary} />
-                        <Text style={[styles.detailText, { color: COLORS.textSecondary }]}>{nextAppointment.time}</Text>
+
+                    <View style={styles.detailsRow}>
+                        <View style={styles.detailItem}>
+                            <View style={styles.iconCircle}>
+                                <MapPin size={14} color={COLORS.primary} />
+                            </View>
+                            <Text style={[styles.detailText, { color: COLORS.text }]}>
+                                {nextAppointment.branch === 'centro' || nextAppointment.branch === 'Centro' ? 'Sucursal Centro' : 
+                                 nextAppointment.branch === 'lomas' || nextAppointment.branch === 'Lomas' ? 'Sucursal Lomas' : 
+                                 String(nextAppointment.branch || 'Sucursal Centro')}
+                            </Text>
+                        </View>
+                        <View style={styles.detailItem}>
+                            <View style={styles.iconCircle}>
+                                {nextAppointment.paymentMethod === 'Card' ? (
+                                    <CreditCard size={14} color={COLORS.primary} />
+                                ) : (
+                                    <Banknote size={14} color={COLORS.primary} />
+                                )}
+                            </View>
+                            <Text style={[styles.detailText, { color: COLORS.text }]}>
+                                Pago: {nextAppointment.paymentMethod === 'Card' ? 'Tarjeta' : 
+                                       nextAppointment.paymentMethod === 'Cash' ? 'Efectivo' : 'Pendiente'}
+                            </Text>
+                        </View>
                     </View>
                  </View>
-                 <Text style={styles.barberLink}>Con: {nextAppointment.barberName}</Text>
+
+                 <View style={[styles.barberBadge, { 
+                   backgroundColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.15)' : 'rgba(197, 160, 33, 0.1)',
+                   borderColor: COLORS.primary + '40',
+                   paddingVertical: 14,
+                 }]}>
+                    <View style={[styles.barberAvatarMini, { backgroundColor: COLORS.primary }]}>
+                        <Scissors size={14} color="#000" />
+                    </View>
+                    <View style={styles.barberInfoCol}>
+                      <Text style={[styles.barberLabel, { color: COLORS.primary, fontWeight: '900' }]}>TU BARBERO:</Text>
+                      <Text style={[styles.barberNameValue, { color: COLORS.text, fontSize: 16 }]}>
+                        {nextAppointment.barberName ? nextAppointment.barberName.toUpperCase() : 'POR ASIGNAR'}
+                      </Text>
+                    </View>
+                 </View>
               </View>
-              <View style={[styles.arrowCircle, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(197, 160, 33, 0.15)' }]}>
-                <ChevronRight size={20} color={COLORS.primary} />
-              </View>
+              
+              <ChevronRight size={24} color={COLORS.primary} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity 
@@ -271,28 +326,94 @@ const getStyles = (COLORS: any) => StyleSheet.create({
       borderWidth: 1,
   },
   appointmentInfo: {
-      gap: 6,
+      flex: 1,
+      gap: 12,
+  },
+  apptHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusMiniBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusMiniText: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   serviceName: {
-      fontSize: 18,
-      fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    flex: 1,
+  },
+  iconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mainDetailsGrid: {
+    gap: 16,
+    marginTop: 8,
   },
   detailsRow: {
-      flexDirection: 'row',
-      gap: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 12,
   },
   detailItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minWidth: '45%',
   },
   detailText: {
-      fontSize: 13,
+    fontSize: 13,
+    fontWeight: '700',
   },
-  barberLink: {
-      fontSize: 13,
-      fontWeight: '600',
-      marginTop: 4,
+  barberBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    alignSelf: 'stretch',
+    marginTop: 8,
+    borderWidth: 1,
+  },
+  barberAvatarMini: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+  },
+  barberInfoCol: {
+    gap: 2,
+  },
+  barberLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  barberNameValue: {
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   arrowCircle: {
       width: 40,

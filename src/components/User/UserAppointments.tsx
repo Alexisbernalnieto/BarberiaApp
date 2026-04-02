@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated, useWindow
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AppointmentDetail from './AppointmentDetail';
 import { Appointment } from '../../types';
-import { formatFullDate, formatTime12h } from '../../utils/formatters';
+import { formatFullDate, formatTime12h, isAppointmentExpired } from '../../utils/formatters';
 
 interface UserAppointmentsProps {
   user: any;
@@ -26,8 +26,14 @@ export default function UserAppointments({ user, appointments, COLORS, isMobile 
 
   const filteredAppointments = appointments
     .filter((app: Appointment) => {
-      if (filter === 'upcoming') return app.date >= todayStr && app.status !== 'cancelled';
-      return app.date < todayStr || app.status === 'cancelled';
+      const isExpired = isAppointmentExpired(app.date, app.time);
+      const isActive = app.status === 'confirmed' || app.status === 'checked_in' || app.status === 'in_progress';
+      
+      if (filter === 'upcoming') {
+        return !isExpired && isActive;
+      }
+      // Past tab: expired, completed, cancelled, no_show, or unhandled
+      return isExpired || !isActive;
     })
     .sort((a: Appointment, b: Appointment) => filter === 'upcoming' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
 
@@ -61,11 +67,33 @@ export default function UserAppointments({ user, appointments, COLORS, isMobile 
             <Text style={[styles.footerText, { color: COLORS.textSecondary }]}>{formatTime12h(item.time)}</Text>
          </View>
          <View style={[styles.statusBadge, { 
-           backgroundColor: item.status === 'confirmed' ? '#10B98120' : '#EF444420',
-           borderColor: item.status === 'confirmed' ? '#10B981' : '#EF4444'
+           backgroundColor: 
+            item.status === 'confirmed' ? '#10B98120' : 
+            item.status === 'checked_in' ? '#3B82F620' :
+            item.status === 'completed' ? '#10B98120' :
+            item.status === 'unhandled' ? '#F59E0B20' :
+            '#EF444420',
+           borderColor: 
+            item.status === 'confirmed' ? '#10B981' : 
+            item.status === 'checked_in' ? '#3B82F6' :
+            item.status === 'completed' ? '#10B981' :
+            item.status === 'unhandled' ? '#F59E0B' :
+            '#EF4444'
          }]}>
-            <Text style={[styles.statusText, { color: item.status === 'confirmed' ? '#10B981' : '#EF4444' }]}>
-              {item.status?.toUpperCase()}
+            <Text style={[styles.statusText, { 
+              color: 
+                item.status === 'confirmed' ? '#10B981' : 
+                item.status === 'checked_in' ? '#3B82F6' :
+                item.status === 'completed' ? '#10B981' :
+                item.status === 'unhandled' ? '#F59E0B' :
+                '#EF4444'
+            }]}>
+              {item.status === 'unhandled' ? 'NO GESTIONADA' : 
+               item.status === 'no_show' ? 'FALTÓ' : 
+               item.status === 'checked_in' ? 'LLEGÓ' :
+               item.status === 'cancelled' ? 'CANCELADA' :
+               item.status === 'completed' ? 'COMPLETADA' :
+               item.status?.toUpperCase()}
             </Text>
          </View>
       </View>
