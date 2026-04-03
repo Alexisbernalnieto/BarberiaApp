@@ -29,25 +29,46 @@ const WeeklySelector: React.FC<Props> = ({ appointments, currentWeekStart, onSel
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {weeks.map((week, index) => {
           const isSelected = isSameDay(week.weekStart, currentWeekStart);
+          const maxAmount = Math.max(...week.dailyData.map(d => d.amount), 1);
+          const BAR_MAX_HEIGHT = 36;
+          const initials = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
           return (
             <TouchableOpacity 
               key={index} 
               style={[styles.weekCard, isSelected && styles.weekCardActive]}
               onPress={() => onSelectWeek(week.weekStart)}
             >
-              <View style={styles.weekInfo}>
-                <Text style={styles.weekDates}>
-                  {format(week.weekStart, "d 'de' MMM", { locale: es })} - {format(week.weekEnd, "d 'de' MMM", { locale: es })}
-                </Text>
-                <View style={styles.tripCountRow}>
-                  <Feather name="scissors" size={14} color="var(--text-muted)" />
-                  <Text style={styles.tripCount}>{week.totalTrips} cortes</Text>
+              <View style={styles.cardHeader}>
+                <View style={styles.weekInfo}>
+                  <Text style={styles.weekDates}>
+                    {format(week.weekStart, "d 'de' MMM", { locale: es })} - {format(week.weekEnd, "d 'de' MMM", { locale: es })}
+                  </Text>
+                  <Text style={styles.totalEarnings}>{formatCurrency(week.totalEarnings)}</Text>
                 </View>
+                <Feather name="chevron-right" size={20} color="var(--text-muted)" />
               </View>
               
-              <View style={styles.amountContainer}>
-                <Text style={styles.amount}>{formatCurrency(week.totalEarnings)}</Text>
-                <Feather name="chevron-right" size={18} color="var(--text-muted)" />
+              <View style={styles.chartContainer}>
+                {week.dailyData.map((day, dayIdx) => (
+                  <View key={dayIdx} style={styles.barWrapper}>
+                    <View style={styles.barBackground}>
+                      <View 
+                        style={[
+                          styles.barFill, 
+                          { 
+                            height: Math.max((day.amount / maxAmount) * BAR_MAX_HEIGHT, 2),
+                            backgroundColor: day.amount > 0 ? 'var(--gold)' : 'rgba(255,255,255,0.05)'
+                          }
+                        ]} 
+                      />
+                    </View>
+                    <View style={styles.dayLabels}>
+                      <Text style={styles.dayNumber}>{format(day.date, 'd')}</Text>
+                      <Text style={styles.dayInitial}>{initials[dayIdx]}</Text>
+                    </View>
+                  </View>
+                ))}
               </View>
             </TouchableOpacity>
           );
@@ -83,46 +104,70 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   weekCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: 'var(--bg-card)',
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 24,
+    padding: 20,
     borderWidth: 1,
     borderColor: 'var(--glass-border)',
   },
   weekCardActive: {
-    borderColor: 'var(--gold)',
-    backgroundColor: 'var(--gold-subtle)',
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+    backgroundColor: 'rgba(212, 175, 55, 0.03)',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
   weekInfo: {
     gap: 4,
   },
   weekDates: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '700',
+    color: 'var(--text-muted)',
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
-  tripCountRow: {
+  totalEarnings: {
+    color: '#FFF',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  chartContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: 4,
+  },
+  barWrapper: {
     alignItems: 'center',
     gap: 6,
   },
-  tripCount: {
-    color: 'var(--text-muted)',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  amountContainer: {
-    flexDirection: 'row',
+  barBackground: {
+    width: 32,
+    height: 40,
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: 8,
   },
-  amount: {
-    color: 'var(--gold)',
-    fontSize: 16,
+  barFill: {
+    width: 8,
+    borderRadius: 4,
+  },
+  dayLabels: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  dayNumber: {
+    color: '#FFF',
+    fontSize: 10,
     fontWeight: '800',
+  },
+  dayInitial: {
+    color: 'var(--text-muted)',
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
 });
 

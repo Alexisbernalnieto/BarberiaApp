@@ -35,6 +35,13 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
   };
   const displayDateStr = getFormattedDate(currentDateObj);
 
+  const isToday = currentDateObj.toDateString() === new Date().toDateString();
+  const isFuture = currentDateObj > new Date();
+  
+  // Intelligent closing check: block if today and before 7 PM (19:00)
+  const currentHour = new Date().getHours();
+  const isClosingBlocked = isToday && currentHour < 19;
+
   const goPrevDay = () => {
     const prev = new Date(currentDateObj);
     prev.setDate(prev.getDate() - 1);
@@ -42,6 +49,7 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
   };
 
   const goNextDay = () => {
+    if (isToday) return; // Don't go to future
     const next = new Date(currentDateObj);
     next.setDate(next.getDate() + 1);
     setCurrentDateObj(next);
@@ -93,11 +101,20 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
   });
 
   const handleCerrarCaja = () => {
+    if (isClosingBlocked) {
+      Alert.alert(
+        "Cierre Prematuro",
+        "El corte de caja del día de hoy solo se puede realizar después de las 7:00 PM (19:00), una vez finalizada la jornada laboral.",
+        [{ text: "Entendido" }]
+      );
+      return;
+    }
+
     if (totalRevenue === 0) {
       setConfirmModal({
         visible: true,
         title: "Corte en Cero",
-        message: "No hay ingresos registrados para hoy.\n¿Cerrar caja de todos modos?"
+        message: "No hay ingresos registrados para este día.\n¿Cerrar caja de todos modos?"
       });
     } else {
       setConfirmModal({
@@ -136,8 +153,17 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
         <TouchableOpacity style={styles.dateBtn} onPress={goPrevDay}>
             <Text style={styles.dateBtnText}>{'< Anterior'}</Text>
         </TouchableOpacity>
-        <Text style={styles.currentDateText}>{displayDateStr}</Text>
-        <TouchableOpacity style={styles.dateBtn} onPress={goNextDay}>
+        <View style={{ alignItems: 'center' }}>
+            <Text style={styles.currentDateText}>{displayDateStr}</Text>
+            {isToday && (
+                <Text style={{ color: COLORS.success, fontSize: 10, fontWeight: '800', marginTop: 2 }}>HOY</Text>
+            )}
+        </View>
+        <TouchableOpacity 
+            style={[styles.dateBtn, isToday && { opacity: 0.3 }]} 
+            onPress={goNextDay}
+            disabled={isToday}
+        >
             <Text style={styles.dateBtnText}>{'Siguiente >'}</Text>
         </TouchableOpacity>
       </View>
@@ -196,9 +222,19 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
             )}
         </View>
 
-        <TouchableOpacity style={styles.cerrarCajaBtn} onPress={handleCerrarCaja}>
-            <Text style={styles.cerrarCajaText}>EFECTUAR CORTE DE CAJA</Text>
+        <TouchableOpacity 
+            style={[styles.cerrarCajaBtn, isClosingBlocked && { backgroundColor: '#333', opacity: 0.7 }]} 
+            onPress={handleCerrarCaja}
+        >
+            <Text style={[styles.cerrarCajaText, isClosingBlocked && { color: '#666' }]}>
+                {isClosingBlocked ? 'CIERRE BLOQUEADO HASTA 19:00' : 'EFECTUAR CORTE DE CAJA'}
+            </Text>
         </TouchableOpacity>
+        {isClosingBlocked && (
+            <Text style={{ color: COLORS.danger, textAlign: 'center', marginTop: 10, fontSize: 12, fontWeight: '700' }}>
+                No se permite el cierre antes de finalizar la jornada.
+            </Text>
+        )}
       </ScrollView>
 
       {/* CONFIRM MODAL */}

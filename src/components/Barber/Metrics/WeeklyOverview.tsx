@@ -93,8 +93,8 @@ const WeeklyOverview: React.FC<Props> = ({
           </View>
           
           <View style={[styles.statItem, styles.statItemBorder]}>
-            <View style={[styles.statIconContainer, { backgroundColor: `${COLORS.accent}20` }]}>
-              <Feather name="scissors" size={16} color={COLORS.accent} />
+            <View style={[styles.statIconContainer, { backgroundColor: `${COLORS.secondary}20` }]}>
+              <Feather name="scissors" size={16} color={COLORS.secondary} />
             </View>
             <Text style={styles.statValue}>{metrics.totalTrips}</Text>
             <Text style={styles.statLabel}>Cortes</Text>
@@ -110,7 +110,7 @@ const WeeklyOverview: React.FC<Props> = ({
         </View>
         <BarChart
           data={chartData}
-          width={Dimensions.get('window').width - 48} // Slightly more width but with better padding
+          width={Dimensions.get('window').width - 80}
           height={200}
           yAxisLabel="$"
           yAxisSuffix=""
@@ -270,9 +270,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   chart: {
-    paddingRight: 64, // Extra padding within the SVG area
+    paddingRight: 40,
     borderRadius: 16,
-    marginLeft: -16, // Shift left to center the bars better
+    marginLeft: -10,
   },
   activityLink: {
     flexDirection: 'row',

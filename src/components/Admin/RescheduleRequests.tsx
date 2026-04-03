@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, useWindowDimensions } from 'react-native';
 import { Appointment } from '../../types';
 import { Calendar, Clock, User, Scissors, Check, AlertCircle, Quote, ArrowLeft } from 'lucide-react';
 import { authorizeReschedule } from '../../services/appointments';
@@ -12,6 +12,8 @@ interface RescheduleRequestsProps {
 }
 
 export default function RescheduleRequests({ appointments, COLORS, onUpdate, adminId }: RescheduleRequestsProps) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 1024;
   const onBack = onUpdate; // Using onUpdate to return to dashboard
   const pendingRequests = useMemo(() => {
     return appointments.filter(app => app.rescheduleRequested && !app.rescheduleAuthorized);
@@ -42,13 +44,15 @@ export default function RescheduleRequests({ appointments, COLORS, onUpdate, adm
   if (pendingRequests.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <TouchableOpacity 
-          style={[styles.backBtnHeader, { marginBottom: 20 }]} 
-          onPress={onBack}
-        >
-          <ArrowLeft size={20} color={COLORS.text} />
-          <Text style={[styles.backBtnText, { color: COLORS.text }]}>Volver</Text>
-        </TouchableOpacity>
+        {!isMobile && (
+          <TouchableOpacity 
+            style={[styles.backBtnHeader, { marginBottom: 20 }]} 
+            onPress={onBack}
+          >
+            <ArrowLeft size={20} color={COLORS.text} />
+            <Text style={[styles.backBtnText, { color: COLORS.text }]}>Volver</Text>
+          </TouchableOpacity>
+        )}
         <View style={[styles.emptyIcon, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }]}>
           <Check size={32} color={COLORS.textMuted} />
         </View>
@@ -59,13 +63,15 @@ export default function RescheduleRequests({ appointments, COLORS, onUpdate, adm
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <TouchableOpacity 
-        style={styles.backBtnHeader} 
-        onPress={onBack}
-      >
-        <ArrowLeft size={20} color={COLORS.text} />
-        <Text style={[styles.backBtnText, { color: COLORS.text }]}>Volver al Dashboard</Text>
-      </TouchableOpacity>
+      {!isMobile && (
+        <TouchableOpacity 
+          style={styles.backBtnHeader} 
+          onPress={onBack}
+        >
+          <ArrowLeft size={20} color={COLORS.text} />
+          <Text style={[styles.backBtnText, { color: COLORS.text }]}>Volver al Dashboard</Text>
+        </TouchableOpacity>
+      )}
 
       <Text style={[styles.title, { color: COLORS.text }]}>Solicitudes de Reprogramación</Text>
       <Text style={[styles.subtitle, { color: COLORS.textSecondary }]}>

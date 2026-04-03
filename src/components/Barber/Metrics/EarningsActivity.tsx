@@ -54,25 +54,41 @@ const EarningsActivity: React.FC<Props> = ({ appointments, onOpenFilter, onBack,
 
             {grouped[dateString].map((app, index) => (
               <View key={app.id || index} style={styles.activityCard}>
-                <View style={styles.activityMain}>
-                  <View style={styles.serviceIcon}>
-                    <Feather name="scissors" size={18} color="var(--gold)" />
-                  </View>
-                  <View style={styles.serviceDetails}>
-                    <Text style={styles.serviceName}>{app.serviceName || 'Corte de Cabello'}</Text>
-                    <View style={styles.metaRow}>
-                      <Text style={styles.timeText}>{app.time || '00:00'}</Text>
-                      <View style={styles.dot} />
-                      <View style={[
-                        styles.branchBadge,
-                        app.branch?.toLowerCase().includes('lomas') ? styles.lomasBadge : styles.centroBadge
-                      ]}>
-                        <Text style={styles.branchText}>{app.branch || 'Sucursal'}</Text>
+                <View style={styles.idBadge}>
+                  <Text style={styles.idBadgeText}>ID: {app.id || 'CT-000000'}</Text>
+                </View>
+                
+                <View style={styles.cardBody}>
+                  <View style={styles.activityMain}>
+                    <View style={styles.serviceIcon}>
+                      <Feather name="scissors" size={18} color="var(--gold)" />
+                    </View>
+                    <View style={styles.serviceDetails}>
+                      <Text style={styles.serviceName}>{app.serviceName || 'Corte de Cabello'}</Text>
+                      <View style={styles.metaRow}>
+                        <Text style={styles.timeText}>
+                          {app.time ? (
+                            (() => {
+                              const [h, m] = app.time.split(':');
+                              const hours = parseInt(h);
+                              const ampm = hours >= 12 ? 'PM' : 'AM';
+                              const h12 = hours % 12 || 12;
+                              return `${h12}:${m} ${ampm}`;
+                            })()
+                          ) : '00:00'}
+                        </Text>
+                        <View style={styles.dot} />
+                        <View style={[
+                          styles.branchBadge,
+                          app.branch?.toLowerCase().includes('lomas') ? styles.lomasBadge : styles.centroBadge
+                        ]}>
+                          <Text style={styles.branchText}>{app.branch || 'Sucursal'}</Text>
+                        </View>
                       </View>
                     </View>
                   </View>
+                  <Text style={styles.priceText}>{formatCurrency(app.price || 0)}</Text>
                 </View>
-                <Text style={styles.priceText}>{formatCurrency(app.price || 0)}</Text>
               </View>
             ))}
           </View>
@@ -164,14 +180,33 @@ const styles = StyleSheet.create({
     backgroundColor: 'var(--glass-border)',
   },
   activityCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: 'var(--bg-card)',
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
     borderColor: 'var(--glass-border)',
+    gap: 12,
+  },
+  cardBody: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  idBadge: {
+    backgroundColor: 'rgba(255, 160, 0, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 160, 0, 0.3)',
+  },
+  idBadgeText: {
+    color: '#FFA000',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   activityMain: {
     flexDirection: 'row',
@@ -194,7 +229,7 @@ const styles = StyleSheet.create({
   serviceName: {
     color: '#FFF',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   metaRow: {
     flexDirection: 'row',
@@ -204,7 +239,7 @@ const styles = StyleSheet.create({
   timeText: {
     color: 'var(--text-muted)',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '700',
   },
   dot: {
     width: 3,

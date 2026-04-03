@@ -43,6 +43,7 @@ import AdminCashRegister from '@/components/Admin/AdminCashRegister';
 import QueueDisplay from '@/components/Admin/QueueDisplay';
 import AppointmentCommandCenter from '@/components/Admin/AppointmentCommandCenter';
 import RescheduleRequests from '@/components/Admin/RescheduleRequests';
+import { useSidebar } from '@/context/SidebarContext';
 
 import { Appointment, AppUser, UserRole } from '@/types';
 import { getFinancialMetrics, FinancialMetrics } from '@/services/payments';
@@ -75,8 +76,11 @@ export default function AdminDashboard({
 }: AdminDashboardProps) {
   const { width } = useWindowDimensions();
   const { currentUser } = useAuth();
+  const { setIsOpen } = useSidebar();
   const isMobile = isMobileProp ?? width < 1024;
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedBranch, setSelectedBranch] = useState('Todas');
+  const [selectedDate, setSelectedDate] = useState(new Date());
   
   // Notification Logic
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -166,13 +170,31 @@ export default function AdminDashboard({
     revenueByDay: getMonthlyRevenueByDay(appointments)
   }), [appointments, newUsersCount]);
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
-  const dayAppointments = useMemo(() => {
-    return appointments.filter(app => app.date === todayStr);
-  }, [appointments, todayStr]);
+  const selectedDateStr = useMemo(() => {
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, [selectedDate]);
 
-  const totalToday = dayAppointments.reduce((acc, app) => acc + (app.price || 0), 0);
-  const totalWalkins = dayAppointments.filter(app => (app as any).type === 'Walk-in').length;
+  const dayAppointments = useMemo(() => {
+    return appointments.filter(app => {
+      const dateMatch = app.date === selectedDateStr;
+      // Filter by branch if not "Todas"
+      const branchMatch = selectedBranch === 'Todas' || app.branch === selectedBranch;
+      return dateMatch && branchMatch;
+    });
+  }, [appointments, selectedDateStr, selectedBranch]);
+
+  const totalToday = useMemo(() => 
+    dayAppointments
+      .filter(app => app.status !== 'cancelled')
+      .reduce((acc, app) => acc + (app.price || 0), 0)
+  , [dayAppointments]);
+
+  const totalWalkins = useMemo(() => 
+    dayAppointments.filter(app => (app as any).type === 'Walk-in').length
+  , [dayAppointments]);
 
   const handleWalkIn = async (data: any) => {
     // BookingWizard already creates the appointment successfully.
@@ -203,6 +225,7 @@ export default function AdminDashboard({
             viewMode={activeTab}
             setViewMode={setActiveTab}
             isMobile={isMobile}
+            onMenuPress={() => setIsOpen(true)}
           />
 
           {activeTab === 'dashboard' && (
@@ -210,7 +233,7 @@ export default function AdminDashboard({
               <AdminMetrics
                 totalToday={totalToday}
                 totalWalkins={totalWalkins}
-                dateLabel={formatFullDate(new Date())}
+                dateLabel={formatFullDate(selectedDate)}
                 COLORS={COLORS}
                 isMobile={isMobile}
               />
@@ -252,6 +275,10 @@ export default function AdminDashboard({
                           appointments={appointments}
                           COLORS={COLORS}
                           isMobile={isMobile}
+                          selectedDate={selectedDate}
+                          setSelectedDate={setSelectedDate}
+                          selectedBranch={selectedBranch}
+                          setSelectedBranch={setSelectedBranch}
                       />
                   </View>
                   
@@ -349,17 +376,15 @@ export default function AdminDashboard({
           )}
 
           {activeTab === 'walkin' && (
-              <Modal visible={true} transparent animationType="fade">
-                  <View style={styles.modalOverlay}>
-                      <BookingWizard 
-                        user={currentUser} 
-                        onConfirm={handleWalkIn} 
-                        onCancel={() => setActiveTab('dashboard')}
-                        COLORS={COLORS} 
-                        isWalkIn
-                      />
-                  </View>
-              </Modal>
+            <View style={styles.bookingContainer} data-glass="true">
+                <BookingWizard 
+                  user={currentUser} 
+                  onConfirm={handleWalkIn} 
+                  onCancel={() => setActiveTab('dashboard')}
+                  COLORS={COLORS} 
+                  isWalkIn
+                />
+            </View>
           )}
 
           {activeTab === 'queue' && (
@@ -489,5 +514,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     padding: 16,
     borderRadius: 12,
+  },
+  bookingContainer: {
+    backgroundColor: 'var(--bg-card)',
+    borderRadius: 24,
+    padding: 0,
+    overflow: 'hidden',
+    minHeight: 600,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.1)',
   }
 });
