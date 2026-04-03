@@ -10,6 +10,7 @@ import BarberDetailsView from './BarberDetailsView';
 import { DAYS, DEFAULT_SCHEDULE, getBarberManagementStyles } from './BarberManagementStyles';
 import { logActivity } from '../../services/activityLogs';
 import StatusModal from './StatusModal';
+import { formatFullDate } from '../../utils/formatters';
 
 export default function BarberManagement({ appointments, onClose, COLORS, barbers, setBarbers }) {
   const { width } = useWindowDimensions();
@@ -47,12 +48,27 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
   // Calculate stats for a barber
   const getBarberStats = (barberName) => {
     const barberApps = appointments.filter(app => app.barberName === barberName);
-    const totalServices = barberApps.length;
-    const totalEarnings = barberApps.reduce((acc, curr) => acc + (curr.price || 0), 0);
-    // Mock hours/dates for demo
-    const lastActive = barberApps.length > 0 ? barberApps[barberApps.length - 1].date : 'N/A';
+    const completedApps = barberApps.filter(app => app.status === 'completed');
+    const totalServices = completedApps.length;
+    const totalEarnings = completedApps.reduce((acc, curr) => acc + (curr.price || 0), 0);
     
-    return { totalServices, totalEarnings, lastActive, history: barberApps };
+    // Sort history by date and time
+    const sortedHistory = [...barberApps].sort((a, b) => {
+      const dateCompare = b.date.localeCompare(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      return b.time.localeCompare(a.time);
+    });
+
+    const lastActive = completedApps.length > 0 
+      ? formatFullDate(completedApps[completedApps.length - 1].date)
+      : 'Sin servicios recientes';
+    
+    return { 
+      totalServices, 
+      totalEarnings, 
+      lastActive, 
+      history: sortedHistory 
+    };
   };
 
   const handleSave = async () => {
@@ -292,12 +308,16 @@ export default function BarberManagement({ appointments, onClose, COLORS, barber
       {viewMode === 'details' && selectedBarber && (
         <BarberDetailsView
           styles={styles}
-          selectedBarber={selectedBarber}
+          selectedBarber={{
+            ...selectedBarber,
+            ...getBarberStats(selectedBarber.name)
+          }}
           setViewMode={setViewMode}
           DAYS={DAYS}
           DEFAULT_SCHEDULE={DEFAULT_SCHEDULE}
           handleDelete={handleDelete}
           setEditingBarber={setEditingBarber}
+          COLORS={COLORS}
         />
       )}
 

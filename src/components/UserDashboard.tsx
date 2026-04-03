@@ -92,7 +92,6 @@ export default function UserDashboard({
       await submitNoShowJustification(appointmentId, justification);
     } catch (error) {
       console.error("Error submitting justification:", error);
-      alert("Error al enviar la justificación. Por favor intenta de nuevo.");
       throw error;
     }
   };

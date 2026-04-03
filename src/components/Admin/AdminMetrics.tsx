@@ -22,7 +22,7 @@ export default function AdminMetrics({ totalToday, totalWalkins, dateLabel, COLO
         </View>
         <View style={styles.valueRow}>
           <View>
-            <Text style={[styles.metricValue, { color: COLORS.text || '#FFF' }]}>${totalToday.toLocaleString()}</Text>
+            <Text style={[styles.metricValue, { color: COLORS.primary || '#D4AF37' }]}>${totalToday.toLocaleString()}</Text>
             <Text style={{ color: COLORS.textSecondary || 'var(--text-secondary)', fontSize: 13, fontWeight: '600' }}>
               Bruto (100%)
             </Text>

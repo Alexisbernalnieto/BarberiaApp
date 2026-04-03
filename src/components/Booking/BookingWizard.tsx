@@ -82,18 +82,19 @@ export default function BookingWizard({
   const [selectedBranch, setSelectedBranch] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedBarber, setSelectedBarber] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [guestName, setGuestName] = useState(user?.name || '');
-  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
-  const [isPaid, setIsPaid] = useState(false);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [bookingStatus, setBookingStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
-  const [bookingErrorMessage, setBookingErrorMessage] = useState('');
-  const [previewId, setPreviewId] = useState<string | null>(null);
-
   const dToday = new Date();
   const todayLocal = `${dToday.getFullYear()}-${String(dToday.getMonth() + 1).padStart(2, '0')}-${String(dToday.getDate()).padStart(2, '0')}`;
+
+  const [selectedDate, setSelectedDate] = useState(todayLocal);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [guestName, setGuestName] = useState('');
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showNoSlotsModal, setShowNoSlotsModal] = useState(false);
+  const [bookingStatus, setBookingStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
+  const [bookingErrorMessage, setBookingErrorMessage] = useState('');
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
 
   const goToStep = (step: number) => {
     Animated.sequence([
@@ -272,6 +273,16 @@ export default function BookingWizard({
         setIsBookingInProgress(false);
     };
   }, [selectedBranch, currentStep]);
+
+  // Check for day exhaustion (no slots today)
+  useEffect(() => {
+    if (currentStep === 4 && selectedDate === todayLocal) {
+      const slots = generateTimeSlots();
+      if (slots.length === 0) {
+        setShowNoSlotsModal(true);
+      }
+    }
+  }, [currentStep, selectedDate, selectedBarber, selectedService]);
 
   const confirmWizardExit = () => {
     setIsBookingInProgress(false);
@@ -486,6 +497,31 @@ export default function BookingWizard({
                 </TouchableOpacity>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+  
+      {/* MODAL DE HORARIOS AGOTADOS HOY */}
+      <Modal visible={showNoSlotsModal} transparent animationType="fade" onRequestClose={() => setShowNoSlotsModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalIconContainer, { backgroundColor: 'rgba(212, 175, 55, 0.1)', borderColor: 'rgba(212, 175, 55, 0.2)' }]}>
+              <Clock size={32} color="#D4AF37" />
+            </View>
+            <Text style={styles.modalTitle}>Horarios Finalizados</Text>
+            <Text style={styles.modalMessage}>
+                Lo sentimos, los horarios para el día de hoy han terminado o la agenda está completa.
+                {"\n\n"}
+                Por favor, selecciona el día de mañana u otro de tu preferencia en el calendario para ver los espacios disponibles.
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: COLORS.primary, flex: 1 }]} 
+                onPress={() => setShowNoSlotsModal(false)}
+              >
+                <Text style={[styles.modalBtnText, { color: '#000' }]}>ENTENDIDO</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
