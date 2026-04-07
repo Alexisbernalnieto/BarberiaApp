@@ -128,7 +128,13 @@ service cloud.firestore {
         ])) ||
         
         // El dueño puede cancelar su propia cita
-        (isOwner(resource.data.userId) && request.resource.data.status == 'cancelled')
+        (isOwner(resource.data.userId) && request.resource.data.status == 'cancelled') ||
+        
+        // El dueño puede enviar justificación de no-show
+        (isOwner(resource.data.userId) && resource.data.status == 'no_show' && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+           'noShowJustification', 'rescheduleRequested', 'updatedAt'
+         ]))
       );
       
       // Eliminar: Solo Admin o Recepción

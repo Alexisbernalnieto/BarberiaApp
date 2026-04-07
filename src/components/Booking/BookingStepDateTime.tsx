@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { Calendar as CalendarIcon, Clock, Check } from 'lucide-react';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { Calendar as CalendarIcon, Clock, Check, Coffee } from 'lucide-react';
 import { Calendar } from 'react-native-calendars';
 import { formatTime12h } from '../../utils/formatters';
+import { TimeSlot } from '../../types';
 
 interface BookingStepDateTimeProps {
   styles: any;
@@ -13,8 +14,9 @@ interface BookingStepDateTimeProps {
   setSelectedTime: (time: string) => void;
   selectedService: any;
   todayLocal: string;
-  generateTimeSlots: () => string[];
-  isSlotTaken: (time: string) => boolean;
+  availableSlots: TimeSlot[];
+  isLoadingSlots: boolean;
+  isSlotTaken: (time: string, isBreak?: boolean) => boolean;
 }
 
 export default function BookingStepDateTime({
@@ -26,11 +28,10 @@ export default function BookingStepDateTime({
   setSelectedTime,
   selectedService,
   todayLocal,
-  generateTimeSlots,
+  availableSlots,
+  isLoadingSlots,
   isSlotTaken,
 }: BookingStepDateTimeProps) {
-  const slots = generateTimeSlots();
-
   return (
     <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={true}>
       <Text style={styles.stepHeader}>Fecha y Hora</Text>
@@ -38,6 +39,7 @@ export default function BookingStepDateTime({
       <View style={styles.calendarContainer}>
         <Calendar
           onDayPress={(day: any) => setSelectedDate(day.dateString)}
+          minDate={todayLocal}
           markedDates={{
             [selectedDate]: { selected: true, selectedColor: 'var(--gold)' },
             [todayLocal]: { marked: true, dotColor: 'var(--gold)' }
@@ -66,28 +68,43 @@ export default function BookingStepDateTime({
             <Text style={styles.durationText}>Duración: {selectedService?.duration} min</Text>
         </View>
 
-        {slots.length === 0 ? (
+        {isLoadingSlots ? (
+            <View style={styles.noSlotsContainer}>
+                <ActivityIndicator size="large" color="var(--gold)" />
+                <Text style={[styles.noSlotsText, { marginTop: 12 }]}>Buscando espacios...</Text>
+            </View>
+        ) : availableSlots.length === 0 ? (
             <View style={styles.noSlotsContainer}>
                 <Text style={styles.noSlotsText}>No hay horarios disponibles para este día.</Text>
             </View>
         ) : (
             <View style={styles.slotsGrid}>
-                {slots.map((slot) => {
-                    const taken = isSlotTaken(slot);
+                {availableSlots.map((slot) => {
+                    const taken = isSlotTaken(slot.time, slot.isBreak);
+                    const isBreak = slot.isBreak;
+                    
                     return (
                         <TouchableOpacity
-                            key={slot}
+                            key={slot.time}
                             disabled={taken}
                             style={[
                                 styles.timeSlot,
-                                selectedTime === slot && styles.activeSlot,
-                                taken && styles.disabledSlot
+                                selectedTime === slot.time && styles.activeSlot,
+                                taken && !isBreak && styles.disabledSlot,
+                                isBreak && styles.breakSlot
                             ]}
-                            onPress={() => setSelectedTime(slot)}
+                            onPress={() => setSelectedTime(slot.time)}
                         >
-                            <Text style={[styles.timeText, selectedTime === slot && { color: '#000' }]}>
-                                {formatTime12h(slot)}
+                            <Text style={[
+                                styles.timeText, 
+                                selectedTime === slot.time && { color: '#000' },
+                                isBreak && { color: 'rgba(255,255,255,0.4)', fontSize: 13 }
+                            ]}>
+                                {formatTime12h(slot.time)}
                             </Text>
+                            {isBreak && (
+                                <Text style={styles.breakText}>Descanso</Text>
+                            )}
                         </TouchableOpacity>
                     );
                 })}

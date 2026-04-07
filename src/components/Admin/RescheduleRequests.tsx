@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, useWindowDimensions } from 'react-native';
 import { Appointment } from '../../types';
-import { Calendar, Clock, User, Scissors, Check, AlertCircle, Quote, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, User, Scissors, Check, AlertCircle, Quote, ArrowLeft, MapPin } from 'lucide-react';
 import { authorizeReschedule } from '../../services/appointments';
+import { formatFullDate, formatTime12h } from '../../utils/formatters';
 
 interface RescheduleRequestsProps {
   appointments: Appointment[];
@@ -97,7 +98,13 @@ export default function RescheduleRequests({ appointments, COLORS, onUpdate, adm
               </View>
               <View style={styles.detailRow}>
                 <Calendar size={14} color={COLORS.primary} />
-                <Text style={[styles.detailText, { color: COLORS.textSecondary }]}>{app.date} a las {app.time}</Text>
+                <Text style={[styles.detailText, { color: COLORS.textSecondary }]}>
+                  {formatFullDate(app.date)} a las {formatTime12h(app.time)}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <MapPin size={14} color={COLORS.primary} />
+                <Text style={[styles.detailText, { color: COLORS.textSecondary }]}>{app.branch || 'Sucursal Matriz'}</Text>
               </View>
             </View>
 

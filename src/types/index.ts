@@ -148,6 +148,11 @@ export interface Branch {
   image?: string;
 }
 
+export interface TimeSlot {
+  time: string;
+  isBreak?: boolean;
+}
+
 export interface ActivityLog {
   id: string;
   adminId?: string;
