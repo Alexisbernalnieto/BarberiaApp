@@ -318,7 +318,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const resetPassword = async (email: string): Promise<void> => {
-    await sendPasswordResetEmail(auth, email);
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error: any) {
+      console.error(error);
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('No existe una cuenta con este correo.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('El correo electrónico no es válido.');
+      } else {
+        throw new Error('Ocurrió un error al intentar enviar el correo.');
+      }
+    }
   };
 
   const resendVerificationEmail = async (): Promise<void> => {
