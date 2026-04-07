@@ -65,8 +65,8 @@ export default function AdminCashRegister({ appointments, onClose, COLORS, curre
       if (appBranch !== selectedBranch) return false;
     }
 
-    // Only count completed/paid appointments for revenue
-    return app.paid === true || app.status === 'completed';
+    // Only count completed/paid appointments for revenue, but exclude those that were never handled
+    return (app.paid === true || app.status === 'completed') && app.status !== 'unhandled';
   });
 
   const totalServices = filteredApps.length;

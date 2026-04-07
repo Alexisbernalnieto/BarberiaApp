@@ -188,7 +188,7 @@ export default function AdminDashboard({
 
   const totalToday = useMemo(() => 
     dayAppointments
-      .filter(app => app.status !== 'cancelled')
+      .filter(app => app.status !== 'cancelled' && app.status !== 'unhandled')
       .reduce((acc, app) => acc + (app.price || 0), 0)
   , [dayAppointments]);
 

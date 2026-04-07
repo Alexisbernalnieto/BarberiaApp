@@ -14,7 +14,6 @@ const COMMISSION_RATE = 0.5;
 
 const AdminFinances = ({ appointments, COLORS, isMobile, onBack }: AdminFinancesProps) => {
   const data = useMemo(() => {
-    // Only completed appointments generate revenue
     const completed = appointments.filter(a => a.status === 'completed');
 
     let totalGross = 0;

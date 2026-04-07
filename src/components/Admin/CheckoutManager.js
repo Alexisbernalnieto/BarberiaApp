@@ -21,8 +21,9 @@ export default function CheckoutManager({ appointments, onClose, COLORS, isMobil
       const isToday = app.date === todayStr;
       const isBranch = branch ? app.branch === branch : true;
       const isNotPaid = !app.paid;
+      const isNotUnhandled = app.status !== 'unhandled';
       const matchesSearch = app.userName?.toLowerCase().includes(searchText.toLowerCase());
-      return isToday && isBranch && isNotPaid && matchesSearch;
+      return isToday && isBranch && isNotPaid && isNotUnhandled && matchesSearch;
     }).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
   }, [appointments, todayStr, branch, searchText]);
 

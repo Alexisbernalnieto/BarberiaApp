@@ -53,11 +53,11 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
     } as ViewStyle,
     stepWrapper: {
       alignItems: 'center',
-      width: isMobile ? 56 : 80,
+      width: isMobile ? 50 : 80,
     } as ViewStyle,
     stepCircle: {
-      width: 36,
-      height: 36,
+      width: isMobile ? 32 : 36,
+      height: isMobile ? 32 : 36,
       borderRadius: 18,
       backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
       justifyContent: 'center',
@@ -119,9 +119,9 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       marginTop: 24,
     } as ViewStyle,
     branchCard: {
-      width: isMobile ? '100%' : '46%',
+      width: isMobile ? '100%' : '48%',
       backgroundColor: COLORS.surface,
-      padding: 32,
+      padding: isMobile ? 24 : 32,
       borderRadius: 20,
       borderWidth: 1,
       borderColor: COLORS.border,
@@ -213,9 +213,9 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       marginTop: 24,
     } as ViewStyle,
     barberCard: {
-      width: isMobile ? '43%' : 190,
+      width: isMobile ? '45%' : 190,
       backgroundColor: COLORS.surface,
-      padding: 24,
+      padding: isMobile ? 16 : 24,
       borderRadius: 20,
       borderWidth: 1,
       borderColor: COLORS.border,
