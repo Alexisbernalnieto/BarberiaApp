@@ -62,11 +62,15 @@ export default function AuthScreen() {
   
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [successModalConfig, setSuccessModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: ''
+  });
 
   // Refs for keyboard navigation
   const emailRef = useRef<TextInput>(null);
@@ -91,7 +95,7 @@ export default function AuthScreen() {
   };
 
   const handleSuccessModalClose = () => {
-    setShowSuccessModal(false);
+    setSuccessModalConfig(prev => ({ ...prev, visible: false }));
     setEmail('');
     setPassword('');
     setName('');
@@ -125,7 +129,11 @@ export default function AuthScreen() {
         }
         const success = await register(email, password, name);
         if (success) {
-          setShowSuccessModal(true);
+          setSuccessModalConfig({
+            visible: true,
+            title: '¡Cuenta Creada!',
+            message: 'Te hemos enviado un correo de verificación. Revisa tu bandeja de entrada o spam y haz clic en el enlace para activar tu cuenta.'
+          });
         }
       }
     } catch (error: any) {
@@ -148,6 +156,8 @@ export default function AuthScreen() {
       setLoading(false);
     }
   };
+
+
 
   return (
     <ImageBackground 
@@ -245,7 +255,7 @@ export default function AuthScreen() {
 
       {/* Success Modal */}
       <Modal
-        visible={showSuccessModal}
+        visible={successModalConfig.visible}
         transparent
         animationType="fade"
         onRequestClose={handleSuccessModalClose}
@@ -263,9 +273,9 @@ export default function AuthScreen() {
               <CheckCircle size={48} color={COLORS.primary} />
             </View>
 
-            <Text style={[styles.modalTitle, { color: COLORS.text }]}>¡Cuenta Creada!</Text>
+            <Text style={[styles.modalTitle, { color: COLORS.text }]}>{successModalConfig.title}</Text>
             <Text style={[styles.modalMessage, { color: COLORS.textSecondary }]}>
-              Te hemos enviado un correo de verificación. Revisa tu bandeja de entrada o spam y haz clic en el enlace para activar tu cuenta.
+              {successModalConfig.message}
             </Text>
 
             <TouchableOpacity style={[styles.modalBtn, { backgroundColor: COLORS.primary }]} onPress={handleSuccessModalClose}>
@@ -274,7 +284,6 @@ export default function AuthScreen() {
           </View>
         </View>
       </Modal>
-
 
       {/* Desktop Perspective Branding */}
       {!isMobile && (
