@@ -317,6 +317,18 @@ export const getBookingWizardStyles = (COLORS: any, isMobile: boolean) =>
       fontSize: 14,
       fontWeight: '700',
     } as TextStyle,
+    breakSlot: {
+      backgroundColor: COLORS.mode === 'dark' ? 'rgba(212, 175, 55, 0.05)' : 'rgba(212, 175, 55, 0.03)',
+      borderColor: 'rgba(212, 175, 55, 0.1)',
+      opacity: 0.7,
+    } as ViewStyle,
+    breakText: {
+      color: COLORS.textMuted,
+      fontSize: 10,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      marginTop: 2,
+    } as TextStyle,
 
     // === CONFIRM TICKET ===
     ticketCard: {

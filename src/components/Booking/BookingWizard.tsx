@@ -15,7 +15,8 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useSidebar } from '../../context/SidebarContext';
-import { createAppointment, generateAppointmentId } from '../../services/appointments';
+import { createAppointment, generateAppointmentId, getAvailableSlotsForBarber } from '../../services/appointments';
+import { AppUser, Appointment, TimeSlot } from '../../types';
 
 // Helper: Time to Minutes
 const timeToMinutes = (t: string) => {
@@ -38,7 +39,6 @@ import BookingStepDateTime from './BookingStepDateTime';
 import BookingStepConfirm from './BookingStepConfirm';
 import BookingStepPayment from './BookingStepPayment';
 import { getBookingWizardStyles } from './BookingWizardStyles';
-import { AppUser, Appointment } from '../../types';
 
 export const STEPS = [
   { id: 1, title: 'Sucursal', icon: Building2 },
@@ -95,6 +95,8 @@ export default function BookingWizard({
   const [bookingErrorMessage, setBookingErrorMessage] = useState('');
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   const goToStep = (step: number) => {
     Animated.sequence([
@@ -130,12 +132,14 @@ export default function BookingWizard({
     }
   };
 
-  const isSlotTaken = (time: string) => {
+  const isSlotTaken = (time: string, isBreak?: boolean) => {
+    if (isBreak) return true;
     if (!selectedBarber || !selectedDate || !selectedService) return false;
     
+    // Additional secondary check against existingAppointments in state for real-time conflicts
     const newStart = timeToMinutes(time);
     const newDuration = selectedService.duration || 30;
-    const newEnd = newStart + newDuration + 10; // 10 min tolerance for new app
+    const newEnd = newStart + newDuration + 10;
 
     return existingAppointments.some((appt: Appointment) => {
       if (appt.date !== selectedDate) return false;
@@ -144,81 +148,37 @@ export default function BookingWizard({
 
       const appStart = timeToMinutes(appt.time);
       const appDuration = (appt as any).duration || (appt as any).serviceDuration || 30;
-      const appEnd = appStart + appDuration + 10 + 10; // 10 tolerance + 10 rest
+      const appEnd = appStart + appDuration + 20; // 10 tolerance + 10 rest
 
-      // Overlap formula
       return (newStart < appEnd && newEnd > appStart);
     });
   };
 
-  const generateTimeSlots = () => {
-    if (!selectedDate || !selectedBranch || !selectedBarber || !selectedService) return [];
-    
-    // Get day index (0=Domingo, 1=Lunes, etc.)
-    const [year, month, day] = selectedDate.split('-').map(Number);
-    const dayIndex = new Date(year, month - 1, day).getDay();
-    
-    // Get barber schedule for this day
-    const barberSchedule = selectedBarber.schedule || {};
-    const dayConfig = barberSchedule[dayIndex] || { start: '10:00', end: '19:00', active: true };
-    
-    if (!dayConfig.active) return [];
-
-    const slots: string[] = [];
-    let currentTime = timeToMinutes(dayConfig.start);
-    const closingTime = timeToMinutes(dayConfig.end);
-    const serviceDuration = selectedService.duration || 30;
-    
-    const now = new Date();
-    const isToday = selectedDate === todayLocal;
-    const currentMins = now.getHours() * 60 + now.getMinutes();
-
-    // Relevant apps for this barber & day
-    const dayApps = existingAppointments
-      .filter((a: any) => 
-        a.date === selectedDate && 
-        a.barberId === (selectedBarber.uid || selectedBarber.id) &&
-        !['cancelled', 'no_show', 'rescheduled'].includes(a.status)
-      )
-      .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-
-    // Logic: Advance through the day and find gaps
-    // Must fit service + 10 min tolerance within the shift
-    while (currentTime + serviceDuration + 10 <= closingTime) {
-      if (isToday && currentTime <= currentMins + 15) {
-        currentTime += 5; // Skip past time
-        continue;
+  // Fetch slots asynchronously when criteria changes
+  useEffect(() => {
+    const fetchSlots = async () => {
+      if (selectedDate && selectedBarber && selectedService) {
+        setIsLoadingSlots(true);
+        try {
+          const barberId = selectedBarber.uid || selectedBarber.id;
+          const duration = selectedService.duration || 30;
+          const slots = await getAvailableSlotsForBarber(barberId, selectedDate, duration);
+          setAvailableSlots(slots);
+        } catch (error) {
+          console.error("Error fetching slots:", error);
+          setAvailableSlots([]);
+        } finally {
+          setIsLoadingSlots(false);
+        }
       }
+    };
 
-      // Check conflict
-      const conflict = dayApps.find(app => {
-        const appStart = timeToMinutes(app.time);
-        const appDuration = (app as any).duration || (app as any).serviceDuration || 30;
-        const appEnd = appStart + appDuration + 10 + 10; // Tolerance + Rest
-        
-        // Potential new app range (including its own 10 min tolerance)
-        const newStart = currentTime;
-        const newEnd = currentTime + serviceDuration + 10;
-
-        return (newStart < appEnd && newEnd > appStart);
-      });
-
-      if (conflict) {
-        // Jump to end of conflict: app start + duration + tolerance + rest
-        const appStart = timeToMinutes(conflict.time);
-        const appDuration = (conflict as any).duration || (conflict as any).serviceDuration || 30;
-        currentTime = appStart + appDuration + 10 + 10;
-        
-        // Ensure we snap to a "clean" 5-minute mark if needed, though timeToMinutes already does this
-      } else {
-        slots.push(minutesToTime(currentTime));
-        // Next candidate in 15 mins to avoid cluttered UI
-        currentTime += 15; 
-      }
+    if (currentStep === 4) {
+      fetchSlots();
     }
+  }, [selectedDate, selectedBarber, selectedService, currentStep]);
 
-    return slots;
-  };
+  const generateTimeSlots = () => availableSlots;
 
   const handleConfirm = async (directPaymentId?: string) => {
     // Use direct params to avoid stale closure when called from payment callback
@@ -276,13 +236,12 @@ export default function BookingWizard({
 
   // Check for day exhaustion (no slots today)
   useEffect(() => {
-    if (currentStep === 4 && selectedDate === todayLocal) {
-      const slots = generateTimeSlots();
-      if (slots.length === 0) {
+    if (currentStep === 4 && selectedDate === todayLocal && !isLoadingSlots) {
+      if (availableSlots.length === 0) {
         setShowNoSlotsModal(true);
       }
     }
-  }, [currentStep, selectedDate, selectedBarber, selectedService]);
+  }, [currentStep, selectedDate, selectedBarber, selectedService, availableSlots, isLoadingSlots]);
 
   const confirmWizardExit = () => {
     setIsBookingInProgress(false);
@@ -341,7 +300,8 @@ export default function BookingWizard({
               setSelectedTime={setSelectedTime}
               selectedService={selectedService}
               todayLocal={todayLocal}
-              generateTimeSlots={generateTimeSlots}
+              availableSlots={availableSlots}
+              isLoadingSlots={isLoadingSlots}
               isSlotTaken={isSlotTaken}
             />
           )}

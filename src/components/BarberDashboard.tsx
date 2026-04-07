@@ -460,7 +460,7 @@ export default function BarberDashboard({
               )}
               <View>
                 <Text style={[styles.greeting, { fontSize: isMobile ? 20 : 24 }]}>Hola, {user.name || 'Barbero'}</Text>
-                <Text style={styles.dateText}>Tu agenda para hoy</Text>
+                <Text style={styles.dateText}>{formatFullDate(todayString)}</Text>
               </View>
             </View>
 

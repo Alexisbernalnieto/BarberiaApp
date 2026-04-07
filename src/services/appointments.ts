@@ -9,7 +9,7 @@ import { doc, runTransaction, Timestamp, collection, query, where, getDocs, writ
 import { logActivity } from '@/services/activityLogs';
 import { createNotification } from '@/services/notificationService';
 import { incrementDayMetrics } from '@/services/barberTracking';
-import { AppointmentStatus } from '@/types';
+import { AppointmentStatus, TimeSlot } from '@/types';
 
 // ─── Tolerancia No-Show (minutos) ────────────────────────────
 const NO_SHOW_TOLERANCE_MINUTES = 10;
@@ -572,7 +572,7 @@ export const getBarberAppointmentsForDate = async (barberId: string, date: strin
 // ═══════════════════════════════════════════════════════════════
 // 10. DETECTAR SLOTS DISPONIBLES (con duración + tolerancia)
 // ═══════════════════════════════════════════════════════════════
-export const getAvailableSlotsForBarber = async (barberId: string, date: string, serviceDuration: number = 30) => {
+export const getAvailableSlotsForBarber = async (barberId: string, date: string, serviceDuration: number = 30): Promise<TimeSlot[]> => {
   // Fetch barber's schedule for this specific day
   const barberDoc = await getDoc(doc(db, 'users', barberId));
   if (!barberDoc.exists()) return [];
@@ -598,7 +598,7 @@ export const getAvailableSlotsForBarber = async (barberId: string, date: string,
     .filter((a: any) => a.status !== 'cancelled' && a.status !== 'no_show' && a.status !== 'rescheduled')
     .sort((a: any, b: any) => timeToMinutes((a as any).time) - timeToMinutes((b as any).time));
 
-  const allSlots: string[] = [];
+  const allSlots: TimeSlot[] = [];
   let currentTime = startMin;
   const closingTime = endMin;
 
@@ -640,14 +640,28 @@ export const getAvailableSlotsForBarber = async (barberId: string, date: string,
         const appDur = (conflict as any).duration || (conflict as any).serviceDuration || 30;
         currentTime = appStart + appDur + NO_SHOW_TOLERANCE_MINUTES;
       } else if (inBreak1) {
+        const h = Math.floor(currentTime / 60);
+        const m = currentTime % 60;
+        allSlots.push({ 
+          time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+          isBreak: true 
+        });
         currentTime = break1End;
       } else if (inBreak2) {
+        const h = Math.floor(currentTime / 60);
+        const m = currentTime % 60;
+        allSlots.push({ 
+          time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+          isBreak: true 
+        });
         currentTime = break2End;
       }
     } else {
       const h = Math.floor(currentTime / 60);
       const m = currentTime % 60;
-      allSlots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+      allSlots.push({ 
+        time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+      });
       currentTime += 15;
     }
   }

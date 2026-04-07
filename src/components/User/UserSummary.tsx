@@ -153,7 +153,8 @@ export default function UserSummary({ nextAppointment, activeTab, setActiveTab, 
                                 )}
                             </View>
                             <Text style={[styles.detailText, { color: COLORS.text }]}>
-                                Pago: {nextAppointment.paymentMethod === 'Card' ? 'Tarjeta' : 
+                                Pago: {nextAppointment.paid ? 'Aprobado' : 
+                                       nextAppointment.paymentMethod === 'Card' ? 'Tarjeta' : 
                                        nextAppointment.paymentMethod === 'Cash' ? 'Efectivo' : 'Pendiente'}
                             </Text>
                         </View>
