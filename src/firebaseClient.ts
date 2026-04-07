@@ -1,5 +1,9 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, enableMultiTabIndexedDbPersistence } from "firebase/firestore";
+import { 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager 
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getFunctions } from "firebase/functions";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
@@ -15,35 +19,60 @@ export const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
 
-// Activar persistencia de datos offline (Modo Súper Fluido)
-if (Platform.OS === 'web' && typeof window !== 'undefined') {
-  enableMultiTabIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn("Persistencia falló: Múltiples pestañas abiertas.");
-    } else if (err.code === 'unimplemented') {
-      console.warn("Persistencia falló: El navegador no soporta IndexedDB.");
-    }
-  });
-}
+// --- Modern Firestore Persistence (Replaces deprecated enableMultiTabIndexedDbPersistence) ---
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
 
 export const auth = getAuth(app);
 export const functions = getFunctions(app);
 
-// Inicializar App Check de manera segura para la web contra abusos
+// --- Resilient App Check Initialization ---
 if (Platform.OS === 'web' && typeof window !== 'undefined') {
-  try {
-    // Permitir App Check Debug en localhost para evitar 403 y bloqueos en Firestore
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    }
+  (window as any).FIREBASE_INIT_STATUS = "Initializing App Check...";
+  
+  const initAppCheck = async () => {
+    try {
+      const isLocal = 
+        window.location.hostname === 'localhost' || 
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname.includes('192.168.');
 
-    initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(process.env.EXPO_PUBLIC_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'), // Test key or env var
-      isTokenAutoRefreshEnabled: true
-    });
-  } catch (error) {
-    console.warn("App Check initialization skipped or failed:", error);
-  }
+      if (isLocal) {
+        console.log("Firebase: Enabling App Check Debug Mode.");
+        (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      }
+
+      const siteKey = process.env.EXPO_PUBLIC_RECAPTCHA_SITE_KEY;
+      
+      if (!siteKey) {
+        console.warn("Firebase: App Check Site Key is missing. Using testing fallback.");
+        (window as any).FIREBASE_INIT_STATUS = "App Check (Testing Mode)...";
+      }
+
+      const provider = new ReCaptchaV3Provider(siteKey || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI');
+
+      // Async initialization that doesn't block Auth imports
+      initializeAppCheck(app, {
+        provider,
+        isTokenAutoRefreshEnabled: true
+      });
+      
+      console.log("Firebase: App Check initialized successfully.");
+      (window as any).FIREBASE_INIT_STATUS = "App Check OK";
+    } catch (error: any) {
+      if (error.code?.includes('initial-throttle')) {
+        console.warn("Firebase: App Check is throttled (403/429). The system might block some Firestore writes for 24h.");
+        (window as any).FIREBASE_INIT_STATUS = "App Check Throttled (403)";
+      } else {
+        console.error("Firebase: App Check initialization failed:", error);
+        (window as any).FIREBASE_INIT_STATUS = "App Check Error";
+      }
+    }
+  };
+
+  initAppCheck();
 }

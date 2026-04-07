@@ -49,6 +49,32 @@
   box-sizing: border-box;
 }
 
+/* ─── Fix for Vector Icons in Web Production ─── */
+@font-face {
+  font-family: 'Ionicons';
+  src: url(https://cdn.jsdelivr.net/npm/react-native-vector-icons/Fonts/Ionicons.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'MaterialIcons';
+  src: url(https://cdn.jsdelivr.net/npm/react-native-vector-icons/Fonts/MaterialIcons.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'MaterialCommunityIcons';
+  src: url(https://cdn.jsdelivr.net/npm/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'FontAwesome';
+  src: url(https://cdn.jsdelivr.net/npm/react-native-vector-icons/Fonts/FontAwesome.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'AntDesign';
+  src: url(https://cdn.jsdelivr.net/npm/react-native-vector-icons/Fonts/AntDesign.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'FontAwesome5Free-Solid';
+  src: url(https://cdn.jsdelivr.net/npm/react-native-vector-icons/Fonts/FontAwesome5_Solid.ttf) format('truetype');
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -56,6 +82,12 @@ body {
   background-color: var(--bg-dark);
   color: var(--text-primary);
   overflow-x: hidden;
+}
+
+/* Fix SVG sizing issue in React Native Web */
+svg {
+  display: block;
+  max-width: 100%;
 }
 
 /* ─── Glassmorphism Utilities ─── */
@@ -481,5 +513,56 @@ a:hover {
   [data-ticket="true"] {
     box-shadow: none !important;
     border: 2px solid #000 !important;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE OVERRIDES
+   ============================================================ */
+
+/* Small Devices (Phones) */
+@media (max-width: 640px) {
+  :root {
+    --sidebar-width: 100%;
+    --radius-xl: 18px;
+    --radius-lg: 12px;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  .glass-card {
+    padding: 16px !important;
+  }
+
+  /* Grid adjustments */
+  [data-grid="true"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  /* Hero card adjustments */
+  [data-hero-card="true"] {
+    padding: 20px !important;
+  }
+}
+
+/* Medium Devices (Tablets) */
+@media (max-width: 1024px) {
+  /* Booking wizard specific responsive styling */
+  [data-booking-grid="true"] {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+  }
+}
+
+/* Height specific (landscape phones) */
+@media (max-height: 500px) {
+  [data-brand-side="true"] {
+    display: none !important;
+  }
+  
+  [data-form-card="true"] {
+    padding: 20px !important;
   }
 }

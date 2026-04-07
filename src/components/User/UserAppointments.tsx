@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated, useWindowDimensions } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MapPin, Calendar, Clock, CalendarX } from 'lucide-react';
 import AppointmentDetail from './AppointmentDetail';
 import { Appointment } from '../../types';
 import { formatFullDate, formatTime12h, isAppointmentExpired } from '../../utils/formatters';
@@ -55,15 +55,15 @@ export default function UserAppointments({ user, appointments, COLORS, isMobile 
       
       <View style={styles.cardFooter}>
          <View style={styles.dateTime}>
-            <MaterialCommunityIcons name="map-marker-outline" size={16} color={COLORS.primary} />
+            <MapPin size={16} color={COLORS.primary} />
             <Text style={[styles.footerText, { color: COLORS.textSecondary }]}>{item.branch}</Text>
          </View>
          <View style={styles.dateTime}>
-            <MaterialCommunityIcons name="calendar-month" size={16} color={COLORS.primary} />
+            <Calendar size={16} color={COLORS.primary} />
             <Text style={[styles.footerText, { color: COLORS.textSecondary }]}>{formatFullDate(item.date)}</Text>
          </View>
          <View style={styles.dateTime}>
-            <MaterialCommunityIcons name="clock-outline" size={16} color={COLORS.primary} />
+            <Clock size={16} color={COLORS.primary} />
             <Text style={[styles.footerText, { color: COLORS.textSecondary }]}>{formatTime12h(item.time)}</Text>
          </View>
          <View style={[styles.statusBadge, { 
@@ -127,7 +127,7 @@ export default function UserAppointments({ user, appointments, COLORS, isMobile 
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="calendar-blank" size={48} color={COLORS.textSecondary + '40'} />
+            <CalendarX size={48} color={COLORS.textSecondary + '40'} />
             <Text style={[styles.emptyText, { color: COLORS.textSecondary }]}>No hay citas para mostrar</Text>
           </View>
         }

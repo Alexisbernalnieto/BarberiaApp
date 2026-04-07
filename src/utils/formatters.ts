@@ -65,24 +65,22 @@ export const isDateTomorrow = (dateStr: string) => {
 };
 
 export const isAppointmentExpired = (date: string, time: string, durationMinutes: number = 45) => {
-  const today = getLocalTodayString();
-  
-  // 1. If date is before today, it's expired
-  if (date < today) return true;
-  
-  // 2. If date is in the future, it's not expired
-  if (date > today) return false;
-  
-  // 3. If it's today, check if current time is past (appointment time + duration + 2 hour tolerance)
+  // Parsing date (YYYY-MM-DD) and time (HH:mm)
+  const [year, month, day] = date.split('-').map(Number);
   const [hours, minutes] = time.split(':').map(Number);
-  const appEndTime = new Date();
-  appEndTime.setHours(hours, minutes + durationMinutes, 0, 0);
+  
+  // Create a Date object for the appointment START time in local time
+  const appointmentStart = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  
+  // Calculate appointment END time
+  const appointmentEnd = new Date(appointmentStart.getTime() + durationMinutes * 60 * 1000);
   
   const now = new Date();
-  const twoHoursInMs = 2 * 60 * 60 * 1000;
+  const fourHoursInMs = 4 * 60 * 60 * 1000;
   
   // Return true if current time > end of service + tolerance
-  return now.getTime() > (appEndTime.getTime() + twoHoursInMs);
+  // This works across midnight because we are comparing absolute timestamps
+  return now.getTime() > (appointmentEnd.getTime() + fourHoursInMs);
 };
 
 export const canChangeStatus = (appointment: any, newStatus: string): { allowed: boolean; message?: string } => {

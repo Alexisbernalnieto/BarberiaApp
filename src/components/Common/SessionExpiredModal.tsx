@@ -1,14 +1,15 @@
 import React from 'react';
 import { View, Text, Modal, StyleSheet, TouchableOpacity, useWindowDimensions, Animated } from 'react-native';
-import { Clock, LogOut } from 'lucide-react';
+import { Clock, LogOut, AlertCircle } from 'lucide-react';
 
 interface SessionExpiredModalProps {
   visible: boolean;
+  reason: 'inactivity' | 'duplicate' | null;
   onClose: () => void;
   COLORS: any;
 }
 
-export default function SessionExpiredModal({ visible, onClose, COLORS }: SessionExpiredModalProps) {
+export default function SessionExpiredModal({ visible, reason, onClose, COLORS }: SessionExpiredModalProps) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
@@ -26,6 +27,8 @@ export default function SessionExpiredModal({ visible, onClose, COLORS }: Sessio
     }
   }, [visible]);
 
+  const isDuplicate = reason === 'duplicate';
+
   return (
     <Modal
       transparent
@@ -38,8 +41,8 @@ export default function SessionExpiredModal({ visible, onClose, COLORS }: Sessio
           style={[
             styles.container, 
             { 
-              backgroundColor: COLORS.glassSurface || 'rgba(10, 10, 10, 0.9)', 
-              borderColor: COLORS.primary,
+              backgroundColor: '#0A0A0A', 
+              borderColor: isDuplicate ? '#EF4444' : COLORS.primary,
               width: isMobile ? '90%' : 440,
               opacity: fadeAnim,
               transform: [{
@@ -52,22 +55,30 @@ export default function SessionExpiredModal({ visible, onClose, COLORS }: Sessio
           ]}
         >
           {/* Decorative Elements */}
-          <View style={[styles.glow, { backgroundColor: COLORS.primary }]} />
+          <View style={[styles.glow, { backgroundColor: isDuplicate ? '#EF4444' : COLORS.primary }]} />
           
           <View style={styles.content}>
-            <View style={[styles.iconBox, { backgroundColor: `${COLORS.primary}20` }]}>
-              <Clock size={40} color={COLORS.primary} strokeWidth={2.5} />
-              <View style={styles.badge}>
+            <View style={[styles.iconBox, { backgroundColor: isDuplicate ? 'rgba(239, 68, 68, 0.1)' : `${COLORS.primary}20` }]}>
+              {isDuplicate ? (
+                <AlertCircle size={40} color="#EF4444" strokeWidth={2.5} />
+              ) : (
+                <Clock size={40} color={COLORS.primary} strokeWidth={2.5} />
+              )}
+              <View style={[styles.badge, { backgroundColor: '#FFF', borderColor: '#000' }]}>
                 <LogOut size={12} color="#000" />
               </View>
             </View>
 
-            <Text style={[styles.title, { color: COLORS.text }]}>SESIÓN EXPIRADA</Text>
+            <Text style={[styles.title, { color: COLORS.text }]}>
+              {isDuplicate ? 'SESIÓN DUPLICADA' : 'SESIÓN EXPIRADA'}
+            </Text>
             
-            <View style={[styles.divider, { backgroundColor: COLORS.primary }]} />
+            <View style={[styles.divider, { backgroundColor: isDuplicate ? '#EF4444' : COLORS.primary }]} />
 
             <Text style={[styles.description, { color: COLORS.textSecondary }]}>
-              Tu sesión ha sido cerrada automáticamente debido a un periodo de inactividad por tu seguridad.
+              {isDuplicate 
+                ? 'Tu sesión ha sido cerrada porque se detectó un inicio de sesión en otro dispositivo.' 
+                : 'Tu sesión ha sido cerrada automáticamente debido a un periodo de inactividad por tu seguridad.'}
             </Text>
 
             <View style={styles.infoBox}>
@@ -77,11 +88,11 @@ export default function SessionExpiredModal({ visible, onClose, COLORS }: Sessio
             </View>
 
             <TouchableOpacity 
-              style={[styles.button, { backgroundColor: COLORS.primary }]}
+              style={[styles.button, { backgroundColor: isDuplicate ? '#EF4444' : COLORS.primary }]}
               onPress={onClose}
               activeOpacity={0.8}
             >
-              <Text style={styles.buttonText}>VUELVE A INICIAR SESIÓN</Text>
+              <Text style={[styles.buttonText, { color: isDuplicate ? '#FFF' : '#000' }]}>VUELVE A INICIAR SESIÓN</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

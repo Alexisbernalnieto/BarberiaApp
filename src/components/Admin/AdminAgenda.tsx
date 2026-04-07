@@ -66,7 +66,7 @@ const AdminAgenda = ({
   });
 
   const dayRevenue = dayAppointments
-    .filter((app: any) => app.status !== 'cancelled')
+    .filter((app: any) => app.status !== 'cancelled' && app.status !== 'unhandled')
     .reduce((acc: number, app: any) => acc + (app.price || 0), 0);
 
   return (

@@ -8,6 +8,7 @@ import AuthScreen from '@/screens/AuthScreen';
 import UserDashboard from '@/components/UserDashboard';
 import AdminDashboard from '@/components/AdminDashboard';
 import BarberDashboard from '@/components/BarberDashboard';
+import LoadingScreen from '@/components/Common/LoadingScreen';
 
 import { createAppointment } from '@/services/appointments';
 import { UserRole } from '@/types';
@@ -72,11 +73,7 @@ export default function AppNavigator() {
   };
 
   if (loading) {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: COLORS.background }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   if (!currentUser) {

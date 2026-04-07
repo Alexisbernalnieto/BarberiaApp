@@ -13,7 +13,8 @@ import {
   StyleSheet,
   Modal,
   ImageBackground,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import { 
   Mail, 
@@ -25,10 +26,14 @@ import {
   ChevronRight,
   ArrowRight,
   CheckCircle,
-  X
+  X,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import ForgotPasswordModal from '../components/Common/ForgotPasswordModal';
+import { NAME_REGEX, PASSWORD_REGEX, mapAuthError } from '../utils/authUtils';
 
 export default function AuthScreen() {
   const { width, height } = useWindowDimensions();
@@ -58,6 +63,16 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Refs for keyboard navigation
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+  const nameRef = useRef<TextInput>(null);
 
   const toggleSwitch = () => {
     setErrorMessage(null);
@@ -89,16 +104,46 @@ export default function AuthScreen() {
     setErrorMessage(null);
     try {
       if (isLogin) {
-        await login(email, password);
+        if (!email.trim() || !password) throw { code: 'auth/invalid-credential' };
+        const result = await login(email, password);
+        if (!result.success && result.sessionActive) {
+          setShowSessionModal(true);
+        }
       } else {
-        if (password !== confirmPassword) throw new Error('Las contraseñas no coinciden');
+        // Registration Validations
+        if (!NAME_REGEX.test(name)) {
+          throw new Error('El nombre solo debe contener letras y tener al menos 2 caracteres.');
+        }
+        if (!email.includes('@')) {
+          throw { code: 'auth/invalid-email' };
+        }
+        if (!PASSWORD_REGEX.test(password)) {
+          throw { code: 'auth/weak-password' };
+        }
+        if (password !== confirmPassword) {
+          throw new Error('Las contraseñas no coinciden.');
+        }
         const success = await register(email, password, name);
         if (success) {
           setShowSuccessModal(true);
         }
       }
     } catch (error: any) {
-      setErrorMessage(error.message || 'Ocurrió un error inesperado');
+      console.error("AuthScreen Error:", error);
+      const mappedMsg = error.code ? mapAuthError(error.code) : (error.message || 'Ocurrió un error inesperado');
+      setErrorMessage(mappedMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForceLogin = async () => {
+    setShowSessionModal(false);
+    setLoading(true);
+    try {
+      await login(email, password, true);
+    } catch (error: any) {
+      setErrorMessage(error.message || 'Error al forzar el inicio de sesión');
     } finally {
       setLoading(false);
     }
@@ -132,6 +177,71 @@ export default function AuthScreen() {
       >
         {isDarkMode ? <Sun size={20} color={COLORS.primary} /> : <Moon size={20} color={COLORS.text} />}
       </TouchableOpacity>
+
+      {/* Session Conflict Modal */}
+      <Modal
+        visible={showSessionModal}
+        transparent
+        animationType="fade"
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.95)' }]}>
+          <View style={[styles.modalCard, { 
+            backgroundColor: '#0A0A0A', 
+            borderColor: COLORS.primary,
+            borderWidth: 1.5,
+            shadowColor: COLORS.primary,
+            shadowOpacity: 0.3
+          }]}>
+            <View style={[styles.glow, { backgroundColor: COLORS.primary, top: -50, right: -50, opacity: 0.05 }]} />
+            
+            <TouchableOpacity 
+              style={[styles.modalCloseBtn, { backgroundColor: 'rgba(255,255,255,0.05)' }]} 
+              onPress={() => setShowSessionModal(false)}
+            >
+              <X size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+
+            <View style={[styles.modalIconWrapper, { backgroundColor: COLORS.primary + '15', borderColor: COLORS.primary + '30' }]}>
+              <Lock size={40} color={COLORS.primary} />
+            </View>
+
+            <Text style={[styles.modalTitle, { color: COLORS.text }]}>SESIÓN ACTIVA</Text>
+            
+            <View style={[styles.divider, { backgroundColor: COLORS.primary, width: 40, height: 3, marginBottom: 20, alignSelf: 'center' }]} />
+
+            <Text style={[styles.modalMessage, { color: COLORS.textSecondary }]}>
+              Detectamos que esta cuenta tiene una sesión abierta en otro dispositivo. ¿Deseas cerrarla e iniciar aquí?
+            </Text>
+
+            <View style={{ width: '100%', gap: 12 }}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: COLORS.primary }]} 
+                onPress={handleForceLogin}
+                disabled={loading}
+              >
+                {loading ? <ActivityIndicator color="#000" /> : (
+                  <Text style={styles.modalBtnText}>CERRAR OTRAS SESIONES</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} 
+                onPress={() => setShowSessionModal(false)}
+              >
+                <Text style={[styles.modalBtnText, { color: COLORS.text }]}>CANCELAR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal 
+        visible={showForgotModal}
+        onClose={() => setShowForgotModal(false)}
+        onSubmit={resetPassword}
+        COLORS={COLORS}
+      />
 
       {/* Success Modal */}
       <Modal
@@ -252,11 +362,15 @@ export default function AuthScreen() {
                   <View style={[styles.inputWrapper, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} data-input-wrapper="true">
                     <UserIcon size={18} color={COLORS.textMuted} />
                     <TextInput
+                      ref={nameRef}
                       style={[styles.input, { color: COLORS.text }]}
                       placeholder="Tu nombre"
                       placeholderTextColor={COLORS.textMuted}
                       value={name}
                       onChangeText={setName}
+                      returnKeyType="next"
+                      onSubmitEditing={() => emailRef.current?.focus()}
+                      autoFocus={!isLogin}
                     />
                   </View>
                 </View>
@@ -267,6 +381,7 @@ export default function AuthScreen() {
                 <View style={[styles.inputWrapper, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} data-input-wrapper="true">
                   <Mail size={18} color={COLORS.textMuted} />
                   <TextInput
+                    ref={emailRef}
                     style={[styles.input, { color: COLORS.text }]}
                     placeholder="email@ejemplo.com"
                     placeholderTextColor={COLORS.textMuted}
@@ -274,6 +389,9 @@ export default function AuthScreen() {
                     onChangeText={setEmail}
                     autoCapitalize="none"
                     keyboardType="email-address"
+                    returnKeyType="next"
+                    onSubmitEditing={() => passwordRef.current?.focus()}
+                    autoFocus={isLogin && Platform.OS === 'web'}
                   />
                 </View>
               </View>
@@ -283,13 +401,19 @@ export default function AuthScreen() {
                 <View style={[styles.inputWrapper, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} data-input-wrapper="true">
                   <Lock size={18} color={COLORS.textMuted} />
                   <TextInput
+                    ref={passwordRef}
                     style={[styles.input, { color: COLORS.text }]}
                     placeholder="••••••••"
                     placeholderTextColor={COLORS.textMuted}
-                    secureTextEntry
+                    secureTextEntry={!showPassword}
                     value={password}
                     onChangeText={setPassword}
+                    returnKeyType={isLogin ? 'done' : 'next'}
+                    onSubmitEditing={() => isLogin ? handleAuth() : confirmPasswordRef.current?.focus()}
                   />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                    {showPassword ? <EyeOff size={18} color={COLORS.textMuted} /> : <Eye size={18} color={COLORS.textMuted} />}
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -299,20 +423,29 @@ export default function AuthScreen() {
                   <View style={[styles.inputWrapper, { backgroundColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: COLORS.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} data-input-wrapper="true">
                     <Lock size={18} color={COLORS.textMuted} />
                     <TextInput
+                      ref={confirmPasswordRef}
                       style={[styles.input, { color: COLORS.text }]}
                       placeholder="••••••••"
                       placeholderTextColor={COLORS.textMuted}
-                      secureTextEntry
+                      secureTextEntry={!showConfirmPassword}
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
+                      returnKeyType="done"
+                      onSubmitEditing={handleAuth}
                     />
+                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
+                      {showConfirmPassword ? <EyeOff size={18} color={COLORS.textMuted} /> : <Eye size={18} color={COLORS.textMuted} />}
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}
             </View>
 
             {isLogin && (
-              <TouchableOpacity onPress={() => resetPassword(email)} style={styles.forgotPass}>
+              <TouchableOpacity 
+                onPress={() => setShowForgotModal(true)} 
+                style={styles.forgotPass}
+              >
                 <Text style={[styles.forgotText, { color: COLORS.primary }]}>¿Olvidaste tu contraseña?</Text>
               </TouchableOpacity>
             )}
@@ -511,6 +644,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  eyeIcon: {
+    padding: 8,
+    marginRight: -4,
+  },
   primaryBtn: {
     height: 56,
     borderRadius: 14,
@@ -558,7 +695,7 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -566,7 +703,7 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 400,
-    borderRadius: 24,
+    borderRadius: 32,
     borderWidth: 1,
     padding: 32,
     alignItems: 'center',
@@ -574,6 +711,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.5,
     shadowRadius: 40,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  glow: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    filter: 'blur(50px)',
   },
   modalCloseBtn: {
     position: 'absolute',

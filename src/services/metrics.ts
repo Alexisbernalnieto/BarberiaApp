@@ -7,7 +7,7 @@ export const calculateMonthlyRevenue = (appointments: Appointment[]) => {
   const currentYear = new Date().getFullYear();
 
   return appointments.reduce((acc, app) => {
-    if (!app.date || app.status === 'cancelled' || !app.paid) return acc;
+    if (!app.date || app.status === 'cancelled' || app.status === 'unhandled' || !app.paid) return acc;
     const appDate = new Date(app.date);
     if (appDate.getMonth() === currentMonth && appDate.getFullYear() === currentYear) {
       return acc + (app.price || 0);
@@ -22,7 +22,7 @@ export const getTodayAppointmentsStats = (appointments: Appointment[]) => {
   
   const completed = todayAppointments.filter(app => app.status === 'completed' || app.paid).length;
   const cancelled = todayAppointments.filter(app => app.status === 'cancelled').length;
-  const total = todayAppointments.length;
+  const total = todayAppointments.filter(app => app.status !== 'unhandled').length;
   
   return { completed, cancelled, total };
 };
@@ -34,7 +34,7 @@ export const getTopServiceMonth = (appointments: Appointment[]) => {
   const servicesCount: Record<string, number> = {};
 
   appointments.forEach(app => {
-    if (!app.date || app.status === 'cancelled') return;
+    if (!app.date || app.status === 'cancelled' || app.status === 'unhandled') return;
     const appDate = new Date(app.date);
     if (appDate.getMonth() === currentMonth && appDate.getFullYear() === currentYear) {
         // Asumiendo que `serviceName` está disponible en la raíz de cada Appointment (según los tipos definidos).
@@ -87,7 +87,7 @@ export const getMonthlyRevenueByDay = (appointments: Appointment[]) => {
   }));
 
   appointments.forEach(app => {
-    if (!app.date || app.status === 'cancelled' || !app.paid) return;
+    if (!app.date || app.status === 'cancelled' || app.status === 'unhandled' || !app.paid) return;
     const appDate = new Date(app.date);
     if (appDate.getMonth() === currentMonth && appDate.getFullYear() === currentYear) {
       const day = appDate.getDate();

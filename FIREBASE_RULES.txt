@@ -88,7 +88,7 @@ service cloud.firestore {
       let data = request.resource.data;
       return data.keys().hasAll(['userId', 'userName', 'barberId', 'date', 'time', 'serviceId', 'price', 'status']) &&
              data.price >= 0 &&
-             data.status in ['pending_payment', 'confirmed', 'completed', 'cancelled', 'checked_in', 'in_progress', 'no_show', 'unhandled'];
+             data.status in ['pending_payment', 'confirmed', 'Confirmado', 'completed', 'cancelled', 'checked_in', 'in_progress', 'no_show', 'unhandled', 'rescheduled', 'En Local'];
     }
     
     function isValidLog() {
@@ -99,19 +99,20 @@ service cloud.firestore {
 
     // CITAS (Appointments)
     match /appointments/{appointmentId} {
-      // Leer: Dueño o Staff
-      allow read: if isSignedIn() && (
-        resource.data.userId == request.auth.token.email || 
-        resource.data.userId == request.auth.uid || 
-        isStaff()
-      );
+      // Leer: Permitir a todos los usuarios autenticados leer las citas.
+      // Esto es estrictamente necesario porque el frontend necesita cargar todas las 
+      // citas de un barbero en una fecha para calcular la disponibilidad.
+      // Si se restringe por estado en las reglas pero no en el frontend, 
+      // Firestore rechaza la consulta ("Rules are not filters").
+      allow read: if isSignedIn();
 
       allow create: if isSignedIn() && isValidAppointment() && (
-        // Regla 1: Si es un cliente, NO puede marcarse como pagado sin un paymentIntentId
-        (hasRole(['client', 1]) && 
-         request.resource.data.paid == true && 
-         request.resource.data.paymentIntentId != null &&
-         request.resource.data.userId == request.auth.uid) ||
+        // Regla 1: Un cliente puede crear su propia cita
+        (request.resource.data.userId == request.auth.uid && (
+          // Si el estatus es paid debe traer stripe intent de lo contrario pasa sin el intent
+          (request.resource.data.paid == true && request.resource.data.paymentIntentId != null) ||
+          (request.resource.data.paid == false && request.resource.data.paymentIntentId == null)
+        )) ||
         
         // Regla 2: Staff puede crear citas (ej. Walk-ins)
         isStaff()
@@ -179,8 +180,8 @@ service cloud.firestore {
       // Staff puede leer notificaciones dirigidas a su rol
       allow read: if isSignedIn() && isStaff();
       
-      // Admin y Recepción pueden crear notificaciones
-      allow create: if isAdmin() || isReception();
+      // Permitir creación a cualquier usuario firmado (para notificar al staff sobre nuevas citas/cancelaciones)
+      allow create: if isSignedIn();
       
       // Staff puede actualizar (marcar como leídas)
       allow update: if isSignedIn() && isStaff();

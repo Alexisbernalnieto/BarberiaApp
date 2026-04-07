@@ -140,6 +140,7 @@ export const createAppointment = async (params: CreateAppointmentParams) => {
         status: isPaid ? 'confirmed' as AppointmentStatus : 'pending_payment' as AppointmentStatus,
         notes: notes || null,
         createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
       };
 
       transaction.set(appointmentRef, payload);
@@ -578,9 +579,19 @@ export const getAvailableSlotsForBarber = async (barberId: string, date: string,
   if (!barberDoc.exists()) return [];
 
   const barberData = barberDoc.data();
+  const schedule = barberData.schedule || {
+    0: { start: '10:00', end: '15:00', active: true },
+    1: { start: '10:00', end: '19:00', active: true },
+    2: { start: '10:00', end: '19:00', active: true },
+    3: { start: '10:00', end: '19:00', active: true },
+    4: { start: '10:00', end: '19:00', active: true },
+    5: { start: '10:00', end: '19:00', active: true },
+    6: { start: '10:00', end: '19:00', active: true },
+  };
+  
   const dateObj = new Date(date + 'T12:00:00');
   const dayIndex = dateObj.getDay(); // 0 is Sunday, 1 is Monday...
-  const daySchedule = barberData.schedule && barberData.schedule[dayIndex];
+  const daySchedule = schedule[dayIndex];
 
   if (!daySchedule || !daySchedule.active) return [];
 

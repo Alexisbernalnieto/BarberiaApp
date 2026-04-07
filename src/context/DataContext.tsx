@@ -207,7 +207,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const reconcileAppointments = async () => {
       const expired = appointments.filter(app => 
-        (app.status === 'confirmed' || app.status === 'checked_in' || app.status === 'in_progress') && 
+        (app.status === 'checked_in' || app.status === 'in_progress') && 
+        !app.paid && 
         isAppointmentExpired(app.date, app.time)
       );
 

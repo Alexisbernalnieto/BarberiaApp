@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useRef } from 'react';
 import { Alert, Platform } from 'react-native';
 import { useTheme } from './ThemeContext';
 import SessionExpiredModal from '@/components/Common/SessionExpiredModal';
@@ -20,11 +20,16 @@ import {
 import { doc, getDoc, getDocFromCache, setDoc, DocumentReference, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/firebaseClient';
 import { AppUser, UserRole } from '@/types';
+import { mapAuthError } from '@/utils/authUtils';
 
 interface AuthContextType {
   currentUser: AppUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  initTimeout: boolean;
+  initStage: string;
+  currentError: string | null;
+  retryInit: () => void;
+  login: (email: string, password: string, force?: boolean) => Promise<{ success: boolean; sessionActive?: boolean }>;
   register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -32,14 +37,49 @@ interface AuthContextType {
   offlineError: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initTimeout, setInitTimeout] = useState(false);
+  const [initStage, setInitStage] = useState('starting');
+  const [currentError, setCurrentError] = useState<string | null>(null);
   const [offlineError, setOfflineError] = useState(false);
   const [showExpiredModal, setShowExpiredModal] = useState(false);
+  const [expiredReason, setExpiredReason] = useState<'inactivity' | 'duplicate' | null>(null);
+  const SESSION_KEY = 'barberia_session_id';
+  const isAuthenticating = useRef(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(() => {
+    if (Platform.OS === 'web') {
+      try {
+        return localStorage.getItem(SESSION_KEY);
+      } catch (e) { return null; }
+    }
+    return null;
+  });
   const { COLORS } = useTheme();
+
+  // Safety timer for initialization
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading) {
+      timer = setTimeout(() => {
+        console.warn("AuthContext: Initialization taking longer than expected (10s)...");
+        setInitTimeout(true);
+      }, 10000); // 10 seconds
+    } else {
+      setInitTimeout(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  const retryInit = () => {
+    setLoading(true);
+    setInitTimeout(false);
+    // Reloading page is the most robust way to reset Firebase state on web
+    if (Platform.OS === 'web') window.location.reload();
+  };
 
   const mapRole = (role: number | string): UserRole => {
     if (typeof role !== 'number') return role as UserRole;
@@ -52,17 +92,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Inactivity Timer (30 minutes)
+  // Inactivity Timer (15 minutes)
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+    const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes
 
     const resetTimer = () => {
       if (timeoutId) clearTimeout(timeoutId);
       if (currentUser) {
         timeoutId = setTimeout(() => {
           console.log("Inactivity timeout reached. Logging out...");
-          logout();
+          logout(false); // Manual/Inactivity logout
+          setExpiredReason('inactivity');
           setShowExpiredModal(true);
         }, INACTIVITY_TIMEOUT);
       }
@@ -70,7 +111,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Set persistence for web to session only (clears on tab close)
     if (Platform.OS === 'web') {
-      setPersistence(auth, browserLocalPersistence).catch(err => {
+      setPersistence(auth, browserSessionPersistence).catch(err => {
         console.error("Error setting session persistence:", err);
       });
       
@@ -101,14 +142,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
+        setInitStage('checking-auth');
         if (user) {
-          try {
-            await getIdToken(user, true);
-            await reload(user);
-          } catch (e) {
-             console.log("Could not reload user (might be offline)");
-          }
+          setInitStage('refreshing-user');
+          // Parallelize non-critical checks
+          Promise.all([
+            getIdToken(user, true).catch(() => null),
+            reload(user).catch(() => null)
+          ]).catch(e => console.log("AuthContext: user refresh error", e));
           
+          setInitStage('fetching-profile');
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
           let isStaffAccount = false;
@@ -117,21 +160,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (userDoc.exists()) {
             userData = userDoc.data();
             const role = userData.role;
-            // Check for staff roles (0=admin, 2=reception, 3=barber, or strings)
             isStaffAccount = role === 0 || role === 2 || role === 3 || 
                              role === 'admin' || role === 'barber' || role === 'reception';
-            
-            console.log(`AuthContext: Persistent session check for ${user.email}. isStaff: ${isStaffAccount}, role: ${role}`);
           }
           
+          setInitStage('verifying-account');
           const freshUser = auth.currentUser || user;
-          const tokenResult = await getIdTokenResult(freshUser, true).catch(() => null);
-          const isVerified = tokenResult ? !!tokenResult.claims.email_verified : freshUser.emailVerified;
-          
+          const isVerified = freshUser.emailVerified;
           const isSystemAccount = freshUser.email?.endsWith('@barberia.com');
           
-          // Block unverified users from entering the app, EXCEPT for staff or @barberia.com accounts
           if (!isVerified && !isSystemAccount && !isStaffAccount) {
+             setInitStage('verification-required');
              console.log("AuthContext: Blocking unverified client session.");
              setCurrentUser(null);
              setLoading(false);
@@ -139,12 +178,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
 
           if (userData) {
-            // Check for suspension
+            setInitStage('verifying-session');
+            // SESSION LOCK LOGIC: Robust check
+            const firestoreSessionId = userData.sessionId;
+            
+            // If we have a local ID and it doesn't match Firestore -> LOGOUT (other device took over)
+            if (!isAuthenticating.current && firestoreSessionId && currentSessionId && firestoreSessionId !== currentSessionId) {
+              console.log("AuthContext: Session ID mismatch on load. Logging out...");
+              setExpiredReason('duplicate');
+              setShowExpiredModal(true);
+              await logout(true); // Is a conflict, don't clear Firestore session ID (it was taken)
+              return;
+            }
+
+            if (!firestoreSessionId || (Platform.OS === 'web' && !localStorage.getItem(SESSION_KEY))) {
+              const newId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+              console.log("AuthContext: Regenerating session ID for stability:", newId);
+              setCurrentSessionId(newId);
+              if (Platform.OS === 'web') {
+                localStorage.setItem(SESSION_KEY, newId);
+                // Also update Firestore to sync immediately
+                setDoc(userDocRef, { sessionId: newId }, { merge: true }).catch(e => console.error(e));
+              }
+            }
+
             if (userData.status === 'suspended' || userData.status === 'deleted') {
               const msg = userData.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
               if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
               else Alert.alert('Acceso Denegado', msg);
-              
               await signOut(auth);
               return;
             }
@@ -152,14 +213,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const role = mapRole(userData.role);
             setCurrentUser({ ...userData, uid: user.uid, email: user.email, role } as AppUser);
 
-            // Real-time listener for status/role changes
             unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
               if (docSnap.exists()) {
                 const newData = docSnap.data();
+                
+                // Real-time mismatch check
+                // We use the LOCAL storage value as the source of truth for THIS tab/instance
+                const myId = Platform.OS === 'web' ? localStorage.getItem(SESSION_KEY) : currentSessionId;
+                
+                if (!isAuthenticating.current && newData.sessionId && myId && newData.sessionId !== myId) {
+                  console.log("AuthContext: Real-time session mismatch. Logging out...");
+                  setExpiredReason('duplicate');
+                  setShowExpiredModal(true);
+                  logout(true); // Is a conflict
+                  return;
+                }
+
                 if (newData.status === 'suspended' || newData.status === 'deleted') {
-                  const msg = newData.statusMessage || 'Tu cuenta ha sido restringida por la administración.';
-                  if (Platform.OS === 'web') window.alert(`Acceso Denegado\n\n${msg}`);
-                  else Alert.alert('Acceso Denegado', msg);
                   signOut(auth);
                 } else {
                   const newRole = mapRole(newData.role);
@@ -169,7 +239,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
 
           } else {
-            // New user or missing profile — still block if unverified
             if (user.emailVerified || isSystemAccount) {
               setCurrentUser({ uid: user.uid, email: user.email || '', role: 'client' } as AppUser);
             } else {
@@ -177,15 +246,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
           }
         } else {
+          setInitStage('ready');
           setCurrentUser(null);
           if (unsubscribeSnapshot) {
             unsubscribeSnapshot();
             unsubscribeSnapshot = null;
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Auth state change error:", error);
-        setOfflineError(true);
+        if (error.code?.includes('network-request-failed')) {
+          setCurrentError('network-error');
+        } else {
+          setCurrentError(mapAuthError(error.code) || 'unknown-error');
+        }
       } finally {
         setLoading(false);
       }
@@ -197,10 +271,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string, force: boolean = false): Promise<{ success: boolean; sessionActive?: boolean }> => {
+    isAuthenticating.current = true;
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        
+        // --- SESSION PROTECTION FLOW ---
+        // If there is an active session ID in Firestore and it's NOT this one
+        if (!force && userData.sessionId) {
+            // But check if it's the SAME browser session (persisted locally)
+            const localId = Platform.OS === 'web' ? localStorage.getItem(SESSION_KEY) : currentSessionId;
+            if (userData.sessionId !== localId) {
+                console.warn("AuthContext: Active session detected. Requesting user confirmation.");
+                await signOut(auth); // Sign out back to clear the auth state
+                return { success: false, sessionActive: true };
+            }
+        }
+      }
 
       try {
         await getIdToken(user, true);
@@ -212,65 +306,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const freshUser = auth.currentUser || user;
       const tokenResult = await getIdTokenResult(freshUser, true).catch(() => null);
       const isVerified = tokenResult ? !!tokenResult.claims.email_verified : freshUser.emailVerified;
-
       const isSystemAccount = freshUser.email?.endsWith('@barberia.com');
       
-      // Fetch user data to check role for verification bypass
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef).catch((err) => {
-        console.error("AuthContext: Error fetching user doc for bypass check:", err);
-        return null;
-      });
-
+      // Fetch user data again for roles
       let isStaffAccount = false;
-      if (userDoc && userDoc.exists()) {
+      if (userDoc.exists()) {
         const userData = userDoc.data();
         const role = userData.role;
-        // Check for all staff roles (0=admin, 2=reception, 3=barber, or strings)
         isStaffAccount = role === 0 || role === 2 || role === 3 || 
                          role === 'admin' || role === 'barber' || role === 'reception';
-        
-        console.log(`AuthContext: Login attempt for ${freshUser.email}. isStaff: ${isStaffAccount}, role: ${role}`);
-      } else {
-        console.warn(`AuthContext: User document not found for UID: ${user.uid} during login. Verification bypass may fail.`);
       }
 
-      // BYPASS: If they are staff or have a system email, skip verification check
       if (!isVerified && !isSystemAccount && !isStaffAccount) {
         console.log(`AuthContext: Blocking unverified client account (${freshUser.email}).`);
-        if (Platform.OS === 'web') {
-          const resend = window.confirm("Tu cuenta aún no está verificada. Revisa tu bandeja de entrada o spam para encontrar el enlace de activación enviado al registrarte.\n\n¿Deseas reenviar el correo de verificación?");
-          if (resend) {
-            try {
-              await sendEmailVerification(freshUser);
-              window.alert("Correo de verificación reenviado a " + freshUser.email);
-            } catch (e) {
-              console.error(e);
-            }
-          }
-        } else {
-          Alert.alert(
-            'Verifica tu correo',
-            'Tu cuenta aún no está verificada. Revisa tu bandeja de entrada o spam para encontrar el enlace de activación enviado al registrarte.',
-            [
-              { text: 'Esperar', style: 'cancel' },
-              { text: 'Reenviar confirmación', onPress: () => {
-                  sendEmailVerification(freshUser).catch(e => console.error(e));
-              }}
-            ]
-          );
-        }
         await signOut(auth);
-        return false;
+        return { success: false };
       }
-      return true;
+
+      const newSessionId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+      setCurrentSessionId(newSessionId);
+      if (Platform.OS === 'web') localStorage.setItem(SESSION_KEY, newSessionId);
+
+      // Save sessionId to user document
+      try {
+        await setDoc(userDocRef, { 
+          sessionId: newSessionId,
+          lastLoginAt: new Date().toISOString()
+        }, { merge: true });
+        console.log(`AuthContext: Session locked for ${freshUser.email}`);
+      } catch (e) {
+        console.error("AuthContext: Could not update sessionId in Firestore:", e);
+      }
+
+      return { success: true };
     } catch (error: any) {
-      console.error(error);
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        throw new Error('Credenciales incorrectas');
-      } else {
-        throw new Error(error.message);
-      }
+      console.error("AuthContext Login Error:", error);
+      throw new Error(mapAuthError(error.code));
+    } finally {
+      isAuthenticating.current = false;
     }
   };
 
@@ -287,8 +360,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       try {
+        const productionUrl = 'https://barberia-app-c4c2b.web.app';
         await sendEmailVerification(user, {
-          url: 'http://localhost:8081',
+          url: productionUrl,
           handleCodeInApp: false,
         });
       } catch (e) { console.error('Error sending verification email:', e); }
@@ -296,29 +370,67 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Sign out after email is sent (emailVerified gate prevents race condition)
       await signOut(auth);
 
-      // Notificación se manejará en la vista
       return true;
     } catch (error: any) {
       console.error(error);
-      if (error.code === 'auth/email-already-in-use') {
-        throw new Error('Correo ya registrado');
-      } else {
-        throw new Error(error.message);
-      }
+      throw new Error(mapAuthError(error.code));
     }
   };
 
-  const logout = async (): Promise<void> => {
+  const logout = async (isConflict: boolean = false): Promise<void> => {
+    console.log(`AuthContext: Executing logout (isConflict: ${isConflict})...`);
+    
+    // 1. If not a conflict, clear Firestore session ID while still authenticated
+    if (!isConflict && currentUser?.uid) {
+      try {
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        await setDoc(userDocRef, { 
+          sessionId: null,
+          lastLogoutAt: new Date().toISOString()
+        }, { merge: true });
+        console.log("AuthContext: Successfully cleared sessionId in Firestore.");
+      } catch (e) {
+        console.error("AuthContext: Failed to clear sessionId in Firestore:", e);
+      }
+    }
+
+    // 2. Clear UI state immediately for responsiveness
+    setCurrentUser(null);
+    setCurrentSessionId(null);
+    
     try {
+      // 3. Clear persistence
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(SESSION_KEY);
+      }
+      
+      // 4. Inform Firebase (optional await, we don't want to block the UI)
       await signOut(auth);
-      setCurrentUser(null);
+      console.log("AuthContext: Firebase signOut complete.");
     } catch (error) {
-      console.error(error);
+      console.error("AuthContext: Error during signOut:", error);
     }
   };
 
   const resetPassword = async (email: string): Promise<void> => {
-    await sendPasswordResetEmail(auth, email);
+    if (!email) {
+      if (Platform.OS === 'web') window.alert('Por favor, ingresa tu correo electrónico primero.');
+      else Alert.alert('Email Requerido', 'Por favor, ingresa tu correo electrónico primero.');
+      return;
+    }
+
+    try {
+      // Configuration to ensure the reset link redirects back to the app
+      const productionUrl = 'https://barberia-app-c4c2b.web.app';
+      const actionCodeSettings = {
+        url: `${productionUrl}/login`,
+        handleCodeInApp: false, // Changed to false to avoid double-handling issues
+      };
+
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+    } catch (error: any) {
+      throw new Error(mapAuthError(error.code));
+    }
   };
 
   const resendVerificationEmail = async (): Promise<void> => {
@@ -330,11 +442,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, register, logout, resetPassword, resendVerificationEmail, offlineError }}>
+    <AuthContext.Provider value={{ 
+      currentUser, 
+      loading, 
+      initTimeout,
+      initStage,
+      currentError,
+      retryInit,
+      login, 
+      register, 
+      logout, 
+      resetPassword, 
+      resendVerificationEmail, 
+      offlineError 
+    }}>
       {children}
       <SessionExpiredModal 
         visible={showExpiredModal} 
-        onClose={() => setShowExpiredModal(false)} 
+        reason={expiredReason}
+        onClose={() => {
+          setShowExpiredModal(false);
+          setExpiredReason(null);
+          if (Platform.OS === 'web') {
+            setTimeout(() => {
+              if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+                window.location.reload();
+              }
+            }, 100);
+          }
+        }} 
         COLORS={COLORS} 
       />
     </AuthContext.Provider>

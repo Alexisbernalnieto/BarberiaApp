@@ -188,7 +188,6 @@ export default function BookingWizard({
     const appointmentData = {
       userId: user?.uid || 'walkin-guest',
       userName: isWalkIn ? guestName : user?.name,
-      userEmail: user?.email || '',
       branch: selectedBranch?.name || 'Sucursal Matriz',
       branchId: selectedBranch?.id || 'centro',
       barberId: selectedBarber.uid || selectedBarber.id,
@@ -198,11 +197,12 @@ export default function BookingWizard({
       serviceId: selectedService.id,
       serviceName: selectedService.name,
       price: selectedService.price,
-      duration: selectedService.duration,
+      duration: selectedService.duration || 30,
       type: isWalkIn ? 'Walk-in' : 'Online',
-      paymentIntentId: finalPaymentId,
-      paid: finalIsPaid,
-      status: finalIsPaid ? 'confirmed' : 'pending_payment',
+      paid: !!directPaymentId || isPaid,
+      paymentIntentId: directPaymentId || paymentIntentId || null,
+      paymentMethod: isWalkIn ? 'Cash' : 'Card',
+      status: (!!directPaymentId || isPaid) ? 'confirmed' : 'pending_payment',
       appointmentId: previewId || undefined,
       createdAt: new Date().toISOString()
     };
@@ -236,12 +236,43 @@ export default function BookingWizard({
 
   // Check for day exhaustion (no slots today)
   useEffect(() => {
-    if (currentStep === 4 && selectedDate === todayLocal && !isLoadingSlots) {
-      if (availableSlots.length === 0) {
-        setShowNoSlotsModal(true);
+    if (currentStep === 4 && !isLoadingSlots && availableSlots.length === 0) {
+      const now = new Date();
+      const currentHours = now.getHours();
+      const currentDateStr = now.toISOString().split('T')[0];
+      
+      // Si el día seleccionado es HOY
+      if (selectedDate === currentDateStr) {
+        // Mostrar modal de agotado/cerrado SI:
+        // 1. Ya pasaron las 21:00 (9:00 PM - hora de cierre)
+        // 2. Y son ANTES de las 00:00 (Medianoche)
+        // A las 00:00 el "Hoy" ya es el día siguiente, por lo que el modal no debe salir
+        if (currentHours >= 21) {
+          setShowNoSlotsModal(true);
+        }
       }
     }
-  }, [currentStep, selectedDate, selectedBarber, selectedService, availableSlots, isLoadingSlots]);
+  }, [currentStep, selectedDate, availableSlots, isLoadingSlots]);
+
+  // 15-Minute Auto-Timeout Logic (Requested by User)
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    
+    const resetTimer = () => {
+      if (timeout) clearTimeout(timeout);
+      // Solo iniciar si el wizard está abierto y ya pasó el primer paso
+      if (currentStep > 1) {
+        timeout = setTimeout(() => {
+          console.warn("BookingWizard: Session expired due to inactivity (15m).");
+          setIsBookingInProgress(false);
+          if (onCancel) onCancel();
+        }, 15 * 60 * 1000); // 15 minutes
+      }
+    };
+
+    resetTimer();
+    return () => { if (timeout) clearTimeout(timeout); };
+  }, [currentStep, selectedDate, selectedBarber]);
 
   const confirmWizardExit = () => {
     setIsBookingInProgress(false);
