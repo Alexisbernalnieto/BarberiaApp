@@ -201,33 +201,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     seedData();
   }, [currentUser]);
 
-  // Background reconciliation for expired appointments
-  useEffect(() => {
-    if (appointments.length === 0) return;
 
-    const reconcileAppointments = async () => {
-      const expired = appointments.filter(app => 
-        (app.status === 'checked_in' || app.status === 'in_progress') && 
-        !app.paid && 
-        isAppointmentExpired(app.date, app.time)
-      );
-
-      if (expired.length > 0) {
-        console.log(`[DATA CONTEXT] Reconciliando ${expired.length} citas expiradas a estado 'unhandled'.`);
-        for (const app of expired) {
-          try {
-            await updateAppointmentStatus(app.id, 'unhandled', 'system', 'system' as any);
-          } catch (e) {
-            console.error(`[DATA CONTEXT] Error reconciliando cita ${app.id}:`, e);
-          }
-        }
-      }
-    };
-
-    // Delay a bit to avoid interference with initial load
-    const timer = setTimeout(reconcileAppointments, 2000);
-    return () => clearTimeout(timer);
-  }, [appointments]);
 
   return (
     <DataContext.Provider value={{ appointments, barbers, setBarbers, services, branches }}>

@@ -900,7 +900,7 @@ export const cleanupExpiredAppointments = async (currentUserId?: string) => {
     // Query active appointments that might be expired
     const q = query(
       appointmentsRef,
-      where('status', 'in', ['confirmed', 'checked_in', 'En Local']),
+      where('status', 'in', ['confirmed', 'checked_in', 'En Local', 'in_progress']),
       where('date', '<=', todayStr)
     );
 
@@ -912,18 +912,20 @@ export const cleanupExpiredAppointments = async (currentUserId?: string) => {
     snapshot.forEach((docSnap) => {
       const data = docSnap.data();
       const [hours, minutes] = data.time.split(':').map(Number);
-      const apptDateTime = new Date(data.date);
-      apptDateTime.setHours(hours, minutes, 0, 0);
+      
+      // FIX: Use component-based parsing to avoid UTC shift
+      const [y, m, d] = data.date.split('-').map(Number);
+      const apptDateTime = new Date(y, m - 1, d, hours, minutes, 0, 0);
 
-      // Buffer: 120 minutes past the appointment time
-      const expirationThreshold = new Date(apptDateTime.getTime() + 120 * 60 * 1000);
+      // Buffer: 240 minutes (4 hours) past the appointment time
+      const expirationThreshold = new Date(apptDateTime.getTime() + 240 * 60 * 1000);
 
       if (now > expirationThreshold) {
         batch.update(docSnap.ref, {
           status: 'unhandled',
           updatedAt: Timestamp.now(),
           unhandledAt: Timestamp.now(),
-          notes: (data.notes || '') + '\n[Auto-Expire: No se registró actividad]'
+          notes: (data.notes || '') + '\n[Auto-Expire: No se registró actividad en 4h]'
         });
         count++;
       }
