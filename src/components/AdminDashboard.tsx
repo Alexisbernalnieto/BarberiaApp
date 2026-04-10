@@ -43,10 +43,12 @@ import AdminCashRegister from '@/components/Admin/AdminCashRegister';
 import QueueDisplay from '@/components/Admin/QueueDisplay';
 import AppointmentCommandCenter from '@/components/Admin/AppointmentCommandCenter';
 import RescheduleRequests from '@/components/Admin/RescheduleRequests';
+import AdminCancellationNoticeModal from '@/components/Admin/AdminCancellationNoticeModal';
 import { useSidebar } from '@/context/SidebarContext';
 
 import { Appointment, AppUser, UserRole } from '@/types';
 import { getFinancialMetrics, FinancialMetrics } from '@/services/payments';
+import { acknowledgeCancellationByAdmin } from '@/services/appointments';
 
 interface AdminDashboardProps {
 
@@ -85,6 +87,35 @@ export default function AdminDashboard({
   // Notification Logic
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Cancellation Notice Logic (Barber cancelled)
+  const [cancelledModalVisible, setCancelledModalVisible] = useState(false);
+  const [currentCancelledApp, setCurrentCancelledApp] = useState<Appointment | null>(null);
+
+  useEffect(() => {
+    // Look for appointments cancelled by barbers that haven't been acknowledged by admin
+    const unacknowledgedCancellation = appointments.find(app => 
+      app.status === 'cancelled' && 
+      app.cancelledBy && // Has a cancelledBy field
+      app.cancelledByRole === 'barber' && // Specific flag we should ensure exists
+      !app.adminAcknowledgedCancellation
+    );
+
+    // Fallback logic if cancelledByRole is not set yet
+    const fallbackUnacknowledged = unacknowledgedCancellation || appointments.find(app =>
+        app.status === 'cancelled' &&
+        app.cancelReason &&
+        app.paid === true && // Usually barber cancellations on paid apps are the critical ones
+        !app.adminAcknowledgedCancellation &&
+        // Ensure it wasn't cancelled by an admin (0 or 'admin')
+        app.cancelledBy !== currentUser?.uid
+    );
+
+    if (fallbackUnacknowledged) {
+      setCurrentCancelledApp(fallbackUnacknowledged);
+      setCancelledModalVisible(true);
+    }
+  }, [appointments, currentUser?.uid]);
 
   useEffect(() => {
     if (role === undefined && role === null) return;
@@ -247,7 +278,7 @@ export default function AdminDashboard({
                          <MaterialCommunityIcons name="credit-card-outline" size={24} color="#FFF" />
                       </View>
                       <View>
-                        <Text style={styles.stripeTitle}>Stripe Balance</Text>
+                        <Text style={styles.stripeTitle}>Balance de Stripe</Text>
                         <Text style={styles.stripeStatus}>Conectado • En Vivo</Text>
                       </View>
                     </View>
@@ -424,6 +455,14 @@ export default function AdminDashboard({
         onClose={() => setShowNotifications(false)}
         notifications={notifications}
         handleMarkAsRead={handleMarkAsRead}
+        COLORS={COLORS}
+      />
+
+      <AdminCancellationNoticeModal
+        visible={cancelledModalVisible}
+        appointment={currentCancelledApp}
+        onClose={() => setCancelledModalVisible(false)}
+        onAcknowledge={acknowledgeCancellationByAdmin}
         COLORS={COLORS}
       />
     </MainLayout>

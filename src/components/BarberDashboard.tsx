@@ -51,6 +51,8 @@ import WeeklySelector from './Barber/Metrics/WeeklySelector';
 import EarningsActivity from './Barber/Metrics/EarningsActivity';
 import MetricsFilters from './Barber/Metrics/MetricsFilters';
 import { calculateWeeklyMetrics } from '../utils/barberMetrics';
+import AppointmentCheckModal from './Barber/AppointmentCheckModal';
+
 
 interface BarberDashboardProps {
   appointments: Appointment[];
@@ -104,6 +106,10 @@ export default function BarberDashboard({
     endTime: string;
     duration: number;
   } | null>(null);
+
+  const [showCheckModal, setShowCheckModal] = useState(false);
+  const [delayedAppt, setDelayedAppt] = useState<Appointment | null>(null);
+
 
   // Helper: Convert string HH:mm to minutes from midnight
   const timeToMinutes = (time: string) => {
@@ -290,6 +296,9 @@ export default function BarberDashboard({
     return () => clearInterval(timer);
   }, [todayString]);
 
+
+
+
   // Sort and filter upcoming
   const upcomingAppointments = useMemo(() => {
     return myAppointments
@@ -339,6 +348,36 @@ export default function BarberDashboard({
   const todaysAppointments = useMemo(() => {
     return myAppointments.filter(app => isDateToday(app.date, todayString));
   }, [myAppointments, todayString]);
+  
+  // Monitor delayed appointments to avoid "unhandled/expired" state
+  React.useEffect(() => {
+    const checkDelayed = () => {
+      const now = new Date();
+      
+      const delayed = todaysAppointments.find(app => {
+        if (app.status !== 'confirmed') return false;
+        
+        const [h, m] = app.time.split(':').map(Number);
+        const appTime = new Date();
+        appTime.setHours(h, m, 0, 0);
+        
+        const diffMins = (now.getTime() - appTime.getTime()) / (1000 * 60);
+        // Prompt if 10-60 mins late
+        return diffMins >= 10 && diffMins < 60; 
+      });
+
+      if (delayed && !showCheckModal) {
+        setDelayedAppt(delayed);
+        setShowCheckModal(true);
+      }
+    };
+
+    const interval = setInterval(checkDelayed, 60000); // Check every minute
+    checkDelayed();
+    
+    return () => clearInterval(interval);
+  }, [todaysAppointments, showCheckModal]);
+
   
   // Ganancia Real (Solo lo completado hoy)
   const todaysCompletedAppts = useMemo(() => {

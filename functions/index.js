@@ -501,7 +501,46 @@ exports.handleAppointmentCancellation = onDocumentWritten(
             
             console.log(`✅ Reembolso exitoso para ${event.params.appointmentId}: ${refund.id}`);
             
-            // Actualizar Firestore para marcar el reembolso como completado (Transaccional)
+            // 1. Crear notificación para el cliente
+            const notifId = `refund_${event.params.appointmentId}`;
+            const cancellationMsg = after.cancellationReason 
+                ? `Tu cita ha sido cancelada por: "${after.cancellationReason}". Hemos procesado tu reembolso por $${after.price}.`
+                : `Tu cita ha sido cancelada. Tu reembolso por $${after.price} ha sido procesado exitosamente.`;
+
+            await admin.firestore().collection("notifications").doc(notifId).set({
+                type: "refund_processed",
+                message: cancellationMsg,
+                targetUserId: after.userId,
+                appointmentId: event.params.appointmentId,
+                amount: after.price,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                readBy: []
+            });
+
+            // 1.5. Notificar a los administradores si la cancelación fue hecha por un barbero
+            if (after.cancelledByRole === 'barber') {
+                await admin.firestore().collection("notifications").add({
+                    type: "appointment_cancelled",
+                    message: `ADMIN ALERT: El barbero ${after.barberName} canceló la cita de ${after.userName}. Motivo: ${after.cancellationReason || 'No especificado'}. Reembolso automático aplicado.`,
+                    targetRoles: ['admin'],
+                    appointmentId: event.params.appointmentId,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    branch: after.branch,
+                    readBy: []
+                });
+            }
+
+            // 2. Registrar en log de actividades
+            await admin.firestore().collection("activity_logs").add({
+                action: "REFUND_PROCESSED",
+                targetUserId: after.userId,
+                details: `Reembolso automático de $${after.price} para la cita ${event.params.appointmentId} (Stripe ID: ${refund.id}). Motivo: ${after.cancellationReason || 'N/A'}`,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                adminRole: 'system'
+            });
+
+
+            // 3. Actualizar Firestore para marcar el reembolso como completado (Transaccional)
             return event.data.after.ref.update({ 
                 refundStatus: 'completed',
                 refundId: refund.id,

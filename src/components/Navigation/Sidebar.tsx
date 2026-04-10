@@ -24,7 +24,8 @@ import {
   X,
   Menu,
   AlertTriangle,
-  ClipboardCheck
+  ClipboardCheck,
+  RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSidebar } from '../../context/SidebarContext';
@@ -87,6 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, COLORS, isMo
     { id: 'book', label: 'Agendar Cita', icon: PlusCircle },
     { id: 'appointments', label: 'Mis Citas', icon: Calendar },
     { id: 'payments', label: 'Métodos de Pago', icon: CreditCard },
+    { id: 'refunds', label: 'Mis Reembolsos', icon: RotateCcw },
     { id: 'profile', label: 'Mi Perfil', icon: Users },
   ];
 

@@ -29,6 +29,7 @@ export interface Service {
   description?: string;
   assignedTo?: string;
   branch?: string;
+  category?: string;
 }
 
 // ─── Appointment Status Lifecycle ────────────────────────────────
@@ -72,6 +73,8 @@ export interface Appointment {
   noShowMarkedAt?: any;
   cancelledAt?: any;
   cancelReason?: string;
+  cancelledBy?: string;
+  clientAcknowledgedCancellation?: boolean;
   // ── Rescheduling ──
   rescheduledFrom?: string;    // ID de cita original
   rescheduledTo?: string;      // ID de nueva cita
@@ -123,7 +126,8 @@ export type NotificationType =
   | 'walk_in_registered'
   | 'reschedule_request'
   | 'reschedule_authorized'
-  | 'check_in';
+  | 'check_in'
+  | 'refund_processed';
 
 export interface AppNotification {
   id: string;

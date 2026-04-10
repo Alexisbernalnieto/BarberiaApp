@@ -42,19 +42,42 @@ const AppointmentDetail = ({ appointment, visible, onClose, COLORS }: any) => {
 
                     <ScrollView style={styles.content}>
                         <View style={styles.statusSection}>
-                            <View style={[styles.statusBadge, appointment.status === 'Confirmado' ? styles.confirmedBadge : styles.pendingBadge]}>
-                                <View style={[styles.statusDot, appointment.status === 'Confirmado' ? { backgroundColor: '#10B981' } : { backgroundColor: '#F59E0B' }]} />
-                                <Text style={[styles.statusText, appointment.status === 'Confirmado' ? { color: '#10B981' } : { color: '#F59E0B' }]}>
-                                    {appointment.status || 'Confirmado'}
+                            <View style={[
+                                styles.statusBadge, 
+                                appointment.status === 'confirmed' || appointment.status === 'completed' ? styles.confirmedBadge : 
+                                appointment.status === 'cancelled' || appointment.status === 'no_show' ? styles.pendingBadge : 
+                                styles.pendingBadge
+                            ]}>
+                                <View style={[
+                                    styles.statusDot, 
+                                    (appointment.status === 'confirmed' || appointment.status === 'completed') ? { backgroundColor: '#10B981' } : 
+                                    (appointment.status === 'cancelled' || appointment.status === 'no_show') ? { backgroundColor: '#EF4444' } :
+                                    { backgroundColor: '#F59E0B' }
+                                ]} />
+                                <Text style={[
+                                    styles.statusText, 
+                                    (appointment.status === 'confirmed' || appointment.status === 'completed') ? { color: '#10B981' } : 
+                                    (appointment.status === 'cancelled' || appointment.status === 'no_show') ? { color: '#EF4444' } :
+                                    { color: '#F59E0B' }
+                                ]}>
+                                    {appointment.status === 'confirmed' ? 'CONFIRMADA' : 
+                                     appointment.status === 'completed' ? 'COMPLETADA' :
+                                     appointment.status === 'cancelled' ? 'CANCELADA' :
+                                     appointment.status === 'no_show' ? 'FALTÓ' :
+                                     appointment.status === 'checked_in' ? 'LLEGÓ' :
+                                     appointment.status === 'in_progress' ? 'EN SERVICIO' :
+                                     appointment.status === 'rescheduled' ? 'REAGENDADA' :
+                                     appointment.status === 'pending_payment' ? 'PAGO PENDIENTE' :
+                                     'PENDIENTE'}
                                 </Text>
                             </View>
                             <View style={[styles.typeBadge, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                                <Text style={styles.typeText}>{appointment.type || 'Online'}</Text>
+                                <Text style={styles.typeText}>{appointment.paid ? 'PAGADA' : 'PENDIENTE'}</Text>
                             </View>
                         </View>
 
                         <View style={styles.detailsList}>
-                            <DetailRow icon={Hash} label="ID RESERVACIÓN" value={appointment.id} mono />
+                            <DetailRow icon={Hash} label="ID RESERVACIÓN" value={appointment.id.substring(appointment.id.length - 8).toUpperCase()} mono />
                             <DetailRow icon={MapPin} label="SUCURSAL" value={appointment.branch || 'Sucursal Matriz'} />
                             <DetailRow icon={User} label="BARBERO" value={appointment.barberName} />
                             <DetailRow icon={Scissors} label="SERVICIO" value={appointment.serviceName} />

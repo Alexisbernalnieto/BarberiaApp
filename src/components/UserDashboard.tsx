@@ -37,7 +37,9 @@ import UserServicesDetailed from './User/UserServicesDetailed';
 import UserLocations from './User/UserLocations';
 import AdminUsers from './Admin/AdminUsers';
 import NoShowModal from './User/NoShowModal';
-import { submitNoShowJustification } from '../services/appointments';
+import UserRefunds from './User/UserRefunds';
+import CancellationNoticeModal from './User/CancellationNoticeModal';
+import { submitNoShowJustification, acknowledgeCancellation } from '../services/appointments';
 import { isAppointmentExpired } from '../utils/formatters';
 interface UserDashboardProps {
   user: AppUser;
@@ -73,6 +75,10 @@ export default function UserDashboard({
   const [noShowModalVisible, setNoShowModalVisible] = useState(false);
   const [currentNoShowApp, setCurrentNoShowApp] = useState<Appointment | null>(null);
 
+  const [cancelledModalVisible, setCancelledModalVisible] = useState(false);
+  const [currentCancelledApp, setCurrentCancelledApp] = useState<Appointment | null>(null);
+  const [autoOpenRefundId, setAutoOpenRefundId] = useState<string | undefined>(undefined);
+
   // Check for no-shows that haven't been justified yet
   React.useEffect(() => {
     const pendingNoShow = myAppointments.find(app => 
@@ -84,6 +90,20 @@ export default function UserDashboard({
     if (pendingNoShow) {
       setCurrentNoShowApp(pendingNoShow);
       setNoShowModalVisible(true);
+    }
+  }, [myAppointments]);
+
+  // Check for unacknowledged cancellations for PAID appointments
+  React.useEffect(() => {
+    const unacknowledgedCancellation = myAppointments.find(app => 
+      app.status === 'cancelled' && 
+      app.paid === true && 
+      !app.clientAcknowledgedCancellation
+    );
+
+    if (unacknowledgedCancellation) {
+      setCurrentCancelledApp(unacknowledgedCancellation);
+      setCancelledModalVisible(true);
     }
   }, [myAppointments]);
 
@@ -106,6 +126,11 @@ export default function UserDashboard({
         return;
     }
     onLogout();
+  };
+
+  const handleGoToRefunds = (appointmentId: string) => {
+    setAutoOpenRefundId(appointmentId);
+    setActiveTab('refunds');
   };
 
   return (
@@ -181,6 +206,16 @@ export default function UserDashboard({
                 />
             )}
 
+            {activeTab === 'refunds' && (
+                <UserRefunds 
+                    user={user}
+                    appointments={myAppointments}
+                    COLORS={COLORS}
+                    isMobile={isMobile}
+                    initialSelectedAppointmentId={autoOpenRefundId}
+                />
+            )}
+
             {activeTab === 'profile' && (
                 <UserProfile 
                     user={user}
@@ -219,6 +254,15 @@ export default function UserDashboard({
         appointment={currentNoShowApp}
         onClose={() => setNoShowModalVisible(false)}
         onSubmitJustification={handleSubmitJustification}
+        COLORS={COLORS}
+      />
+
+      <CancellationNoticeModal
+        visible={cancelledModalVisible}
+        appointment={currentCancelledApp}
+        onClose={() => setCancelledModalVisible(false)}
+        onAcknowledge={acknowledgeCancellation}
+        onGoToRefunds={handleGoToRefunds}
         COLORS={COLORS}
       />
     </MainLayout>

@@ -108,8 +108,8 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
         if (window.confirm(confirmMessage)) performToggle();
       } else {
         Alert.alert('Activar Usuario', confirmMessage, [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Activar', style: 'default', onPress: performToggle }
+          { text: 'No, Cancelar', style: 'cancel' },
+          { text: 'Sí, Activar', style: 'default', onPress: performToggle }
         ]);
       }
     } else {
@@ -267,7 +267,12 @@ const AdminUsers = ({ COLORS, isMobile, onBack }: any) => {
                       onPress={() => handleUpdateRole(user, role)}
                     >
                       <Text style={[styles.roleBtnText, { color: user.role === role ? '#000' : COLORS.text }]}>
-                        {role === 'reception' ? 'Recep' : role.charAt(0).toUpperCase() + role.slice(1)}
+                        {(() => {
+                          if (role === 'admin') return 'Admin';
+                          if (role === 'reception') return 'Recepción';
+                          if (role === 'barber') return 'Barbero';
+                          return 'Cliente';
+                        })()}
                       </Text>
                     </TouchableOpacity>
                   ))}
