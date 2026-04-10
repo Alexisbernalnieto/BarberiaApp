@@ -121,7 +121,7 @@ export default function NoShowModal({ visible, appointment, onClose, onSubmitJus
                 <View style={[styles.infoCard, { backgroundColor: COLORS.cardDark, borderColor: COLORS.primary + '20' }]}>
                     <View style={styles.ticketHeader}>
                         <Hash size={12} color={COLORS.primary} />
-                        <Text style={[styles.appointmentId, { color: COLORS.textMuted }]}>ID: {appointment.id.toUpperCase()}</Text>
+                        <Text style={[styles.appointmentId, { color: COLORS.textMuted }]}>ID: {appointment.id.substring(Math.max(0, appointment.id.length - 8)).toUpperCase()}</Text>
                     </View>
                     
                     <View style={styles.dashedDivider} />

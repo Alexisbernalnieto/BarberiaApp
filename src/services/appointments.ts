@@ -5,7 +5,7 @@
 // garantizar consistencia y evitar race conditions.
 // ═══════════════════════════════════════════════════════════════
 import { db } from '@/firebaseClient';
-import { doc, runTransaction, Timestamp, collection, query, where, getDocs, writeBatch, getDoc } from 'firebase/firestore';
+import { doc, runTransaction, Timestamp, collection, query, where, getDocs, writeBatch, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { logActivity } from '@/services/activityLogs';
 import { createNotification } from '@/services/notificationService';
 import { incrementDayMetrics } from '@/services/barberTracking';
@@ -798,6 +798,40 @@ export const authorizeReschedule = async (appointmentId: string, adminId: string
     return true;
   } catch (error) {
     console.error('Authorize reschedule failed: ', error);
+    throw error;
+  }
+};
+
+/**
+ * El cliente reconoce que vio el aviso de cancelación.
+ */
+export const acknowledgeCancellation = async (appointmentId: string) => {
+  const appointmentRef = doc(db, 'appointments', appointmentId);
+  try {
+    await updateDoc(appointmentRef, {
+      clientAcknowledgedCancellation: true,
+      updatedAt: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Acknowledge cancellation failed: ', error);
+    throw error;
+  }
+};
+
+/**
+ * El administrador reconoce que vio el aviso de cancelación (cuando fue hecha por un barbero).
+ */
+export const acknowledgeCancellationByAdmin = async (appointmentId: string) => {
+  const appointmentRef = doc(db, 'appointments', appointmentId);
+  try {
+    await updateDoc(appointmentRef, {
+      adminAcknowledgedCancellation: true,
+      updatedAt: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Admin acknowledge cancellation failed: ', error);
     throw error;
   }
 };

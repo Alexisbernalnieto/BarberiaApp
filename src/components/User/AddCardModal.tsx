@@ -63,7 +63,7 @@ export default function AddCardModal({ visible, onClose, onSuccess, COLORS }: an
         // Native (stripe-react-native)
         // Here we would call confirmSetup from @stripe/stripe-react-native
         // For now, we Alert that it's web-only or implement the placeholder
-        Alert.alert("Native Support", "Esta función está siendo optimizada para dispositivos móviles.");
+        Alert.alert("Soporte Nativo", "Esta función está siendo optimizada para dispositivos móviles.");
       }
     } catch (error: any) {
       console.error("Add card error:", error);

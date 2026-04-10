@@ -112,7 +112,7 @@ export default function BookingWizard({
     else if (currentStep === 3 && selectedBarber) goToStep(4);
     else if (currentStep === 4 && selectedDate && selectedTime) {
       if (!previewId) {
-        const newId = generateAppointmentId(selectedBranch?.name || 'Sucursal Matriz', isWalkIn ? 'Walk-in' : 'Online');
+        const newId = generateAppointmentId(selectedBranch?.name || 'Sucursal Matriz', isWalkIn ? 'Presencial' : 'En línea');
         setPreviewId(newId);
       }
       goToStep(5);
@@ -198,10 +198,10 @@ export default function BookingWizard({
       serviceName: selectedService.name,
       price: selectedService.price,
       duration: selectedService.duration || 30,
-      type: isWalkIn ? 'Walk-in' : 'Online',
+      type: isWalkIn ? 'Presencial' : 'En línea',
       paid: !!directPaymentId || isPaid,
       paymentIntentId: directPaymentId || paymentIntentId || null,
-      paymentMethod: isWalkIn ? 'Cash' : 'Card',
+      paymentMethod: isWalkIn ? 'Efectivo' : 'Tarjeta',
       status: (!!directPaymentId || isPaid) ? 'confirmed' : 'pending_payment',
       appointmentId: previewId || undefined,
       createdAt: new Date().toISOString()
@@ -305,7 +305,10 @@ export default function BookingWizard({
             <BookingStepServices
               styles={styles}
               COLORS={COLORS}
-              SERVICES={serviceList.filter((s: any) => s.branch === 'Ambas' || s.branch === selectedBranch?.name)}
+              SERVICES={serviceList.filter((s: any) => 
+                s.branch?.toUpperCase() === 'AMBAS' || 
+                s.branch?.toUpperCase() === selectedBranch?.name?.toUpperCase()
+              )}
               selectedBranch={selectedBranch?.name}
               selectedService={selectedService}
               setSelectedService={setSelectedService}
@@ -315,7 +318,10 @@ export default function BookingWizard({
             <BookingStepBarbers
               styles={styles}
               COLORS={COLORS}
-              BARBERS={barberList.filter((b: any) => b.branch === selectedBranch?.name || b.branch === 'Ambas')}
+              BARBERS={barberList.filter((b: any) => 
+                b.branch?.toUpperCase() === selectedBranch?.name?.toUpperCase() || 
+                b.branch?.toUpperCase() === 'AMBAS'
+              )}
               selectedBranch={selectedBranch?.name}
               selectedBarber={selectedBarber}
               setSelectedBarber={setSelectedBarber}
@@ -410,7 +416,7 @@ export default function BookingWizard({
                 style={[styles.actionBtn, styles.nextBtn]}
                 onPress={handleNext}
               >
-                <Text style={styles.nextBtnText}>PROCEDER AL PAGO</Text>
+                <Text style={styles.nextBtnText}>CONFIRMAR Y PAGAR</Text>
                 <ArrowRight size={18} color={COLORS.textInverse || "#000"} style={{ marginLeft: 8 }} />
               </TouchableOpacity>
             ) : null}

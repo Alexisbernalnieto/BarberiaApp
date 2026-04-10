@@ -44,7 +44,7 @@ export default function UserAppointments({ user, appointments, COLORS, isMobile 
     >
       <View style={styles.cardHeader}>
         <View style={styles.serviceInfo}>
-          <Text style={[styles.idLabel, { color: COLORS.primary }]}>ID: {item.id}</Text>
+          <Text style={[styles.idLabel, { color: COLORS.primary }]}>ID: {item.id.substring(item.id.length - 8).toUpperCase()}</Text>
           <Text style={[styles.serviceName, { color: COLORS.text }]}>{item.serviceName}</Text>
           <Text style={[styles.barberName, { color: COLORS.textSecondary }]}>con {item.barberName}</Text>
         </View>
@@ -91,9 +91,13 @@ export default function UserAppointments({ user, appointments, COLORS, isMobile 
               {item.status === 'unhandled' ? 'NO GESTIONADA' : 
                item.status === 'no_show' ? 'FALTÓ' : 
                item.status === 'checked_in' ? 'LLEGÓ' :
-               item.status === 'cancelled' ? 'CANCELADA' :
+               item.status === 'in_progress' ? 'EN SERVICIO' :
+               item.status === 'cancelled' ? (item.refundStatus === 'completed' ? 'REEMBOLSADO' : 'CANCELADA') :
                item.status === 'completed' ? 'COMPLETADA' :
-               item.status?.toUpperCase()}
+               item.status === 'confirmed' ? 'CONFIRMADA' :
+               item.status === 'rescheduled' ? 'REAGENDADA' :
+               item.status === 'pending_payment' ? 'PAGO PENDIENTE' :
+               item.status?.toUpperCase().replace('_', ' ')}
             </Text>
          </View>
       </View>

@@ -94,72 +94,72 @@ export const canChangeStatus = (appointment: any, newStatus: string): { allowed:
   const diffMs = appointmentTime.getTime() - now.getTime();
   const diffMins = diffMs / (1000 * 60);
 
-  // 1. Llegada (checked_in) - Máximo 60 min antes
+  // 1. Llegada (checked_in) - Solo si está CONFIRMADA y máximo 30 min antes
   if (newStatus === 'checked_in') {
+    if (appointment.status !== 'confirmed') {
+      return { allowed: false, message: "La llegada solo se puede marcar para citas confirmadas." };
+    }
     if (diffMins > 30) {
-      const hoursLeft = Math.floor(diffMins / 60);
-      const minsLeft = Math.round(diffMins % 60);
-      let waitMsg = `Aún es muy temprano.`;
-      if (hoursLeft > 0) {
-        waitMsg += ` Faltan ${hoursLeft}h ${minsLeft}m para la cita.`;
-      } else {
-        waitMsg += ` Faltan ${minsLeft} minutos para poder marcar la llegada (máx 30m antes).`;
-      }
+      const minsLeft = Math.round(diffMins);
       return { 
         allowed: false, 
-        message: waitMsg 
+        message: `Faltan ${minsLeft} minutos para poder marcar la llegada (máx 30m antes).` 
       };
     }
   }
 
-  // 2. Iniciar Corte (in_progress) - Máximo 15 min antes y debe haber llegado
+  // 2. Iniciar Corte (in_progress) - Solo si ya LLEGÓ (checked_in)
   if (newStatus === 'in_progress') {
     if (appointment.status !== 'checked_in') {
       return { 
         allowed: false, 
-        message: "El cliente aún no ha sido marcado como 'En Barbería'. Primero confirma su llegada." 
+        message: "Primero debes marcar que el cliente 'Llegó' antes de iniciar el corte." 
       };
     }
-    if (diffMins > 15) {
+    // Permitimos iniciar un poco antes si el cliente ya está ahí
+    if (diffMins > 20) {
       return { 
         allowed: false, 
-        message: `Aún no es hora de iniciar el corte. La cita es a las ${formatTime12h(appointment.time)}.` 
+        message: `Aún es muy temprano para iniciar el servicio de las ${formatTime12h(appointment.time)}.` 
       };
     }
   }
 
-  // 3. No Asistió (no_show) - Mínimo 15 min DESPUÉS de la hora de inicio y no debe haber iniciado
+  // 3. No Asistió (no_show) - Solo si está CONFIRMADA y han pasado 10 min
   if (newStatus === 'no_show') {
-    if (appointment.status === 'in_progress') {
+    if (appointment.status !== 'confirmed') {
       return {
         allowed: false,
-        message: "No puedes marcar como 'No Asistió' una cita que ya ha iniciado."
+        message: "No puedes marcar como 'No Asistió' si la cita ya inició o se canceló."
       };
     }
-    if (diffMins > -15) {
-      const waitTime = Math.ceil(15 + diffMins);
+    // Tolerancia de 10 minutos después de la hora
+    if (diffMins > -10) {
+      const waitTime = Math.ceil(10 + diffMins);
       return { 
         allowed: false, 
-        message: `Debes esperar ${waitTime} minutos más para que termine el periodo de tolerancia de 15 minutos.` 
+        message: `Espera ${waitTime} minutos más para que termine el periodo de tolerancia.` 
       };
     }
   }
 
-  // 4. Completar (completed) - Mínimo 5 min si estaba en progreso
+  // 4. Completar (completed) - Solo si está EN PROGRESO (in_progress)
   if (newStatus === 'completed') {
     if (appointment.status !== 'in_progress') {
       return {
         allowed: false,
-        message: "Solo puedes completar una cita que ya esté en progreso."
+        message: "Solo puedes completar una cita que esté marcada como 'Cortando'."
       };
     }
+    
+    // Validación de seguridad: mínimo 5 minutos de corte
     if (appointment.updatedAt) {
       const updatedAt = appointment.updatedAt.toDate ? appointment.updatedAt.toDate() : new Date(appointment.updatedAt);
       const elapsedMins = (now.getTime() - updatedAt.getTime()) / (1000 * 60);
       if (elapsedMins < 5) {
         return {
           allowed: false,
-          message: "El corte inició hace menos de 5 minutos. Asegúrate de que el servicio realmente haya terminado."
+          message: "El corte inició hace muy poco tiempo. Por favor espera a terminar el servicio."
         };
       }
     }
